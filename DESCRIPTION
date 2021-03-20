@@ -17,8 +17,7 @@ Description: Compute the inverse quantile regression estimator for instrumental
     variables quantile regression with multivariate endogenous variables
     by solving a mixed integer linear program that accomodates subvector
     inference.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
