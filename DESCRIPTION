@@ -1,13 +1,22 @@
 Package: ivqr
-Title: What the Package Does (One Line, Title Case)
+Title: Instrumental Variables Quantile Regression
 Version: 0.0.0.9000
-Authors@R: 
-    person(given = "First",
-           family = "Last",
+Authors@R: c(
+    person(given = "Guillaume",
+           family = "Pouliot",
+           role = c("aut")),
+    person(given = "Chenyue",
+           family = "Liu",
+           role = c("aut")),
+    person(given = "Omkar A.",
+           family = "Katta",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+           email = "omkarakatta@gmail.com")
+    )
+Description: Compute the inverse quantile regression estimator for instrumental
+    variables quantile regression with multivariate endogenous variables
+    by solving a mixed integer linear program that accomodates subvector
+    inference.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
 Encoding: UTF-8
