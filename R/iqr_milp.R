@@ -19,11 +19,11 @@
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param tau Quantile (number between 0 and 1)
-#' @param O_neg, O_pos Indices for residuals whose sign is fixed to be negative
+#' @param O_neg,O_pos Indices for residuals whose sign is fixed to be negative
 #'  and positive, respectively (vectors)
 #' @param M A large number that bounds the absolute value of the residuals
 #' (a positive number); defaults to 10
-#' @param params Gurobi parameters, see \link{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
+#' @param params Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
 iqr_milp <- function(Y,
                      X,
@@ -350,7 +350,7 @@ iqr_milp <- function(Y,
     out$k <- answer[(p_X + 2*p_Z + p_D + 3*n + 1):(p_X + 2*p_Z + p_D + 4*n)]
     out$l <- answer[(p_X + 2*p_Z + p_D + 4*n + 1):(p_X + 2*p_Z + p_D + 5*n)]
 
-    out$beta_Z <- beta_Z_plus - beta_Z_minus
+    out$beta_Z <- out$beta_Z_plus - out$beta_Z_minus
     out$objval <- answer$objval
   }
 
