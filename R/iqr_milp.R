@@ -24,6 +24,7 @@
 #' @param M A large number that bounds the absolute value of the residuals
 #' (a positive number); defaults to 10
 #' @param params Gurobi parameters, see \link{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
+#' @param quietly If TRUE (default), sends messages during execution (boolean)
 iqr_milp <- function(Y,
                      X,
                      D,
@@ -34,7 +35,8 @@ iqr_milp <- function(Y,
                      M,
                      params = list(TimeLimit = 300,
                                    FeasibilityTol = 1e-6,
-                                   OutputFlag = 0)) {
+                                   OutputFlag = 0),
+                     quietly = TRUE) {
 
   # Get dimensions of data
   n <- length(Y)
@@ -52,37 +54,6 @@ iqr_milp <- function(Y,
 
   # Create vector of 1s
   ones <- rep(1, n)
-
-  # Find indices of observations whose residuals are not fixed
-  O_neg <- sort(O_neg)
-  O_pos <- sort(O_pos)
-  O <- c(O_neg, O_pos)        # indices of fixed residuals
-  I <- setdiff(seq_len(n), O) # indices of free residuals
-  n_O <- length(O)            # number of fixed residuals
-  n_I <- length(I)            # number of free residuals
-  if (!is.null(O)) {
-    # If a residual is positive, then the associated k must be 1, which means
-    # the dual variable, a, must also be 1. Accordingly, the associated l must
-    # be 0.
-    # If a residual is negative, then the associated l must be 1, which means
-    # the dual variable, a, must also be 1. Accordingly, the associated k must
-    # be 0.
-
-    a_fix <- rep(NA_real_, n)
-    a_fix[O_pos] <- 1
-    a_fix[O_neg] <- 0
-    a_O <- a_fix[O]     # binary vector of fixed dual variables, length = n_O
-
-    k_fix <- rep(NA_real_, n)
-    k_fix[O_pos] <- 1
-    k_fix[O_neg] <- 0
-    k_O <- k_fix[O]
-
-    l_fix <- rep(NA_real_, n)
-    l_fix[O_pos] <- 0
-    l_fix[O_neg] <- 1
-    l_O <- l_fix[O]
-  }
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
@@ -226,5 +197,162 @@ iqr_milp <- function(Y,
              rep("B", n))   # l
 
   # Pre-processing: fix residuals of outliers
+  O_neg <- sort(O_neg)
+  O_pos <- sort(O_pos)
+  O <- c(O_neg, O_pos)        # indices of fixed residuals
+  if (!is.null(O)) {
+    # If a residual is positive, then the associated k must be 1, which means
+    # the dual variable, a, must also be 1. Accordingly, the associated l must
+    # be 0.
+    # If a residual is negative, then the associated l must be 1, which means
+    # the dual variable, a, must also be 1. Accordingly, the associated k must
+    # be 0.
+    fixed <- rep(0, n)
+    fixed[O] <- 1
 
+    A_pp_a <- c(rep(0, p_X),  # beta_X
+                rep(0, p_Z),  # beta_Z_plus
+                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_D),  # beta_D
+                rep(0, n),    # u
+                rep(0, n),    # v
+                fixed,        # a
+                rep(0, n),    # k
+                rep(0, n))    # l
+    b_a_fixed <- rep(0, n)
+    b_a_fixed[O_pos] <- 1
+    b_a_fixed[O_neg] <- 0
+    b_pp_a <- c(rep(0, p_X),  # beta_X
+                rep(0, p_Z),  # beta_Z_plus
+                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_D),  # beta_D
+                rep(0, n),    # u
+                rep(0, n),    # v
+                b_a_fixed,    # a
+                rep(0, n),    # k
+                rep(0, n))    # l
+    sense_pp_a <- rep("=", n)
+
+    A_pp_k <- c(rep(0, p_X),  # beta_X
+                rep(0, p_Z),  # beta_Z_plus
+                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_D),  # beta_D
+                rep(0, n),    # u
+                rep(0, n),    # v
+                rep(0, n),    # a
+                fixed,        # k
+                rep(0, n))    # l
+    b_k_fixed <- rep(0, n)
+    b_k_fixed[O_pos] <- 1
+    b_k_fixed[O_neg] <- 0
+    b_pp_k <- c(rep(0, p_X),  # beta_X
+                rep(0, p_Z),  # beta_Z_plus
+                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_D),  # beta_D
+                rep(0, n),    # u
+                rep(0, n),    # v
+                rep(0, n),    # a
+                b_k_fixed,    # k
+                rep(0, n))    # l
+    sense_pp_k <- rep("=", n)
+
+    A_pp_l <- c(rep(0, p_X),  # beta_X
+                rep(0, p_Z),  # beta_Z_plus
+                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_D),  # beta_D
+                rep(0, n),    # u
+                rep(0, n),    # v
+                rep(0, n),    # a
+                rep(0, n),    # k
+                fixed)        # l
+    b_l_fixed <- rep(0, n)
+    b_l_fixed[O_pos] <- 0
+    b_l_fixed[O_neg] <- 1
+    b_pp_l <- c(rep(0, p_X),  # beta_X
+                rep(0, p_Z),  # beta_Z_plus
+                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_D),  # beta_D
+                rep(0, n),    # u
+                rep(0, n),    # v
+                rep(0, n),    # a
+                rep(0, n),    # k
+                b_l_fixed)    # l
+    sense_pp_l <- rep("=", n)
+
+  } else {
+    A_pp_a <- c()
+    b_pp_a <- c()
+    sense_pp_a <- c()
+    A_pp_k <- c()
+    b_pp_k <- c()
+    sense_pp_k <- c()
+    A_pp_l <- c()
+    b_pp_l <- c()
+    sense_pp_l <- c()
+  }
+
+  # Putting it all together
+  iqr <- list()
+  iqr$obj <- obj
+  iqr$A <- rbind(A_pf,    # Primal Feasibility
+                 A_df_X,  # Dual Feasibility - X
+                 A_df_Z,  # Dual Feasibility - Z
+                 A_cs_uk, # Complementary Slackness - u and k
+                 A_cs_vl, # Complementary Slackness - v and l
+                 A_cs_ak, # Complementary Slackness - a and k
+                 A_cs_al, # Complementary Slackness - a and l
+                 A_pp_a,  # Pre-processing - fixing a
+                 A_pp_k,  # Pre-processing - fixing k
+                 A_pp_l)  # Pre-processing - fixing l
+  iqr$rhs <- rbind(b_pf,    # Primal Feasibility
+                   b_df_X,  # Dual Feasibility - X
+                   b_df_Z,  # Dual Feasibility - Z
+                   b_cs_uk, # Complementary Slackness - u and k
+                   b_cs_vl, # Complementary Slackness - v and l
+                   b_cs_ak, # Complementary Slackness - a and k
+                   b_cs_al, # Complementary Slackness - a and l
+                   b_pp_a,  # Pre-processing - fixing a
+                   b_pp_k,  # Pre-processing - fixing k
+                   b_pp_l)  # Pre-processing - fixing l
+  iqr$sense <- rbind(sense_pf,    # Primal Feasibility
+                     sense_df_X,  # Dual Feasibility - X
+                     sense_df_Z,  # Dual Feasibility - Z
+                     sense_cs_uk, # Complementary Slackness - u and k
+                     sense_cs_vl, # Complementary Slackness - v and l
+                     sense_cs_ak, # Complementary Slackness - a and k
+                     sense_cs_al, # Complementary Slackness - a and l
+                     sense_pp_a,  # Pre-processing - fixing a
+                     sense_pp_k,  # Pre-processing - fixing k
+                     sense_pp_l)  # Pre-processing - fixing l
+  iqr$lb <- lb
+  iqr$ub <- ub
+  iqr$vtype <- vtype
+  iqr$modelsense <- "min"
+  result <- gurobi::gurobi(iqr, params)
+
+  # Return results
+  status <- result$status
+  msg <- paste("Status of IQR program:", status)
+  send_note_if(msg, !quietly, message)  # Print status of program if !quietly
+
+  out <- list() # Initialize list of results to return
+  out$result <- result
+  out$status <- status
+  if (status %in% c("OPTIMAL", "SUBOPTIMAL")) {
+    answer <- result$answer
+    out$beta_X <- answer[1:p_X]
+    out$beta_Z_plus <- answer[(p_X + 1):(p_X + p_Z)]
+    out$beta_Z_minus <- answer[(p_X + p_Z + 1):(p_X + 2*p_Z)]
+    out$beta_D <- answer[(p_X + 2*p_Z + 1):(p_X + 2*p_Z + p_D)]
+    out$u <- answer[(p_X + 2*p_Z + p_D + 1):(p_X + 2*p_Z + p_D + n)]
+    out$v <- answer[(p_X + 2*p_Z + p_D + n + 1):(p_X + 2*p_Z + p_D + 2*n)]
+    out$a <- answer[(p_X + 2*p_Z + p_D + 2*n + 1):(p_X + 2*p_Z + p_D + 3*n)]
+    out$k <- answer[(p_X + 2*p_Z + p_D + 3*n + 1):(p_X + 2*p_Z + p_D + 4*n)]
+    out$l <- answer[(p_X + 2*p_Z + p_D + 4*n + 1):(p_X + 2*p_Z + p_D + 5*n)]
+
+    out$beta_Z <- beta_Z_plus - beta_Z_minus
+    out$objval <- answer$objval
+  }
+
+  return(out)
 }
