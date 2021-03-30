@@ -25,6 +25,24 @@
 #' (a positive number); defaults to 10
 #' @param params Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
+#'
+#' @return A named list of
+#'  \enumerate{
+#'    \item result: solution to MILP returned by Gurobi
+#'    \item status: status of Gurobi's solution
+#'    \item beta_X: coefficients on exogenous variables
+#'    \item beta_Z_plus: positive part of coefficients on instruments
+#'    \item beta_Z_minus: negative part of coefficients on instruments
+#'    \item beta_D: coefficients on endogenous variables
+#'    \item u: positive part of residuals
+#'    \item v: negative part of residuals
+#'    \item a: dual variable
+#'    \item k: binary variable associated with u
+#'    \item l: binary variable associated with v
+#'    \item beta_Z: coefficients on instruments (beta_Z_plus - beta_Z_minus)
+#'    \item resid: residuals (u - v)
+#'    \item objval: value of objective function (absolute value of beta_Z)
+#'  }
 iqr_milp <- function(Y,
                      X,
                      D,
@@ -351,6 +369,7 @@ iqr_milp <- function(Y,
     out$l <- answer[(p_X + 2*p_Z + p_D + 4*n + 1):(p_X + 2*p_Z + p_D + 5*n)]
 
     out$beta_Z <- out$beta_Z_plus - out$beta_Z_minus
+    out$resid <- out$u - out$v
     out$objval <- answer$objval
   }
 
