@@ -14,22 +14,62 @@
 #'
 #' Fix the sign of outliers' residuals to solve the IQR MILP more quickly
 #'
+#' Obtain the residuals from a quantile regression of \code{Y} on \code{D} and
+#' \code{X}. Use these residuals to guide which ones are the outliers, and fix
+#' their dual variables. In particular, fix the sign of the dual variables
+#' associated with residuals whose magnitude is larger than the
+#' \eqn{\alpha}-percentile of the absolute residuals.
+#' (Note that the initial value of \eqn{\alpha} is given by
+#' \code{prop_alpha_initial}.)
+#' Then, solve the preprocessed MILP.
+#'
+#' If the minimized objective of the preprocessed MILP is not 0,
+#' then too many dual variables have been fixed.
+#' So, relax the number of fixed dual variables by multiplying the bandwidth
+#' \eqn{alpha} by \code{r}. Note that \code{r} should be at least 1 to ensure
+#' we are relaxing our preprocessing constraints. We then solve the relaxed
+#' preprocessed MILP.
+#'
+#' We repeatedly relax our preprocessing until the minimized objective is
+#' finally 0.
+#'
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param tau Quantile (number strictly between 0 and 1)
-#' @param prop_alpha_initial Proportion of residuals that are \emph{not} fixed
-#'  at the start;thus, 1 - \code{alpha_initial} is the proportion of
-#'  observations whose residuals are indeed fixed at the start;
+#' @param prop_alpha_initial Initial value of the bandwidth \eqn{alpha};
+#'  thus, 1 - \code{prop_alpha_initial} is the proportion of observations whose
+#'  dual variables (i.e., sign of the residuals) are fixed at the start
+#'  (number between 0 and 1)
+#' @param r Rate at which we increase the bandwidth (\eqn{alpha}) at every
+#'  iteration (number greater than 1)
+#' @param show_iterations If TRUE, print the iteration number to the console;
+#'  defaults to FALSE (boolean)
+#' @param ... Arguments that will be passed to \code{\link{iqr_milp}}
 #'
-#'
+#' @return A named list of
+#'  \enumerate{
+#'    \item final_fit: output of \code{\link{iqr_milp}} from the final
+#'      iteration
+#'    \item time: time elapsed for this function to run
+#'    \item iteration: number of iterations before objective is 0
+#'    \item O_neg: indices for residuals that are fixed to be negative
+#'      by the final iteration
+#'    \item O_pos: indices for residuals that are fixed to be positive
+#'      by the final iteration
+#'  }
 preprocess_iqr_milp <- function(Y,
                                 D,
                                 X,
                                 Z,
                                 tau,
-                                prop_alpha_initial = 0.7) {
+                                prop_alpha_initial = 0.7,
+                                r = 1.25,
+                                show_iterations = FALSE,
+                                ...) {
+  # Start the clock
+  clock_start <- Sys.time()
 
   # Get dimensions of data
   n <- length(Y)
@@ -47,7 +87,7 @@ preprocess_iqr_milp <- function(Y,
   alpha_initial <- quantile(abs(resid), prop_alpha_initial)
 
   # Start the while loop
-  alpha <- width_initial
+  alpha <- alpha_initial
   status <- "TIME_LIMIT"
 
   # Continue the while loop if the program took too long to solve or if
@@ -55,10 +95,51 @@ preprocess_iqr_milp <- function(Y,
   # if the program is infeasible, i.e., the objective was NULL, we also
   # continue the while loop (we mechanically set the objective to be nonzero
   # later in the code).
+  counter <- 1
   while (status == "TIME_LIMIT" | obj != 0) {
     # Fix the most negative and most positive residuals
     O_neg <- which(Y < -1 * alpha)
     O_pos <- which(Y > alpha)
+    O <- c(O_neg, O_pos)
+    # Heuristic for time limit
+    if (length(O) == 0) {
+      TT <- Inf
+    } else {
+      num_free <- n - length(O)
+      TT <- exp(num_free / 200 + p_D / 5 + num_free * p_D / 1000) * 4
+    }
+    fit <- iqr_milp(Y = Y,
+                    X = X,
+                    D = D,
+                    Z = Z,
+                    tau = tau,
+                    O_neg = O_neg,
+                    O_pos = O_pos,
+                    TimeLimit = TT,
+                    ...)
+    if (is.null(fit$objval)) {
+      obj <- 0.5
+    }
+    status <- fit$status
+    alpha <- alpha * r
+    if (show_iterations) {
+      print("Iteration", counter)
+    }
+    counter <- counter + 1
   }
+
+  # Stop the clock
+  clock_end <- Sys.time()
+  elapsed_time <- difftime(clock_end, clock_start, units = "mins")
+
+  # Return results
+  out <- list()
+  out$final_fit <- fit
+  out$time <- elapsed_time
+  out$O_neg <- O_neg
+  out$O_pos <- O_pos
+  out$iterations <- counter
+
+  return(out)
 }
 

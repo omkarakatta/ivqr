@@ -23,6 +23,8 @@
 #'  and positive, respectively (vectors)
 #' @param M A large number that bounds the absolute value of the residuals
 #' (a positive number); defaults to 10
+#' @param TimeLimit Maximum time (in seconds) spent on a linear program;
+#'  defaults to 300, will be appended to \code{params}
 #' @param params Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
 #'
@@ -51,8 +53,8 @@ iqr_milp <- function(Y,
                      O_neg,
                      O_pos,
                      M,
-                     params = list(TimeLimit = 300,
-                                   FeasibilityTol = 1e-6,
+                     TimeLimit = 300,
+                     params = list(FeasibilityTol = 1e-6,
                                    OutputFlag = 0),
                      quietly = TRUE) {
 
@@ -346,6 +348,7 @@ iqr_milp <- function(Y,
   iqr$ub <- ub
   iqr$vtype <- vtype
   iqr$modelsense <- "min"
+  params$TimeLimit <- TimeLimit
   result <- gurobi::gurobi(iqr, params)
 
   # Return results
