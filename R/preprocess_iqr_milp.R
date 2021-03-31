@@ -84,7 +84,7 @@ preprocess_iqr_milp <- function(Y,
   resid <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
 
   # Determine initial residual bounds
-  alpha_initial <- quantile(abs(resid), prop_alpha_initial)
+  alpha_initial <- stats::quantile(abs(resid), prop_alpha_initial)
 
   # Start the while loop
   alpha <- alpha_initial
