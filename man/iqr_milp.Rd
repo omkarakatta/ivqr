@@ -13,7 +13,8 @@ iqr_milp(
   O_neg,
   O_pos,
   M,
-  params = list(TimeLimit = 300, FeasibilityTol = 1e-06, OutputFlag = 0),
+  TimeLimit = 300,
+  params = list(FeasibilityTol = 1e-06, OutputFlag = 0),
   quietly = TRUE
 )
 }
@@ -34,9 +35,31 @@ and positive, respectively (vectors)}
 \item{M}{A large number that bounds the absolute value of the residuals
 (a positive number); defaults to 10}
 
+\item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
+defaults to 300, will be appended to \code{params}}
+
 \item{params}{Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}
 
 \item{quietly}{If TRUE (default), sends messages during execution (boolean)}
+}
+\value{
+A named list of
+\enumerate{
+\item result: solution to MILP returned by Gurobi
+\item status: status of Gurobi's solution
+\item beta_X: coefficients on exogenous variables
+\item beta_Z_plus: positive part of coefficients on instruments
+\item beta_Z_minus: negative part of coefficients on instruments
+\item beta_D: coefficients on endogenous variables
+\item u: positive part of residuals
+\item v: negative part of residuals
+\item a: dual variable
+\item k: binary variable associated with u
+\item l: binary variable associated with v
+\item beta_Z: coefficients on instruments (beta_Z_plus - beta_Z_minus)
+\item resid: residuals (u - v)
+\item objval: value of objective function (absolute value of beta_Z)
+}
 }
 \description{
 Solve a mixed integer linear program to compute the inverse
