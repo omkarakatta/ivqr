@@ -25,6 +25,9 @@
 #' (a positive number); defaults to 10
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
 #'  defaults to 300, will be appended to \code{params}
+#' @param projection If TRUE (default), project D on the space spanned by X and
+#'  Z to construct the vector of functions of transformed instruments; else,
+#'  let Z be the instruments for endogenous variables
 #' @param params Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
 #'
@@ -33,17 +36,17 @@
 #'    \item result: solution to MILP returned by Gurobi
 #'    \item status: status of Gurobi's solution
 #'    \item beta_X: coefficients on exogenous variables
-#'    \item beta_Z_plus: positive part of coefficients on instruments
-#'    \item beta_Z_minus: negative part of coefficients on instruments
+#'    \item beta_Phi_plus: positive part of coefficients on instruments
+#'    \item beta_Phi_minus: negative part of coefficients on instruments
 #'    \item beta_D: coefficients on endogenous variables
 #'    \item u: positive part of residuals
 #'    \item v: negative part of residuals
 #'    \item a: dual variable
 #'    \item k: binary variable associated with u
 #'    \item l: binary variable associated with v
-#'    \item beta_Z: coefficients on instruments (beta_Z_plus - beta_Z_minus)
+#'    \item beta_Phi: coefficients on instruments (beta_Phi_plus - beta_Phi_minus)
 #'    \item resid: residuals (u - v)
-#'    \item objval: value of objective function (absolute value of beta_Z)
+#'    \item objval: value of objective function (absolute value of beta_Phi)
 #'  }
 iqr_milp <- function(Y,
                      X,
@@ -54,6 +57,7 @@ iqr_milp <- function(Y,
                      O_pos,
                      M,
                      TimeLimit = 300,
+                     projection = TRUE,
                      params = list(FeasibilityTol = 1e-6,
                                    OutputFlag = 0),
                      quietly = TRUE) {
@@ -75,10 +79,19 @@ iqr_milp <- function(Y,
   # Create vector of 1s
   ones <- rep(1, n)
 
+  if (projection) {
+    # Obtain fitted values from projecting D on Z and X
+    Z_and_X <- cbind(Z, X)
+    Phi <- Z_and_X %*% solve( t(Z_and_X) %*% Z_and_X ) %*% t(Z_and_X) %*% D
+  } else {
+    Phi <- Z
+  }
+  p_Phi <- ncol(Phi)
+
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
-  # 2. beta_Z_plus
-  # 3. beta_Z_minus ; note: abs(beta_Z) = beta_Z_plus + beta_Z_minus
+  # 2. beta_Phi_plus
+  # 3. beta_Phi_minus ; note: abs(beta_Phi) = beta_Phi_plus + beta_Phi_minus
   # 4. beta_D
   # 5. u
   # 6. v
@@ -86,10 +99,10 @@ iqr_milp <- function(Y,
   # 8. k
   # 9. l
 
-  # Objective: minimize absolute value of \beta_Z
+  # Objective: minimize absolute value of \beta_Phi
   obj <- c(rep(0, p_X), # beta_X
-           rep(1, p_Z), # beta_Z_plus
-           rep(1, p_Z), # beta_Z_minus
+           rep(1, p_Phi), # beta_Phi_plus
+           rep(1, p_Phi), # beta_Phi_minus
            rep(0, p_D), # beta_D
            rep(0, n),   # u
            rep(0, n),   # v
@@ -99,8 +112,8 @@ iqr_milp <- function(Y,
 
   # Primal Feasibility Constraint (11)
   A_pf <- cbind(X,                  # beta_X
-                Z,                  # beta_Z_plus
-                -Z,                 # beta_Z_minus
+                Phi,                  # beta_Phi_plus
+                -Phi,                 # beta_Phi_minus
                 D,                  # beta_D
                 diag(1, nrow = n),  # u
                 -diag(1, nrow = n), # v
@@ -112,8 +125,8 @@ iqr_milp <- function(Y,
 
   # Dual Feasibility Constraint (13) and (14)
   A_df_X <- cbind(diag(0, nrow = n),  # beta_X
-                  diag(0, nrow = n),  # beta_Z_plus
-                  diag(0, nrow = n),  # beta_Z_minus
+                  diag(0, nrow = n),  # beta_Phi_plus
+                  diag(0, nrow = n),  # beta_Phi_minus
                   diag(0, nrow = n),  # beta_D
                   diag(0, nrow = n),  # u
                   diag(0, nrow = n),  # v
@@ -124,22 +137,22 @@ iqr_milp <- function(Y,
   sense_df_X <- rep("=", p_X)
 
 
-  A_df_Z <- cbind(diag(0, nrow = n),  # beta_X
-                  diag(0, nrow = n),  # beta_Z_plus
-                  diag(0, nrow = n),  # beta_Z_minus
-                  diag(0, nrow = n),  # beta_D
-                  diag(0, nrow = n),  # u
-                  diag(0, nrow = n),  # v
-                  t(Z),               # a
-                  diag(0, nrow = n),  # k
-                  diag(0, nrow = n))  # l
-  b_df_Z <- (1 - tau) * t(Z) %*% ones
-  sense_df_Z <- rep("=", p_Z)
+  A_df_Phi <- cbind(diag(0, nrow = n),  # beta_X
+                    diag(0, nrow = n),  # beta_Phi_plus
+                    diag(0, nrow = n),  # beta_Phi_minus
+                    diag(0, nrow = n),  # beta_D
+                    diag(0, nrow = n),  # u
+                    diag(0, nrow = n),  # v
+                    t(Phi),             # a
+                    diag(0, nrow = n),  # k
+                    diag(0, nrow = n))  # l
+  b_df_Phi <- (1 - tau) * t(Phi) %*% ones
+  sense_df_Phi <- rep("=", p_Phi)
 
   # Complementary Slackness (16) and (17)
   A_cs_uk <- cbind(diag(0, nrow = n),       # beta_X
-                   diag(0, nrow = n),       # beta_Z_plus
-                   diag(0, nrow = n),       # beta_Z_minus
+                   diag(0, nrow = n),       # beta_Phi_plus
+                   diag(0, nrow = n),       # beta_Phi_minus
                    diag(0, nrow = n),       # beta_D
                    diag(1, nrow = n),       # u
                    diag(0, nrow = n),       # v
@@ -150,8 +163,8 @@ iqr_milp <- function(Y,
   sense_cs_uk <- rep("<=", n)
 
   A_cs_vl <- cbind(diag(0, nrow = n),       # beta_X
-                   diag(0, nrow = n),       # beta_Z_plus
-                   diag(0, nrow = n),       # beta_Z_minus
+                   diag(0, nrow = n),       # beta_Phi_plus
+                   diag(0, nrow = n),       # beta_Phi_minus
                    diag(0, nrow = n),       # beta_D
                    diag(0, nrow = n),       # u
                    diag(1, nrow = n),       # v
@@ -162,8 +175,8 @@ iqr_milp <- function(Y,
   sense_cs_vl <- rep("<=", n)
 
   A_cs_ak <- cbind(diag(0, nrow = n),   # beta_X
-                   diag(0, nrow = n),   # beta_Z_plus
-                   diag(0, nrow = n),   # beta_Z_minus
+                   diag(0, nrow = n),   # beta_Phi_plus
+                   diag(0, nrow = n),   # beta_Phi_minus
                    diag(0, nrow = n),   # beta_D
                    diag(0, nrow = n),   # u
                    diag(0, nrow = n),   # v
@@ -174,8 +187,8 @@ iqr_milp <- function(Y,
   sense_cs_ak <- rep(">=", n)
 
   A_cs_al <- cbind(diag(0, nrow = n), # beta_X
-                   diag(0, nrow = n), # beta_Z_plus
-                   diag(0, nrow = n), # beta_Z_minus
+                   diag(0, nrow = n), # beta_Phi_plus
+                   diag(0, nrow = n), # beta_Phi_minus
                    diag(0, nrow = n), # beta_D
                    diag(0, nrow = n), # u
                    diag(0, nrow = n), # v
@@ -187,8 +200,8 @@ iqr_milp <- function(Y,
 
   # Non-negativity and Boundedness Constraints (12) and (15)
   lb <- c(rep(-Inf, p_X), # beta_X
-          rep(0, p_Z),    # beta_Z_plus
-          rep(0, p_Z),    # beta_Z_minus
+          rep(0, p_Phi),    # beta_Phi_plus
+          rep(0, p_Phi),    # beta_Phi_minus
           rep(-Inf, p_D), # beta_D
           rep(0, n),      # u
           rep(0, n),      # v
@@ -196,8 +209,8 @@ iqr_milp <- function(Y,
           rep(0, n),      # k
           rep(0, n))      # l
   ub <- c(rep(Inf, p_X),  # beta_X
-          rep(Inf, p_Z),  # beta_Z_plus
-          rep(Inf, p_Z),  # beta_Z_minus
+          rep(Inf, p_Phi),  # beta_Phi_plus
+          rep(Inf, p_Phi),  # beta_Phi_minus
           rep(Inf, p_D),  # beta_D
           rep(Inf, n),    # u
           rep(Inf, n),    # v
@@ -207,8 +220,8 @@ iqr_milp <- function(Y,
 
   # Integrality Constraint (see vtype) (18)
   vtype <- c(rep("C", p_X), # beta_X
-             rep("C", p_Z), # beta_Z_plus
-             rep("C", p_Z), # beta_Z_minus
+             rep("C", p_Phi), # beta_Phi_plus
+             rep("C", p_Phi), # beta_Phi_minus
              rep("C", p_D), # beta_D
              rep("C", n),   # u
              rep("C", n),   # v
@@ -231,8 +244,8 @@ iqr_milp <- function(Y,
     fixed[O] <- 1
 
     A_pp_a <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Z),  # beta_Z_plus
-                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_Phi),  # beta_Phi_plus
+                rep(0, p_Phi),  # beta_Phi_minus
                 rep(0, p_D),  # beta_D
                 rep(0, n),    # u
                 rep(0, n),    # v
@@ -243,8 +256,8 @@ iqr_milp <- function(Y,
     b_a_fixed[O_pos] <- 1
     b_a_fixed[O_neg] <- 0
     b_pp_a <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Z),  # beta_Z_plus
-                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_Phi),  # beta_Phi_plus
+                rep(0, p_Phi),  # beta_Phi_minus
                 rep(0, p_D),  # beta_D
                 rep(0, n),    # u
                 rep(0, n),    # v
@@ -254,8 +267,8 @@ iqr_milp <- function(Y,
     sense_pp_a <- rep("=", n)
 
     A_pp_k <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Z),  # beta_Z_plus
-                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_Phi),  # beta_Phi_plus
+                rep(0, p_Phi),  # beta_Phi_minus
                 rep(0, p_D),  # beta_D
                 rep(0, n),    # u
                 rep(0, n),    # v
@@ -266,8 +279,8 @@ iqr_milp <- function(Y,
     b_k_fixed[O_pos] <- 1
     b_k_fixed[O_neg] <- 0
     b_pp_k <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Z),  # beta_Z_plus
-                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_Phi),  # beta_Phi_plus
+                rep(0, p_Phi),  # beta_Phi_minus
                 rep(0, p_D),  # beta_D
                 rep(0, n),    # u
                 rep(0, n),    # v
@@ -277,8 +290,8 @@ iqr_milp <- function(Y,
     sense_pp_k <- rep("=", n)
 
     A_pp_l <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Z),  # beta_Z_plus
-                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_Phi),  # beta_Phi_plus
+                rep(0, p_Phi),  # beta_Phi_minus
                 rep(0, p_D),  # beta_D
                 rep(0, n),    # u
                 rep(0, n),    # v
@@ -289,8 +302,8 @@ iqr_milp <- function(Y,
     b_l_fixed[O_pos] <- 0
     b_l_fixed[O_neg] <- 1
     b_pp_l <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Z),  # beta_Z_plus
-                rep(0, p_Z),  # beta_Z_minus
+                rep(0, p_Phi),  # beta_Phi_plus
+                rep(0, p_Phi),  # beta_Phi_minus
                 rep(0, p_D),  # beta_D
                 rep(0, n),    # u
                 rep(0, n),    # v
@@ -316,7 +329,7 @@ iqr_milp <- function(Y,
   iqr$obj <- obj
   iqr$A <- rbind(A_pf,    # Primal Feasibility
                  A_df_X,  # Dual Feasibility - X
-                 A_df_Z,  # Dual Feasibility - Z
+                 A_df_Phi,  # Dual Feasibility - Phi
                  A_cs_uk, # Complementary Slackness - u and k
                  A_cs_vl, # Complementary Slackness - v and l
                  A_cs_ak, # Complementary Slackness - a and k
@@ -326,7 +339,7 @@ iqr_milp <- function(Y,
                  A_pp_l)  # Pre-processing - fixing l
   iqr$rhs <- rbind(b_pf,    # Primal Feasibility
                    b_df_X,  # Dual Feasibility - X
-                   b_df_Z,  # Dual Feasibility - Z
+                   b_df_Phi,  # Dual Feasibility - Phi
                    b_cs_uk, # Complementary Slackness - u and k
                    b_cs_vl, # Complementary Slackness - v and l
                    b_cs_ak, # Complementary Slackness - a and k
@@ -336,7 +349,7 @@ iqr_milp <- function(Y,
                    b_pp_l)  # Pre-processing - fixing l
   iqr$sense <- rbind(sense_pf,    # Primal Feasibility
                      sense_df_X,  # Dual Feasibility - X
-                     sense_df_Z,  # Dual Feasibility - Z
+                     sense_df_Phi,  # Dual Feasibility - Phi
                      sense_cs_uk, # Complementary Slackness - u and k
                      sense_cs_vl, # Complementary Slackness - v and l
                      sense_cs_ak, # Complementary Slackness - a and k
@@ -362,16 +375,16 @@ iqr_milp <- function(Y,
   if (status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$answer
     out$beta_X <- answer[1:p_X]
-    out$beta_Z_plus <- answer[(p_X + 1):(p_X + p_Z)]
-    out$beta_Z_minus <- answer[(p_X + p_Z + 1):(p_X + 2*p_Z)]
-    out$beta_D <- answer[(p_X + 2*p_Z + 1):(p_X + 2*p_Z + p_D)]
-    out$u <- answer[(p_X + 2*p_Z + p_D + 1):(p_X + 2*p_Z + p_D + n)]
-    out$v <- answer[(p_X + 2*p_Z + p_D + n + 1):(p_X + 2*p_Z + p_D + 2*n)]
-    out$a <- answer[(p_X + 2*p_Z + p_D + 2*n + 1):(p_X + 2*p_Z + p_D + 3*n)]
-    out$k <- answer[(p_X + 2*p_Z + p_D + 3*n + 1):(p_X + 2*p_Z + p_D + 4*n)]
-    out$l <- answer[(p_X + 2*p_Z + p_D + 4*n + 1):(p_X + 2*p_Z + p_D + 5*n)]
+    out$beta_Phi_plus <- answer[(p_X + 1):(p_X + p_Phi)]
+    out$beta_Phi_minus <- answer[(p_X + p_Phi + 1):(p_X + 2*p_Phi)]
+    out$beta_D <- answer[(p_X + 2*p_Phi + 1):(p_X + 2*p_Phi + p_D)]
+    out$u <- answer[(p_X + 2*p_Phi + p_D + 1):(p_X + 2*p_Phi + p_D + n)]
+    out$v <- answer[(p_X + 2*p_Phi + p_D + n + 1):(p_X + 2*p_Phi + p_D + 2*n)]
+    out$a <- answer[(p_X + 2*p_Phi + p_D + 2*n + 1):(p_X + 2*p_Phi + p_D + 3*n)]
+    out$k <- answer[(p_X + 2*p_Phi + p_D + 3*n + 1):(p_X + 2*p_Phi + p_D + 4*n)]
+    out$l <- answer[(p_X + 2*p_Phi + p_D + 4*n + 1):(p_X + 2*p_Phi + p_D + 5*n)]
 
-    out$beta_Z <- out$beta_Z_plus - out$beta_Z_minus
+    out$beta_Phi <- out$beta_Phi_plus - out$beta_Phi_minus
     out$resid <- out$u - out$v
     out$objval <- answer$objval
   }
