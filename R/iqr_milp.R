@@ -34,6 +34,8 @@
 #'
 #' @return A named list of
 #'  \enumerate{
+#'    \item iqr: Gurobi model that was solved
+#'    \item params: Gurobi parameters used
 #'    \item result: solution to MILP returned by Gurobi
 #'    \item status: status of Gurobi's solution
 #'    \item beta_X: coefficients on exogenous variables
@@ -460,6 +462,8 @@ iqr_milp <- function(Y,
   send_note_if(msg, !quietly, message)  # Print status of program if !quietly
 
   out <- list() # Initialize list of results to return
+  out$iqr <- iqr
+  out$params <- params
   out$result <- result
   out$status <- status
   if (status %in% c("OPTIMAL", "SUBOPTIMAL")) {
