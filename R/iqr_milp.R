@@ -125,28 +125,28 @@ iqr_milp <- function(Y,
   sense_pf <- rep("=", n)
 
   # Dual Feasibility Constraint (13) and (14)
-  A_df_X <- cbind(diag(0, nrow = n),  # beta_X
-                  diag(0, nrow = n),  # beta_Phi_plus
-                  diag(0, nrow = n),  # beta_Phi_minus
-                  diag(0, nrow = n),  # beta_D
-                  diag(0, nrow = n),  # u
-                  diag(0, nrow = n),  # v
-                  t(X),               # a
-                  diag(0, nrow = n),  # k
-                  diag(0, nrow = n))  # l
+  A_df_X <- cbind(diag(0, nrow = p_X),  # beta_X
+                  diag(0, nrow = p_X),  # beta_Phi_plus
+                  diag(0, nrow = p_X),  # beta_Phi_minus
+                  diag(0, nrow = p_X),  # beta_D
+                  diag(0, nrow = p_X),  # u
+                  diag(0, nrow = p_X),  # v
+                  t(X),                 # a
+                  diag(0, nrow = p_X),  # k
+                  diag(0, nrow = p_X))  # l
   b_df_X <- (1 - tau) * t(X) %*% ones
   sense_df_X <- rep("=", p_X)
 
 
-  A_df_Phi <- cbind(diag(0, nrow = n),  # beta_X
-                    diag(0, nrow = n),  # beta_Phi_plus
-                    diag(0, nrow = n),  # beta_Phi_minus
-                    diag(0, nrow = n),  # beta_D
-                    diag(0, nrow = n),  # u
-                    diag(0, nrow = n),  # v
+  A_df_Phi <- cbind(diag(0, nrow = p_Phi),  # beta_X
+                    diag(0, nrow = p_Phi),  # beta_Phi_plus
+                    diag(0, nrow = p_Phi),  # beta_Phi_minus
+                    diag(0, nrow = p_Phi),  # beta_D
+                    diag(0, nrow = p_Phi),  # u
+                    diag(0, nrow = p_Phi),  # v
                     t(Phi),             # a
-                    diag(0, nrow = n),  # k
-                    diag(0, nrow = n))  # l
+                    diag(0, nrow = p_Phi),  # k
+                    diag(0, nrow = p_Phi))  # l
   b_df_Phi <- (1 - tau) * t(Phi) %*% ones
   sense_df_Phi <- rep("=", p_Phi)
 
