@@ -54,9 +54,9 @@ iqr_milp <- function(Y,
                      D,
                      Z,
                      tau,
-                     O_neg,
-                     O_pos,
-                     M,
+                     O_neg = NULL,
+                     O_pos = NULL,
+                     M = NULL,
                      TimeLimit = 300,
                      projection = TRUE,
                      params = list(FeasibilityTol = 1e-6,
@@ -90,6 +90,12 @@ iqr_milp <- function(Y,
     Phi <- Z
   }
   p_Phi <- ncol(Phi)
+
+  # Choose default M is M is not specified
+  if (is.null(M)) {
+    sd_qr <- sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    M <- 10 * sd_qr
+  }
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
