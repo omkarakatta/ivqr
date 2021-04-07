@@ -80,9 +80,10 @@ iqr_milp <- function(Y,
   ones <- rep(1, n)
 
   if (projection) {
-    # Obtain fitted values from projecting D on Z and X
-    Z_and_X <- cbind(Z, X)
-    Phi <- Z_and_X %*% solve( t(Z_and_X) %*% Z_and_X ) %*% t(Z_and_X) %*% D
+    # Obtain fitted values from projecting D on space spanned by X and Z
+    XZ <- cbind(X, Z)
+    proj_matrix <- solve(t(XZ) %*% XZ) %*% t(XZ) %*% D
+    Phi <- XZ %*% proj_matrix
   } else {
     Phi <- Z
   }
