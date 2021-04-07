@@ -27,9 +27,10 @@
 #'  defaults to 300, will be appended to \code{params}
 #' @param projection If TRUE (default), project D on the space spanned by X and
 #'  Z to construct the vector of functions of transformed instruments; else,
-#'  let Z be the instruments for endogenous variables
+#'  let Z be the instruments for endogenous variables (boolean)
 #' @param params Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
+#' @param show_progress If TRUE (default), sends progress messages during execution (boolean)
 #'
 #' @return A named list of
 #'  \enumerate{
@@ -60,7 +61,8 @@ iqr_milp <- function(Y,
                      projection = TRUE,
                      params = list(FeasibilityTol = 1e-6,
                                    OutputFlag = 0),
-                     quietly = TRUE) {
+                     quietly = TRUE,
+                     show_progress = TRUE) {
 
   # Get dimensions of data
   n <- length(Y)
@@ -100,6 +102,8 @@ iqr_milp <- function(Y,
   # 8. k
   # 9. l
 
+  num_decision_vars <- p_X + 2 * p_Phi + p_D + 5 * n
+
   # Objective: minimize absolute value of \beta_Phi
   obj <- c(rep(0, p_X), # beta_X
            rep(1, p_Phi), # beta_Phi_plus
@@ -110,6 +114,7 @@ iqr_milp <- function(Y,
            rep(0, n),   # a
            rep(0, n),   # k
            rep(0, n))   # l
+  stopifnot(length(obj) == num_decision_vars)
 
   # Primal Feasibility Constraint (11)
   A_pf <- cbind(X,                  # beta_X
@@ -124,80 +129,122 @@ iqr_milp <- function(Y,
   b_pf <- Y
   sense_pf <- rep("=", n)
 
+  stopifnot(ncol(A_pf) == num_decision_vars)
+  stopifnot(length(b_pf) == n)
+  stopifnot(length(sense_pf) == n)
+  msg <- paste("Primal Feasibility Complete.")
+  send_note_if(msg, show_progress, message)
+
   # Dual Feasibility Constraint (13) and (14)
-  A_df_X <- cbind(diag(0, nrow = p_X),  # beta_X
-                  diag(0, nrow = p_X),  # beta_Phi_plus
-                  diag(0, nrow = p_X),  # beta_Phi_minus
-                  diag(0, nrow = p_X),  # beta_D
-                  diag(0, nrow = p_X),  # u
-                  diag(0, nrow = p_X),  # v
+  A_df_X <- cbind(matrix(0, nrow = p_X, ncol = p_X),  # beta_X
+                  matrix(0, nrow = p_X, ncol = p_Phi),  # beta_Phi_plus
+                  matrix(0, nrow = p_X, ncol = p_Phi),  # beta_Phi_minus
+                  matrix(0, nrow = p_X, ncol = p_D),  # beta_D
+                  matrix(0, nrow = p_X, ncol = n),  # u
+                  matrix(0, nrow = p_X, ncol = n),  # v
                   t(X),                 # a
-                  diag(0, nrow = p_X),  # k
-                  diag(0, nrow = p_X))  # l
+                  matrix(0, nrow = p_X, ncol = n),  # k
+                  matrix(0, nrow = p_X, ncol = n))  # l
   b_df_X <- (1 - tau) * t(X) %*% ones
   sense_df_X <- rep("=", p_X)
 
+  stopifnot(ncol(A_df_X) == num_decision_vars)
+  stopifnot(length(b_df_X) == p_X)
+  stopifnot(length(sense_df_X) == p_X)
+  msg <- paste("Dual Feasibility for X Complete.")
+  send_note_if(msg, show_progress, message)
 
-  A_df_Phi <- cbind(diag(0, nrow = p_Phi),  # beta_X
-                    diag(0, nrow = p_Phi),  # beta_Phi_plus
-                    diag(0, nrow = p_Phi),  # beta_Phi_minus
-                    diag(0, nrow = p_Phi),  # beta_D
-                    diag(0, nrow = p_Phi),  # u
-                    diag(0, nrow = p_Phi),  # v
+
+  A_df_Phi <- cbind(matrix(0, nrow = p_Phi, ncol = p_X),  # beta_X
+                    matrix(0, nrow = p_Phi, ncol = p_Phi),  # beta_Phi_plus
+                    matrix(0, nrow = p_Phi, ncol = p_Phi),  # beta_Phi_minus
+                    matrix(0, nrow = p_Phi, ncol = p_D),  # beta_D
+                    matrix(0, nrow = p_Phi, ncol = n),  # u
+                    matrix(0, nrow = p_Phi, ncol = n),  # v
                     t(Phi),             # a
-                    diag(0, nrow = p_Phi),  # k
-                    diag(0, nrow = p_Phi))  # l
+                    matrix(0, nrow = p_Phi, ncol = n),  # k
+                    matrix(0, nrow = p_Phi, ncol = n))  # l
   b_df_Phi <- (1 - tau) * t(Phi) %*% ones
   sense_df_Phi <- rep("=", p_Phi)
 
+  stopifnot(ncol(A_df_Phi) == num_decision_vars)
+  stopifnot(length(b_df_Phi) == p_Phi)
+  stopifnot(length(sense_df_Phi) == p_Phi)
+  msg <- paste("Dual Feasibility for Phi Complete.")
+  send_note_if(msg, show_progress, message)
+
   # Complementary Slackness (16) and (17)
-  A_cs_uk <- cbind(diag(0, nrow = n),       # beta_X
-                   diag(0, nrow = n),       # beta_Phi_plus
-                   diag(0, nrow = n),       # beta_Phi_minus
-                   diag(0, nrow = n),       # beta_D
-                   diag(1, nrow = n),       # u
-                   diag(0, nrow = n),       # v
-                   diag(0, nrow = n),       # a
-                   -M * diag(1, nrow = n),  # k
-                   diag(0, nrow = n))       # l
+  A_cs_uk <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi),       # beta_Phi_plus
+                   matrix(0, nrow = n, ncol = p_Phi),       # beta_Phi_minus
+                   matrix(0, nrow = n, ncol = p_D),       # beta_D
+                   matrix(1, nrow = n, ncol = n),       # u
+                   matrix(0, nrow = n, ncol = n),       # v
+                   matrix(0, nrow = n, ncol = n),       # a
+                   -M * matrix(1, nrow = n, ncol = n),  # k
+                   matrix(0, nrow = n, ncol = n))       # l
   b_cs_uk <- rep(0, n)
   sense_cs_uk <- rep("<=", n)
 
-  A_cs_vl <- cbind(diag(0, nrow = n),       # beta_X
-                   diag(0, nrow = n),       # beta_Phi_plus
-                   diag(0, nrow = n),       # beta_Phi_minus
-                   diag(0, nrow = n),       # beta_D
-                   diag(0, nrow = n),       # u
-                   diag(1, nrow = n),       # v
-                   diag(0, nrow = n),       # a
-                   diag(0, nrow = n),       # k
-                   -M * diag(1, nrow = n))  # l
+  stopifnot(ncol(A_cs_uk) == num_decision_vars)
+  stopifnot(length(b_cs_uk) == n)
+  stopifnot(length(sense_cs_uk) == n)
+  msg <- paste("Complementary Slackness for u and k Complete.")
+  send_note_if(msg, show_progress, message)
+
+  A_cs_vl <- cbind(diag(0, nrow = n, ncol = p_X),       # beta_X
+                   diag(0, nrow = n, ncol = p_Phi),       # beta_Phi_plus
+                   diag(0, nrow = n, ncol = p_Phi),       # beta_Phi_minus
+                   diag(0, nrow = n, ncol = p_D),       # beta_D
+                   diag(0, nrow = n, ncol = n),       # u
+                   diag(1, nrow = n, ncol = n),       # v
+                   diag(0, nrow = n, ncol = n),       # a
+                   diag(0, nrow = n, ncol = n),       # k
+                   -M * diag(1, nrow = n, ncol = n))  # l
   b_cs_vl <- rep(0, n)
   sense_cs_vl <- rep("<=", n)
 
-  A_cs_ak <- cbind(diag(0, nrow = n),   # beta_X
-                   diag(0, nrow = n),   # beta_Phi_plus
-                   diag(0, nrow = n),   # beta_Phi_minus
-                   diag(0, nrow = n),   # beta_D
-                   diag(0, nrow = n),   # u
-                   diag(0, nrow = n),   # v
-                   diag(1, nrow = n),   # a
-                   -diag(1, nrow = n),  # k
-                   diag(0, nrow = n))   # l
+  stopifnot(ncol(A_cs_vl) == num_decision_vars)
+  stopifnot(length(b_cs_vl) == n)
+  stopifnot(length(sense_cs_vl) == n)
+  msg <- paste("Complementary Slackness for v and l Complete.")
+  send_note_if(msg, show_progress, message)
+
+  A_cs_ak <- cbind(diag(0, nrow = n, ncol = p_X),   # beta_X
+                   diag(0, nrow = n, ncol = p_Phi),   # beta_Phi_plus
+                   diag(0, nrow = n, ncol = p_Phi),   # beta_Phi_minus
+                   diag(0, nrow = n, ncol = p_D),   # beta_D
+                   diag(0, nrow = n, ncol = n),   # u
+                   diag(0, nrow = n, ncol = n),   # v
+                   diag(1, nrow = n, ncol = n),   # a
+                   -diag(1, nrow = n, ncol = n),  # k
+                   diag(0, nrow = n, ncol = n))   # l
   b_cs_ak <- rep(0, n)
   sense_cs_ak <- rep(">=", n)
 
-  A_cs_al <- cbind(diag(0, nrow = n), # beta_X
-                   diag(0, nrow = n), # beta_Phi_plus
-                   diag(0, nrow = n), # beta_Phi_minus
-                   diag(0, nrow = n), # beta_D
-                   diag(0, nrow = n), # u
-                   diag(0, nrow = n), # v
-                   diag(1, nrow = n), # a
-                   diag(0, nrow = n), # k
-                   diag(1, nrow = n)) # l
+  stopifnot(ncol(A_cs_ak) == num_decision_vars)
+  stopifnot(length(b_cs_ak) == n)
+  stopifnot(length(sense_cs_ak) == n)
+  msg <- paste("Complementary Slackness for a and k Complete.")
+  send_note_if(msg, show_progress, message)
+
+  A_cs_al <- cbind(diag(0, nrow = n, ncol = p_X), # beta_X
+                   diag(0, nrow = n, ncol = p_Phi), # beta_Phi_plus
+                   diag(0, nrow = n, ncol = p_Phi), # beta_Phi_minus
+                   diag(0, nrow = n, ncol = p_D), # beta_D
+                   diag(0, nrow = n, ncol = n), # u
+                   diag(0, nrow = n, ncol = n), # v
+                   diag(1, nrow = n, ncol = n), # a
+                   diag(0, nrow = n, ncol = n), # k
+                   diag(1, nrow = n, ncol = n)) # l
   b_cs_al <- rep(0, n)
   sense_cs_al <- rep("<=", n)
+
+  stopifnot(ncol(A_cs_al) == num_decision_vars)
+  stopifnot(length(b_cs_al) == n)
+  stopifnot(length(sense_cs_al) == n)
+  msg <- paste("Complementary Slackness for a and l Complete.")
+  send_note_if(msg, show_progress, message)
 
   # Non-negativity and Boundedness Constraints (12) and (15)
   lb <- c(rep(-Inf, p_X), # beta_X
@@ -219,6 +266,11 @@ iqr_milp <- function(Y,
           rep(1, n),      # k
           rep(1, n))      # l
 
+  stopifnot(length(lb) == num_decision_vars)
+  stopifnot(length(ub) == num_decision_vars)
+  msg <- "Non-negativity and Boundedness Constraints Complete."
+  send_note_if(msg, show_progress, message)
+
   # Integrality Constraint (see vtype) (18)
   vtype <- c(rep("C", p_X), # beta_X
              rep("C", p_Phi), # beta_Phi_plus
@@ -229,6 +281,10 @@ iqr_milp <- function(Y,
              rep("B", n),   # a
              rep("B", n),   # k
              rep("B", n))   # l
+
+  stopifnot(length(vtype) == num_decision_vars)
+  msg <- "Integrality Constraints Complete."
+  send_note_if(msg, show_progress, message)
 
   # Pre-processing: fix residuals of outliers
   O_neg <- sort(O_neg)
@@ -267,6 +323,12 @@ iqr_milp <- function(Y,
                 rep(0, n))    # l
     sense_pp_a <- rep("=", n)
 
+    stopifnot(ncol(A_pp_a) == num_decision_vars)
+    stopifnot(length(b_pp_a) == n)
+    stopifnot(length(sense_pp_a) == n)
+    msg <- "Pre-processing for a Complete."
+    send_note_if(msg, show_progress, message)
+
     A_pp_k <- c(rep(0, p_X),  # beta_X
                 rep(0, p_Phi),  # beta_Phi_plus
                 rep(0, p_Phi),  # beta_Phi_minus
@@ -290,6 +352,12 @@ iqr_milp <- function(Y,
                 rep(0, n))    # l
     sense_pp_k <- rep("=", n)
 
+    stopifnot(ncol(A_pp_k) == num_decision_vars)
+    stopifnot(length(b_pp_k) == n)
+    stopifnot(length(sense_pp_k) == n)
+    msg <- "Pre-processing for k Complete."
+    send_note_if(msg, show_progress, message)
+
     A_pp_l <- c(rep(0, p_X),  # beta_X
                 rep(0, p_Phi),  # beta_Phi_plus
                 rep(0, p_Phi),  # beta_Phi_minus
@@ -312,6 +380,12 @@ iqr_milp <- function(Y,
                 rep(0, n),    # k
                 b_l_fixed)    # l
     sense_pp_l <- rep("=", n)
+
+    stopifnot(ncol(A_pp_l) == num_decision_vars)
+    stopifnot(length(b_pp_l) == n)
+    stopifnot(length(sense_pp_l) == n)
+    msg <- "Pre-processing for l Complete."
+    send_note_if(msg, show_progress, message)
 
   } else {
     A_pp_a <- c()
@@ -338,32 +412,41 @@ iqr_milp <- function(Y,
                  A_pp_a,  # Pre-processing - fixing a
                  A_pp_k,  # Pre-processing - fixing k
                  A_pp_l)  # Pre-processing - fixing l
-  iqr$rhs <- rbind(b_pf,    # Primal Feasibility
-                   b_df_X,  # Dual Feasibility - X
-                   b_df_Phi,  # Dual Feasibility - Phi
-                   b_cs_uk, # Complementary Slackness - u and k
-                   b_cs_vl, # Complementary Slackness - v and l
-                   b_cs_ak, # Complementary Slackness - a and k
-                   b_cs_al, # Complementary Slackness - a and l
-                   b_pp_a,  # Pre-processing - fixing a
-                   b_pp_k,  # Pre-processing - fixing k
-                   b_pp_l)  # Pre-processing - fixing l
-  iqr$sense <- rbind(sense_pf,    # Primal Feasibility
-                     sense_df_X,  # Dual Feasibility - X
-                     sense_df_Phi,  # Dual Feasibility - Phi
-                     sense_cs_uk, # Complementary Slackness - u and k
-                     sense_cs_vl, # Complementary Slackness - v and l
-                     sense_cs_ak, # Complementary Slackness - a and k
-                     sense_cs_al, # Complementary Slackness - a and l
-                     sense_pp_a,  # Pre-processing - fixing a
-                     sense_pp_k,  # Pre-processing - fixing k
-                     sense_pp_l)  # Pre-processing - fixing l
+  # message(paste("A:", nrow(iqr$A), ncol(iqr$A)))
+
+  iqr$rhs <- c(b_pf,    # Primal Feasibility
+               b_df_X,  # Dual Feasibility - X
+               b_df_Phi,  # Dual Feasibility - Phi
+               b_cs_uk, # Complementary Slackness - u and k
+               b_cs_vl, # Complementary Slackness - v and l
+               b_cs_ak, # Complementary Slackness - a and k
+               b_cs_al, # Complementary Slackness - a and l
+               b_pp_a,  # Pre-processing - fixing a
+               b_pp_k,  # Pre-processing - fixing k
+               b_pp_l)  # Pre-processing - fixing l
+  # message(paste("b:", length(iqr$rhs)))
+
+  iqr$sense <- c(sense_pf,    # Primal Feasibility
+                 sense_df_X,  # Dual Feasibility - X
+                 sense_df_Phi,  # Dual Feasibility - Phi
+                 sense_cs_uk, # Complementary Slackness - u and k
+                 sense_cs_vl, # Complementary Slackness - v and l
+                 sense_cs_ak, # Complementary Slackness - a and k
+                 sense_cs_al, # Complementary Slackness - a and l
+                 sense_pp_a,  # Pre-processing - fixing a
+                 sense_pp_k,  # Pre-processing - fixing k
+                 sense_pp_l)  # Pre-processing - fixing l
+  # message(paste("sense:", length(iqr$sense)))
+
   iqr$lb <- lb
   iqr$ub <- ub
   iqr$vtype <- vtype
   iqr$modelsense <- "min"
   params$TimeLimit <- TimeLimit
   result <- gurobi::gurobi(iqr, params)
+
+  msg <- paste("Mixed Integer Linear Program Complete.")
+  send_note_if(msg, show_progress, message)
 
   # Return results
   status <- result$status
