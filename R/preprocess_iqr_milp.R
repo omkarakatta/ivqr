@@ -34,7 +34,7 @@
 #' finally 0.
 #'
 #' @param Y Dependent variable (vector of length n)
-#' @param X Exogenous variable (n by p_X matrix)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param tau Quantile (number strictly between 0 and 1)
