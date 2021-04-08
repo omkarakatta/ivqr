@@ -95,7 +95,7 @@ iqr_milp <- function(Y,
 
   # Choose default M is M is not specified
   if (is.null(M)) {
-    sd_qr <- sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
     M <- 10 * sd_qr
   }
 

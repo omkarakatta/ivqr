@@ -10,18 +10,20 @@ iqr_milp(
   D,
   Z,
   tau,
-  O_neg,
-  O_pos,
-  M,
+  O_neg = NULL,
+  O_pos = NULL,
+  M = NULL,
   TimeLimit = 300,
+  projection = TRUE,
   params = list(FeasibilityTol = 1e-06, OutputFlag = 0),
-  quietly = TRUE
+  quietly = TRUE,
+  show_progress = TRUE
 )
 }
 \arguments{
 \item{Y}{Dependent variable (vector of length n)}
 
-\item{X}{Exogenous variable (n by p_X matrix)}
+\item{X}{Exogenous variable (including constant vector) (n by p_X matrix)}
 
 \item{D}{Endogenous variable (n by p_D matrix)}
 
@@ -38,27 +40,35 @@ and positive, respectively (vectors)}
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
 defaults to 300, will be appended to \code{params}}
 
+\item{projection}{If TRUE (default), project D on the space spanned by X and
+Z to construct the vector of functions of transformed instruments; else,
+let Z be the instruments for endogenous variables (boolean)}
+
 \item{params}{Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}
 
 \item{quietly}{If TRUE (default), sends messages during execution (boolean)}
+
+\item{show_progress}{If TRUE (default), sends progress messages during execution (boolean)}
 }
 \value{
 A named list of
 \enumerate{
+\item iqr: Gurobi model that was solved
+\item params: Gurobi parameters used
 \item result: solution to MILP returned by Gurobi
 \item status: status of Gurobi's solution
 \item beta_X: coefficients on exogenous variables
-\item beta_Z_plus: positive part of coefficients on instruments
-\item beta_Z_minus: negative part of coefficients on instruments
+\item beta_Phi_plus: positive part of coefficients on instruments
+\item beta_Phi_minus: negative part of coefficients on instruments
 \item beta_D: coefficients on endogenous variables
 \item u: positive part of residuals
 \item v: negative part of residuals
 \item a: dual variable
 \item k: binary variable associated with u
 \item l: binary variable associated with v
-\item beta_Z: coefficients on instruments (beta_Z_plus - beta_Z_minus)
+\item beta_Phi: coefficients on instruments (beta_Phi_plus - beta_Phi_minus)
 \item resid: residuals (u - v)
-\item objval: value of objective function (absolute value of beta_Z)
+\item objval: value of objective function (absolute value of beta_Phi)
 }
 }
 \description{

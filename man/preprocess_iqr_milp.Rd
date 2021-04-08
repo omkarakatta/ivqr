@@ -21,7 +21,7 @@ preprocess_iqr_milp(
 
 \item{D}{Endogenous variable (n by p_D matrix)}
 
-\item{X}{Exogenous variable (n by p_X matrix)}
+\item{X}{Exogenous variable (including constant vector) (n by p_X matrix)}
 
 \item{Z}{Instrumental variable (n by p_Z matrix)}
 
