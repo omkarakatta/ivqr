@@ -140,8 +140,8 @@ decompose_A <- function(Y,
   pf <- rep("pf", n)
 
   # Dual Feasibility
-  df_X <- rep("df_X", n)
-  df_Phi <- rep("df_Phi", n)
+  df_X <- rep("df_X", p_X)
+  df_Phi <- rep("df_Phi", p_Phi)
 
   # Complementary Slackness
   cs_uk <- rep("cs_uk", n)
@@ -153,9 +153,15 @@ decompose_A <- function(Y,
   O_neg <- sort(O_neg)
   O_pos <- sort(O_pos)
   O <- c(O_neg, O_pos)        # indices of fixed residuals
-  pp_a <- rep("pp_a", length(O))
-  pp_k <- rep("pp_k", length(O))
-  pp_l <- rep("pp_l", length(O))
+  if (!is.null(O)) {
+    pp_a <- rep("pp_a", n)
+    pp_k <- rep("pp_k", n)
+    pp_l <- rep("pp_l", n)
+  } else {
+    pp_a <- rep("pp_a", 0)
+    pp_k <- rep("pp_k", 0)
+    pp_l <- rep("pp_l", 0)
+  }
 
   c(pf, df_X, df_Phi, cs_uk, cs_vl, cs_ak, cs_al, pp_a, pp_k, pp_l)
 
