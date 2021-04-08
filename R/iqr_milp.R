@@ -113,21 +113,21 @@ iqr_milp <- function(Y,
   num_decision_vars <- p_X + 2 * p_Phi + p_D + 5 * n
 
   # Objective: minimize absolute value of \beta_Phi
-  obj <- c(rep(0, p_X), # beta_X
+  obj <- c(rep(0, p_X),   # beta_X
            rep(1, p_Phi), # beta_Phi_plus
            rep(1, p_Phi), # beta_Phi_minus
-           rep(0, p_D), # beta_D
-           rep(0, n),   # u
-           rep(0, n),   # v
-           rep(0, n),   # a
-           rep(0, n),   # k
-           rep(0, n))   # l
+           rep(0, p_D),   # beta_D
+           rep(0, n),     # u
+           rep(0, n),     # v
+           rep(0, n),     # a
+           rep(0, n),     # k
+           rep(0, n))     # l
   stopifnot(length(obj) == num_decision_vars)
 
   # Primal Feasibility Constraint (11)
   A_pf <- cbind(X,                  # beta_X
-                Phi,                  # beta_Phi_plus
-                -Phi,                 # beta_Phi_minus
+                Phi,                # beta_Phi_plus
+                -Phi,               # beta_Phi_minus
                 D,                  # beta_D
                 diag(1, nrow = n),  # u
                 -diag(1, nrow = n), # v
