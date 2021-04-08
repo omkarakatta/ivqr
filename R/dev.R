@@ -79,3 +79,84 @@ collect_note_if <- function(msg_list, new_msg, condition, newline = TRUE) {
   }
   msg_list
 }
+### decompose_A ---------------------------
+#' Decompose constraint matrix
+#'
+#' Print what each row of the A matrix represents
+#'
+#' Using the dimensions of the inputs, this function prints the constraints
+#' associated with each row.
+#'
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param O_neg,O_pos Indices for residuals whose sign is fixed to be negative
+#'  and positive, respectively (vectors)
+#' @param projection If TRUE (default), project D on the space spanned by X and
+#'  Z to construct the vector of functions of transformed instruments; else,
+#'  let Z be the instruments for endogenous variables (boolean)
+#'
+#' @return A vector whose length is the same as the number of constraints;
+#'  \enumerate{
+#'    \item pf: primal feasibility
+#'    \item df_X: dual feasibility, X
+#'    \item df_Phi: dual feasibility, Phi
+#'    \item cs_uk: complementary slackness, u and k
+#'    \item cs_vl: complementary slackness, v and l
+#'    \item cs_ak: complementary slackness, a and k
+#'    \item cs_al: complementary slackness, a and l
+#'    \item pp_a: preprocessing, a
+#'    \item pp_k: preprocessing, k
+#'    \item pp_l: preprocessing, l
+#'  }
+decompose_A <- function(Y,
+                        X,
+                        D,
+                        Z,
+                        O_neg = NULL,
+                        O_pos = NULL,
+                        projection = TRUE) {
+  # Get dimensions of data
+  n <- length(Y)
+  n_D <- nrow(D)
+  n_X <- nrow(X)
+  n_Z <- nrow(Z)
+  p_D <- ncol(D)
+  p_X <- ncol(X)
+  p_Z <- ncol(Z)
+
+  if (projection) {
+    # Obtain fitted values from projecting D on space spanned by X and Z
+    XZ <- cbind(X, Z)
+    proj_matrix <- solve(t(XZ) %*% XZ) %*% t(XZ) %*% D
+    Phi <- XZ %*% proj_matrix
+  } else {
+    Phi <- Z
+  }
+  p_Phi <- ncol(Phi)
+
+  # Primal Feasibility
+  pf <- rep("pf", n)
+
+  # Dual Feasibility
+  df_X <- rep("df_X", n)
+  df_Phi <- rep("df_Phi", n)
+
+  # Complementary Slackness
+  cs_uk <- rep("cs_uk", n)
+  cs_vl <- rep("cs_vl", n)
+  cs_ak <- rep("cs_ak", n)
+  cs_al <- rep("cs_al", n)
+
+  # Preprocessing
+  O_neg <- sort(O_neg)
+  O_pos <- sort(O_pos)
+  O <- c(O_neg, O_pos)        # indices of fixed residuals
+  pp_a <- rep("pp_a", length(O))
+  pp_k <- rep("pp_k", length(O))
+  pp_l <- rep("pp_l", length(O))
+
+  c(pf, df_X, df_Phi, cs_uk, cs_vl, cs_ak, cs_al, pp_a, pp_k, pp_l)
+
+}
