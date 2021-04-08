@@ -163,15 +163,15 @@ iqr_milp <- function(Y,
   send_note_if(msg, show_progress, message)
 
 
-  A_df_Phi <- cbind(matrix(0, nrow = p_Phi, ncol = p_X),  # beta_X
+  A_df_Phi <- cbind(matrix(0, nrow = p_Phi, ncol = p_X),    # beta_X
                     matrix(0, nrow = p_Phi, ncol = p_Phi),  # beta_Phi_plus
                     matrix(0, nrow = p_Phi, ncol = p_Phi),  # beta_Phi_minus
-                    matrix(0, nrow = p_Phi, ncol = p_D),  # beta_D
-                    matrix(0, nrow = p_Phi, ncol = n),  # u
-                    matrix(0, nrow = p_Phi, ncol = n),  # v
-                    t(Phi),             # a
-                    matrix(0, nrow = p_Phi, ncol = n),  # k
-                    matrix(0, nrow = p_Phi, ncol = n))  # l
+                    matrix(0, nrow = p_Phi, ncol = p_D),    # beta_D
+                    matrix(0, nrow = p_Phi, ncol = n),      # u
+                    matrix(0, nrow = p_Phi, ncol = n),      # v
+                    t(Phi),                                 # a
+                    matrix(0, nrow = p_Phi, ncol = n),      # k
+                    matrix(0, nrow = p_Phi, ncol = n))      # l
   b_df_Phi <- (1 - tau) * t(Phi) %*% ones
   sense_df_Phi <- rep("=", p_Phi)
 
@@ -183,14 +183,14 @@ iqr_milp <- function(Y,
 
   # Complementary Slackness (16) and (17)
   A_cs_uk <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
-                   matrix(0, nrow = n, ncol = p_Phi),       # beta_Phi_plus
-                   matrix(0, nrow = n, ncol = p_Phi),       # beta_Phi_minus
+                   matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_plus
+                   matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_minus
                    matrix(0, nrow = n, ncol = p_D),       # beta_D
-                   matrix(1, nrow = n, ncol = n),       # u
-                   matrix(0, nrow = n, ncol = n),       # v
-                   matrix(0, nrow = n, ncol = n),       # a
-                   -M * matrix(1, nrow = n, ncol = n),  # k
-                   matrix(0, nrow = n, ncol = n))       # l
+                   diag(1, nrow = n, ncol = n),           # u
+                   matrix(0, nrow = n, ncol = n),         # v
+                   matrix(0, nrow = n, ncol = n),         # a
+                   -M * diag(1, nrow = n, ncol = n),      # k
+                   matrix(0, nrow = n, ncol = n))         # l
   b_cs_uk <- rep(0, n)
   sense_cs_uk <- rep("<=", n)
 
@@ -200,15 +200,15 @@ iqr_milp <- function(Y,
   msg <- paste("Complementary Slackness for u and k Complete.")
   send_note_if(msg, show_progress, message)
 
-  A_cs_vl <- cbind(diag(0, nrow = n, ncol = p_X),       # beta_X
-                   diag(0, nrow = n, ncol = p_Phi),       # beta_Phi_plus
-                   diag(0, nrow = n, ncol = p_Phi),       # beta_Phi_minus
-                   diag(0, nrow = n, ncol = p_D),       # beta_D
-                   diag(0, nrow = n, ncol = n),       # u
-                   diag(1, nrow = n, ncol = n),       # v
-                   diag(0, nrow = n, ncol = n),       # a
-                   diag(0, nrow = n, ncol = n),       # k
-                   -M * diag(1, nrow = n, ncol = n))  # l
+  A_cs_vl <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_plus
+                   matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_minus
+                   matrix(0, nrow = n, ncol = p_D),       # beta_D
+                   matrix(0, nrow = n, ncol = n),         # u
+                   diag(1, nrow = n, ncol = n),           # v
+                   matrix(0, nrow = n, ncol = n),         # a
+                   matrix(0, nrow = n, ncol = n),         # k
+                   -M * diag(1, nrow = n, ncol = n))      # l
   b_cs_vl <- rep(0, n)
   sense_cs_vl <- rep("<=", n)
 
@@ -218,15 +218,15 @@ iqr_milp <- function(Y,
   msg <- paste("Complementary Slackness for v and l Complete.")
   send_note_if(msg, show_progress, message)
 
-  A_cs_ak <- cbind(diag(0, nrow = n, ncol = p_X),   # beta_X
-                   diag(0, nrow = n, ncol = p_Phi),   # beta_Phi_plus
-                   diag(0, nrow = n, ncol = p_Phi),   # beta_Phi_minus
-                   diag(0, nrow = n, ncol = p_D),   # beta_D
-                   diag(0, nrow = n, ncol = n),   # u
-                   diag(0, nrow = n, ncol = n),   # v
-                   diag(1, nrow = n, ncol = n),   # a
-                   -diag(1, nrow = n, ncol = n),  # k
-                   diag(0, nrow = n, ncol = n))   # l
+  A_cs_ak <- cbind(matrix(0, nrow = n, ncol = p_X),     # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi),   # beta_Phi_plus
+                   matrix(0, nrow = n, ncol = p_Phi),   # beta_Phi_minus
+                   matrix(0, nrow = n, ncol = p_D),     # beta_D
+                   matrix(0, nrow = n, ncol = n),       # u
+                   matrix(0, nrow = n, ncol = n),       # v
+                   diag(1, nrow = n, ncol = n),         # a
+                   -diag(1, nrow = n, ncol = n),        # k
+                   matrix(0, nrow = n, ncol = n))       # l
   b_cs_ak <- rep(0, n)
   sense_cs_ak <- rep(">=", n)
 
@@ -236,16 +236,16 @@ iqr_milp <- function(Y,
   msg <- paste("Complementary Slackness for a and k Complete.")
   send_note_if(msg, show_progress, message)
 
-  A_cs_al <- cbind(diag(0, nrow = n, ncol = p_X), # beta_X
-                   diag(0, nrow = n, ncol = p_Phi), # beta_Phi_plus
-                   diag(0, nrow = n, ncol = p_Phi), # beta_Phi_minus
-                   diag(0, nrow = n, ncol = p_D), # beta_D
-                   diag(0, nrow = n, ncol = n), # u
-                   diag(0, nrow = n, ncol = n), # v
+  A_cs_al <- cbind(matrix(0, nrow = n, ncol = p_X), # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus
+                   matrix(0, nrow = n, ncol = p_D), # beta_D
+                   matrix(0, nrow = n, ncol = n), # u
+                   matrix(0, nrow = n, ncol = n), # v
                    diag(1, nrow = n, ncol = n), # a
-                   diag(0, nrow = n, ncol = n), # k
+                   matrix(0, nrow = n, ncol = n), # k
                    diag(1, nrow = n, ncol = n)) # l
-  b_cs_al <- rep(0, n)
+  b_cs_al <- rep(1, n)
   sense_cs_al <- rep("<=", n)
 
   stopifnot(ncol(A_cs_al) == num_decision_vars)
@@ -286,7 +286,7 @@ iqr_milp <- function(Y,
              rep("C", p_D), # beta_D
              rep("C", n),   # u
              rep("C", n),   # v
-             rep("B", n),   # a
+             rep("C", n),   # a
              rep("B", n),   # k
              rep("B", n))   # l
 
@@ -307,16 +307,17 @@ iqr_milp <- function(Y,
     # be 0.
     fixed <- rep(0, n)
     fixed[O] <- 1
+    fixed_mat <- diag(fixed)
 
-    A_pp_a <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Phi),  # beta_Phi_plus
-                rep(0, p_Phi),  # beta_Phi_minus
-                rep(0, p_D),  # beta_D
-                rep(0, n),    # u
-                rep(0, n),    # v
-                fixed,        # a
-                rep(0, n),    # k
-                rep(0, n))    # l
+    A_pp_a <- cbind(matrix(0, nrow = n, ncol = p_X),    # beta_X
+                    matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
+                    matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
+                    matrix(0, nrow = n, ncol = p_D),    # beta_D
+                    matrix(0, nrow = n, ncol = n),      # u
+                    matrix(0, nrow = n, ncol = n),      # v
+                    fixed_mat,                          # a
+                    matrix(0, nrow = n, ncol = n),      # k
+                    matrix(0, nrow = n, ncol = n))      # l
     b_a_fixed <- rep(0, n)
     b_a_fixed[O_pos] <- 1
     b_a_fixed[O_neg] <- 0
@@ -337,15 +338,15 @@ iqr_milp <- function(Y,
     msg <- "Pre-processing for a Complete."
     send_note_if(msg, show_progress, message)
 
-    A_pp_k <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Phi),  # beta_Phi_plus
-                rep(0, p_Phi),  # beta_Phi_minus
-                rep(0, p_D),  # beta_D
-                rep(0, n),    # u
-                rep(0, n),    # v
-                rep(0, n),    # a
-                fixed,        # k
-                rep(0, n))    # l
+    A_pp_k <- cbind(matrix(0, nrow = n, ncol = p_X),    # beta_X
+                    matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
+                    matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
+                    matrix(0, nrow = n, ncol = p_D),    # beta_D
+                    matrix(0, nrow = n, ncol = n),      # u
+                    matrix(0, nrow = n, ncol = n),      # v
+                    matrix(0, nrow = n, ncol = n),      # a
+                    fixed_mat,                          # k
+                    matrix(0, nrow = n, ncol = n))      # l
     b_k_fixed <- rep(0, n)
     b_k_fixed[O_pos] <- 1
     b_k_fixed[O_neg] <- 0
@@ -366,15 +367,15 @@ iqr_milp <- function(Y,
     msg <- "Pre-processing for k Complete."
     send_note_if(msg, show_progress, message)
 
-    A_pp_l <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Phi),  # beta_Phi_plus
-                rep(0, p_Phi),  # beta_Phi_minus
-                rep(0, p_D),  # beta_D
-                rep(0, n),    # u
-                rep(0, n),    # v
-                rep(0, n),    # a
-                rep(0, n),    # k
-                fixed)        # l
+    A_pp_l <- c(matrix(0, nrow = n, ncol = p_X),  # beta_X
+                matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
+                matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
+                matrix(0, nrow = n, ncol = p_D),  # beta_D
+                matrix(0, nrow = n, ncol = n),    # u
+                matrix(0, nrow = n, ncol = n),    # v
+                matrix(0, nrow = n, ncol = n),    # a
+                matrix(0, nrow = n, ncol = n),    # k
+                fixed_mat)        # l
     b_l_fixed <- rep(0, n)
     b_l_fixed[O_pos] <- 0
     b_l_fixed[O_neg] <- 1
@@ -467,7 +468,7 @@ iqr_milp <- function(Y,
   out$result <- result
   out$status <- status
   if (status %in% c("OPTIMAL", "SUBOPTIMAL")) {
-    answer <- result$answer
+    answer <- result$x
     out$beta_X <- answer[1:p_X]
     out$beta_Phi_plus <- answer[(p_X + 1):(p_X + p_Phi)]
     out$beta_Phi_minus <- answer[(p_X + p_Phi + 1):(p_X + 2*p_Phi)]
@@ -480,7 +481,7 @@ iqr_milp <- function(Y,
 
     out$beta_Phi <- out$beta_Phi_plus - out$beta_Phi_minus
     out$resid <- out$u - out$v
-    out$objval <- answer$objval
+    out$objval <- result$objval
   }
 
   return(out)
