@@ -114,6 +114,7 @@ preprocess_iqr_milp <- function(Y,
     O_neg <- which(resid < -1 * alpha)
     O_pos <- which(resid > alpha)
     O <- c(O_neg, O_pos)
+    send_note_if(paste("Alpha:", alpha), show_iterations, message)
     send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_iterations, message)
     # Heuristic for time limit
     if (length(O) == 0) {
@@ -144,7 +145,7 @@ preprocess_iqr_milp <- function(Y,
     status <- fit$status
     alpha <- alpha * r
     if (show_iterations) {
-      print(paste("Iteration", counter))
+      print(paste("Iteration", counter, "complete"))
     }
     counter <- counter + 1
   }
