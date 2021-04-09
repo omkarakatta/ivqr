@@ -138,6 +138,7 @@ iqr_milp <- function(Y,
   sense_pf <- rep("=", n)
 
   stopifnot(ncol(A_pf) == num_decision_vars)
+  stopifnot(nrow(A_pf) == n)
   stopifnot(length(b_pf) == n)
   stopifnot(length(sense_pf) == n)
   msg <- paste("Primal Feasibility Complete.")
@@ -157,6 +158,7 @@ iqr_milp <- function(Y,
   sense_df_X <- rep("=", p_X)
 
   stopifnot(ncol(A_df_X) == num_decision_vars)
+  stopifnot(nrow(A_df_X) == p_X)
   stopifnot(length(b_df_X) == p_X)
   stopifnot(length(sense_df_X) == p_X)
   msg <- paste("Dual Feasibility for X Complete.")
@@ -176,6 +178,7 @@ iqr_milp <- function(Y,
   sense_df_Phi <- rep("=", p_Phi)
 
   stopifnot(ncol(A_df_Phi) == num_decision_vars)
+  stopifnot(nrow(A_df_Phi) == p_Phi)
   stopifnot(length(b_df_Phi) == p_Phi)
   stopifnot(length(sense_df_Phi) == p_Phi)
   msg <- paste("Dual Feasibility for Phi Complete.")
@@ -195,6 +198,7 @@ iqr_milp <- function(Y,
   sense_cs_uk <- rep("<=", n)
 
   stopifnot(ncol(A_cs_uk) == num_decision_vars)
+  stopifnot(nrow(A_cs_uk) == n)
   stopifnot(length(b_cs_uk) == n)
   stopifnot(length(sense_cs_uk) == n)
   msg <- paste("Complementary Slackness for u and k Complete.")
@@ -213,6 +217,7 @@ iqr_milp <- function(Y,
   sense_cs_vl <- rep("<=", n)
 
   stopifnot(ncol(A_cs_vl) == num_decision_vars)
+  stopifnot(nrow(A_cs_vl) == n)
   stopifnot(length(b_cs_vl) == n)
   stopifnot(length(sense_cs_vl) == n)
   msg <- paste("Complementary Slackness for v and l Complete.")
@@ -231,6 +236,7 @@ iqr_milp <- function(Y,
   sense_cs_ak <- rep(">=", n)
 
   stopifnot(ncol(A_cs_ak) == num_decision_vars)
+  stopifnot(nrow(A_cs_ak) == n)
   stopifnot(length(b_cs_ak) == n)
   stopifnot(length(sense_cs_ak) == n)
   msg <- paste("Complementary Slackness for a and k Complete.")
@@ -249,6 +255,7 @@ iqr_milp <- function(Y,
   sense_cs_al <- rep("<=", n)
 
   stopifnot(ncol(A_cs_al) == num_decision_vars)
+  stopifnot(nrow(A_cs_al) == n)
   stopifnot(length(b_cs_al) == n)
   stopifnot(length(sense_cs_al) == n)
   msg <- paste("Complementary Slackness for a and l Complete.")
@@ -321,18 +328,20 @@ iqr_milp <- function(Y,
     b_a_fixed <- rep(0, n)
     b_a_fixed[O_pos] <- 1
     b_a_fixed[O_neg] <- 0
-    b_pp_a <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Phi),  # beta_Phi_plus
-                rep(0, p_Phi),  # beta_Phi_minus
-                rep(0, p_D),  # beta_D
-                rep(0, n),    # u
-                rep(0, n),    # v
-                b_a_fixed,    # a
-                rep(0, n),    # k
-                rep(0, n))    # l
+    b_pp_a <- b_a_fixed
+    # b_pp_a <- c(rep(0, p_X),  # beta_X
+    #             rep(0, p_Phi),  # beta_Phi_plus
+    #             rep(0, p_Phi),  # beta_Phi_minus
+    #             rep(0, p_D),  # beta_D
+    #             rep(0, n),    # u
+    #             rep(0, n),    # v
+    #             b_a_fixed,    # a
+    #             rep(0, n),    # k
+    #             rep(0, n))    # l
     sense_pp_a <- rep("=", n)
 
     stopifnot(ncol(A_pp_a) == num_decision_vars)
+    stopifnot(nrow(A_pp_a) == n)
     stopifnot(length(b_pp_a) == n)
     stopifnot(length(sense_pp_a) == n)
     msg <- "Pre-processing for a Complete."
@@ -350,47 +359,51 @@ iqr_milp <- function(Y,
     b_k_fixed <- rep(0, n)
     b_k_fixed[O_pos] <- 1
     b_k_fixed[O_neg] <- 0
-    b_pp_k <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Phi),  # beta_Phi_plus
-                rep(0, p_Phi),  # beta_Phi_minus
-                rep(0, p_D),  # beta_D
-                rep(0, n),    # u
-                rep(0, n),    # v
-                rep(0, n),    # a
-                b_k_fixed,    # k
-                rep(0, n))    # l
+    b_pp_k <- b_k_fixed
+    # b_pp_k <- c(rep(0, p_X),  # beta_X
+    #             rep(0, p_Phi),  # beta_Phi_plus
+    #             rep(0, p_Phi),  # beta_Phi_minus
+    #             rep(0, p_D),  # beta_D
+    #             rep(0, n),    # u
+    #             rep(0, n),    # v
+    #             rep(0, n),    # a
+    #             b_k_fixed,    # k
+    #             rep(0, n))    # l
     sense_pp_k <- rep("=", n)
 
     stopifnot(ncol(A_pp_k) == num_decision_vars)
+    stopifnot(nrow(A_pp_k) == n)
     stopifnot(length(b_pp_k) == n)
     stopifnot(length(sense_pp_k) == n)
     msg <- "Pre-processing for k Complete."
     send_note_if(msg, show_progress, message)
 
-    A_pp_l <- c(matrix(0, nrow = n, ncol = p_X),  # beta_X
-                matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
-                matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
-                matrix(0, nrow = n, ncol = p_D),  # beta_D
-                matrix(0, nrow = n, ncol = n),    # u
-                matrix(0, nrow = n, ncol = n),    # v
-                matrix(0, nrow = n, ncol = n),    # a
-                matrix(0, nrow = n, ncol = n),    # k
-                fixed_mat)        # l
+    A_pp_l <- cbind(matrix(0, nrow = n, ncol = p_X),  # beta_X
+                    matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
+                    matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
+                    matrix(0, nrow = n, ncol = p_D),  # beta_D
+                    matrix(0, nrow = n, ncol = n),    # u
+                    matrix(0, nrow = n, ncol = n),    # v
+                    matrix(0, nrow = n, ncol = n),    # a
+                    matrix(0, nrow = n, ncol = n),    # k
+                    fixed_mat)        # l
     b_l_fixed <- rep(0, n)
     b_l_fixed[O_pos] <- 0
     b_l_fixed[O_neg] <- 1
-    b_pp_l <- c(rep(0, p_X),  # beta_X
-                rep(0, p_Phi),  # beta_Phi_plus
-                rep(0, p_Phi),  # beta_Phi_minus
-                rep(0, p_D),  # beta_D
-                rep(0, n),    # u
-                rep(0, n),    # v
-                rep(0, n),    # a
-                rep(0, n),    # k
-                b_l_fixed)    # l
+    b_pp_l <- b_l_fixed
+    # b_pp_l <- c(rep(0, p_X),  # beta_X
+    #             rep(0, p_Phi),  # beta_Phi_plus
+    #             rep(0, p_Phi),  # beta_Phi_minus
+    #             rep(0, p_D),  # beta_D
+    #             rep(0, n),    # u
+    #             rep(0, n),    # v
+    #             rep(0, n),    # a
+    #             rep(0, n),    # k
+    #             b_l_fixed)    # l
     sense_pp_l <- rep("=", n)
 
     stopifnot(ncol(A_pp_l) == num_decision_vars)
+    stopifnot(nrow(A_pp_l) == n)
     stopifnot(length(b_pp_l) == n)
     stopifnot(length(sense_pp_l) == n)
     msg <- "Pre-processing for l Complete."
@@ -422,6 +435,16 @@ iqr_milp <- function(Y,
                  A_pp_k,  # Pre-processing - fixing k
                  A_pp_l)  # Pre-processing - fixing l
   # message(paste("A:", nrow(iqr$A), ncol(iqr$A)))
+  # message(paste("A_pf:", nrow(A_pf), ncol(A_pf)))
+  # message(paste("A_df_X:", nrow(A_df_X), ncol(A_df_X)))
+  # message(paste("A_df_Phi:", nrow(A_df_Phi), ncol(A_df_Phi)))
+  # message(paste("A_cs_uk:", nrow(A_cs_uk), ncol(A_cs_uk)))
+  # message(paste("A_cs_vl:", nrow(A_cs_vl), ncol(A_cs_vl)))
+  # message(paste("A_cs_ak:", nrow(A_cs_ak), ncol(A_cs_ak)))
+  # message(paste("A_cs_al:", nrow(A_cs_al), ncol(A_cs_al)))
+  # message(paste("A_pp_a:", nrow(A_pp_a), ncol(A_pp_a)))
+  # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
+  # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
 
   iqr$rhs <- c(b_pf,    # Primal Feasibility
                b_df_X,  # Dual Feasibility - X
@@ -458,16 +481,18 @@ iqr_milp <- function(Y,
   send_note_if(msg, show_progress, message)
 
   # Return results
-  status <- result$status
-  msg <- paste("Status of IQR program:", status)
+  msg <- paste("Status of IQR program:",
+               result$status,
+               "| Objective:",
+               format(result$objval, scientific = F, digits = 10))
   send_note_if(msg, !quietly, message)  # Print status of program if !quietly
 
   out <- list() # Initialize list of results to return
   out$iqr <- iqr
   out$params <- params
   out$result <- result
-  out$status <- status
-  if (status %in% c("OPTIMAL", "SUBOPTIMAL")) {
+  out$status <- result$status
+  if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$x
     out$beta_X <- answer[1:p_X]
     out$beta_Phi_plus <- answer[(p_X + 1):(p_X + p_Phi)]
