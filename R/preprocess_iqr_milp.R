@@ -96,7 +96,7 @@ preprocess_iqr_milp <- function(Y,
   # continue the while loop (we mechanically set the objective to be nonzero
   # later in the code).
   counter <- 1
-  while (status == "TIME_LIMIT" | obj != 0) {
+  while (status == "TIME_LIMIT" || obj != 0) {
     # Fix the most negative and most positive residuals
     O_neg <- which(Y < -1 * alpha)
     O_pos <- which(Y > alpha)
@@ -119,11 +119,13 @@ preprocess_iqr_milp <- function(Y,
                     ...)
     if (is.null(fit$objval)) {
       obj <- 0.5
+    } else {
+      obj <- fit$obj
     }
     status <- fit$status
     alpha <- alpha * r
     if (show_iterations) {
-      print("Iteration", counter)
+      print(paste("Iteration", counter))
     }
     counter <- counter + 1
   }
