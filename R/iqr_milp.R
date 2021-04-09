@@ -22,7 +22,8 @@
 #' @param O_neg,O_pos Indices for residuals whose sign is fixed to be negative
 #'  and positive, respectively (vectors)
 #' @param M A large number that bounds the absolute value of the residuals
-#' (a positive number); defaults to 10
+#'  (a positive number); defaults to 10 * standard deviation of residuals from
+#'  quantile regression of Y on X and D
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
 #'  defaults to 300, will be appended to \code{params}
 #' @param projection If TRUE (default), project D on the space spanned by X and
