@@ -38,7 +38,12 @@
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param tau Quantile (number strictly between 0 and 1)
+#' @param M A large number that bounds the absolute value of the residuals
+#'  (a positive number); defaults to 10 * standard deviation of residuals from
+#'  quantile regression of Y on X and D
 #' @param prop_alpha_initial Initial value of the bandwidth \eqn{alpha};
+#' @param TimeLimit Maximum time (in seconds) spent on a linear program;
+#'  defaults to heuristic
 #'  thus, 1 - \code{prop_alpha_initial} is the proportion of observations whose
 #'  dual variables (i.e., sign of the residuals) are fixed at the start
 #'  (number between 0 and 1)
@@ -46,6 +51,7 @@
 #'  iteration (number greater than 1)
 #' @param show_iterations If TRUE, print the iteration number to the console;
 #'  defaults to FALSE (boolean)
+#' @param show_progress If TRUE (default), sends progress messages during execution (boolean)
 #' @param ... Arguments that will be passed to \code{\link{iqr_milp}}
 #'
 #' @return A named list of
@@ -64,9 +70,12 @@ preprocess_iqr_milp <- function(Y,
                                 X,
                                 Z,
                                 tau,
+                                M = NULL,
+                                TimeLimit = NULL,
                                 prop_alpha_initial = 0.7,
                                 r = 1.25,
                                 show_iterations = FALSE,
+                                show_progress = FALSE,
                                 ...) {
   # Start the clock
   clock_start <- Sys.time()
@@ -83,6 +92,12 @@ preprocess_iqr_milp <- function(Y,
   # Determine preliminary residuals
   resid <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
 
+  # Choose default M is M is not specified
+  if (is.null(M)) {
+    sd_qr <- stats::sd(resid)
+    M <- 10 * sd_qr
+  }
+
   # Determine initial residual bounds
   alpha_initial <- stats::quantile(abs(resid), prop_alpha_initial)
 
@@ -98,16 +113,21 @@ preprocess_iqr_milp <- function(Y,
   counter <- 1
   while (status == "TIME_LIMIT" || obj != 0) {
     # Fix the most negative and most positive residuals
-    O_neg <- which(Y < -1 * alpha)
-    O_pos <- which(Y > alpha)
+    O_neg <- which(resid < -1 * alpha)
+    O_pos <- which(resid > alpha)
     O <- c(O_neg, O_pos)
+    send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_progress, message)
     # Heuristic for time limit
     if (length(O) == 0) {
       TT <- Inf
-    } else {
+    } else if (is.null(TimeLimit)) {
       num_free <- n - length(O)
       TT <- exp(num_free / 200 + p_D / 5 + num_free * p_D / 1000) * 4
+    } else {
+      TT <- TimeLimit
     }
+    send_note_if(paste("TT:", TT), show_progress, message)
+    # IQR
     fit <- iqr_milp(Y = Y,
                     X = X,
                     D = D,
@@ -116,6 +136,7 @@ preprocess_iqr_milp <- function(Y,
                     O_neg = O_neg,
                     O_pos = O_pos,
                     TimeLimit = TT,
+                    M = M,
                     ...)
     if (is.null(fit$objval)) {
       obj <- 0.5
