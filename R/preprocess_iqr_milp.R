@@ -51,7 +51,6 @@
 #'  iteration (number greater than 1)
 #' @param show_iterations If TRUE, print the iteration number to the console;
 #'  defaults to FALSE (boolean)
-#' @param show_progress If TRUE (default), sends progress messages during execution (boolean)
 #' @param ... Arguments that will be passed to \code{\link{iqr_milp}}
 #'
 #' @return A named list of
@@ -75,7 +74,6 @@ preprocess_iqr_milp <- function(Y,
                                 prop_alpha_initial = 0.7,
                                 r = 1.25,
                                 show_iterations = FALSE,
-                                show_progress = FALSE,
                                 ...) {
   # Start the clock
   clock_start <- Sys.time()
@@ -116,7 +114,7 @@ preprocess_iqr_milp <- function(Y,
     O_neg <- which(resid < -1 * alpha)
     O_pos <- which(resid > alpha)
     O <- c(O_neg, O_pos)
-    send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_progress, message)
+    send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_iterations, message)
     # Heuristic for time limit
     if (length(O) == 0) {
       TT <- Inf
@@ -126,7 +124,7 @@ preprocess_iqr_milp <- function(Y,
     } else {
       TT <- TimeLimit
     }
-    send_note_if(paste("TT:", TT), show_progress, message)
+    send_note_if(paste("TT:", TT), show_iterations, message)
     # IQR
     fit <- iqr_milp(Y = Y,
                     X = X,
