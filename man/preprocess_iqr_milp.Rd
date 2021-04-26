@@ -10,6 +10,8 @@ preprocess_iqr_milp(
   X,
   Z,
   tau,
+  M = NULL,
+  TimeLimit = NULL,
   prop_alpha_initial = 0.7,
   r = 1.25,
   show_iterations = FALSE,
@@ -27,10 +29,17 @@ preprocess_iqr_milp(
 
 \item{tau}{Quantile (number strictly between 0 and 1)}
 
-\item{prop_alpha_initial}{Initial value of the bandwidth \eqn{alpha};
+\item{M}{A large number that bounds the absolute value of the residuals
+(a positive number); defaults to 10 * standard deviation of residuals from
+quantile regression of Y on X and D}
+
+\item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
+defaults to heuristic
 thus, 1 - \code{prop_alpha_initial} is the proportion of observations whose
 dual variables (i.e., sign of the residuals) are fixed at the start
 (number between 0 and 1)}
+
+\item{prop_alpha_initial}{Initial value of the bandwidth \eqn{alpha};}
 
 \item{r}{Rate at which we increase the bandwidth (\eqn{alpha}) at every
 iteration (number greater than 1)}

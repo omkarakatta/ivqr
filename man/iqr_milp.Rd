@@ -35,7 +35,8 @@ iqr_milp(
 and positive, respectively (vectors)}
 
 \item{M}{A large number that bounds the absolute value of the residuals
-(a positive number); defaults to 10}
+(a positive number); defaults to 10 * standard deviation of residuals from
+quantile regression of Y on X and D}
 
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
 defaults to 300, will be appended to \code{params}}
