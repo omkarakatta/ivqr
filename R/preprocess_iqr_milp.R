@@ -147,6 +147,10 @@ preprocess_iqr_milp <- function(Y,
     if (show_iterations) {
       print(paste("Iteration", counter, "complete"))
     }
+    if (TT == Inf & obj != 0) {
+      warning("Nonzero Coefficients on Instruments")
+      break
+    }
     counter <- counter + 1
   }
 
