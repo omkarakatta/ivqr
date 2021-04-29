@@ -29,9 +29,11 @@
 #' @param projection If TRUE (default), project D on the space spanned by X and
 #'  Z to construct the vector of functions of transformed instruments; else,
 #'  let Z be the instruments for endogenous variables (boolean)
-#' @param params Gurobi parameters, see \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
+#' @param params Gurobi parameters, see
+#'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
-#' @param show_progress If TRUE (default), sends progress messages during execution (boolean)
+#' @param show_progress If TRUE (default), sends progress messages during
+#'  execution (boolean)
 #'
 #' @return A named list of
 #'  \enumerate{
