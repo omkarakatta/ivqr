@@ -166,3 +166,38 @@ decompose_A <- function(Y,
   c(pf, df_X, df_Phi, cs_uk, cs_vl, cs_ak, cs_al, pp_a, pp_k, pp_l)
 
 }
+
+### write_prm ---------------------------
+
+#' Save Gurobi Parameters
+#'
+#' Create a .prm file with parameters from Gurobi
+#'
+#' While \code{gurobi::gurobi_write()} can save Gurobi models, it cannot save
+#' the parameters. The function \code{write_prm} overcomes this limitation
+#' by creating a \code{.prm} file with the parameters.
+#'
+#' @param params A list of Gurobi parameters
+#' @param path The directory to store the resulting \code{.prm} file
+#' @param filename The name of the resulting \code{.prm} file
+#'
+#' @return A \code{.prm} file named \code{filename} in the directory \code{path}
+#'  that stores \code{params}
+#'
+#' @examples
+#' \dontrun{
+#' params <- list(NonConvex = 0)
+#' write_prm(params, ".", "example")
+#' file.remove("./example.prm")
+#' }
+#'
+#' @family debugging
+#' @seealso \code{\link[gurobi]{gurobi_write}}
+write_prm <- function(params, path, filename) {
+  names <- names(params)
+  values <- sapply(params, function(x) x[1])
+  lines <- paste(names, values)
+  prm <- paste(lines, collapse = "\n")
+  target <- paste0(path, "/", filename, ".prm")
+  cat(prm, file = target)
+}
