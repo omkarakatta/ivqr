@@ -70,11 +70,11 @@ iqr_milp <- function(Y,
                      TimeLimit = 300,
                      projection = TRUE,
                      params = list(FeasibilityTol = 1e-6,
-                                   OutputFlag = 0),
+                                   LogToConsole = 0),
                      quietly = TRUE,
                      show_progress = TRUE,
                      LogFileName = "",
-                     LogFileExt = "") {
+                     LogFileExt = ".log") {
 
   # Get dimensions of data
   n <- length(Y)
@@ -486,7 +486,7 @@ iqr_milp <- function(Y,
   iqr$modelsense <- "min"
   params$TimeLimit <- TimeLimit
   if (LogFileName != "") {
-    params$LogFile <- paste0(LogFileName, ".", LogFileExt)
+    params$LogFile <- paste0(LogFileName, LogFileExt)
   }
   result <- gurobi::gurobi(iqr, params)
 

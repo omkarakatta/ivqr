@@ -51,6 +51,9 @@
 #'  iteration (number greater than 1)
 #' @param show_iterations If TRUE, print the iteration number to the console;
 #'  defaults to FALSE (boolean)
+#' @param LogFileExt Extension of Gurobi log file; If \code{LogFileName} is
+#'  empty, then Gurobi log won't be saved and this argument will be ignored;
+#'  defaults to "log" (string)
 #' @param ... Arguments that will be passed to \code{\link{iqr_milp}}
 #'
 #' @return A named list of
@@ -74,6 +77,7 @@ preprocess_iqr_milp <- function(Y,
                                 prop_alpha_initial = 0.7,
                                 r = 1.25,
                                 show_iterations = FALSE,
+                                LogFileExt = ".log",
                                 ...) {
   # Start the clock
   clock_start <- Sys.time()
@@ -136,7 +140,7 @@ preprocess_iqr_milp <- function(Y,
                     O_pos = O_pos,
                     TimeLimit = TT,
                     M = M,
-                    LogFileExt = paste0("_", counter, ".", LogFileExt),
+                    LogFileExt = paste0("_", counter, LogFileExt),
                     ...)
     if (is.null(fit$objval)) {
       obj <- 0.5
