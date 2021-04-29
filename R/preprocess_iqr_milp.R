@@ -136,6 +136,7 @@ preprocess_iqr_milp <- function(Y,
                     O_pos = O_pos,
                     TimeLimit = TT,
                     M = M,
+                    LogFileExt = paste0("_", counter, ".", LogFileExt),
                     ...)
     if (is.null(fit$objval)) {
       obj <- 0.5

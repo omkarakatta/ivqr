@@ -34,6 +34,11 @@
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean)
+#' @param LogFileName Name of Gurobi log file; If string is empty (default),
+#'  Gurobi log won't be saved (string)
+#' @param LogFileExt Extension of Gurobi log file; If \code{LogFileName} is
+#'  empty, then Gurobi log won't be saved and this argument will be ignored;
+#'  defaults to "log" (string)
 #'
 #' @return A named list of
 #'  \enumerate{
@@ -67,7 +72,9 @@ iqr_milp <- function(Y,
                      params = list(FeasibilityTol = 1e-6,
                                    OutputFlag = 0),
                      quietly = TRUE,
-                     show_progress = TRUE) {
+                     show_progress = TRUE,
+                     LogFileName = "",
+                     LogFileExt = "") {
 
   # Get dimensions of data
   n <- length(Y)
@@ -478,6 +485,9 @@ iqr_milp <- function(Y,
   iqr$vtype <- vtype
   iqr$modelsense <- "min"
   params$TimeLimit <- TimeLimit
+  if (LogFileName != "") {
+    params$LogFile <- paste0(LogFileName, ".", LogFileExt)
+  }
   result <- gurobi::gurobi(iqr, params)
 
   msg <- paste("Mixed Integer Linear Program Complete.")
