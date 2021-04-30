@@ -1,17 +1,48 @@
 ### Meta -------------------------
 ###
-### Title: Projection from Regression Rankscore Confidence Region
+### Title: Univariate inference under weak identification with a mixed integer
+### quadratically constrained program (MIQCP)
 ###
-### Description: See display (25) - (31) of Jan 25 draft
+### Description: After inverting the null on the full weakly identified vector
+### of endogenous coefficients, we project the resulting multivariate confidence
+### region on the axis corresponding to the coefficient.
+### See display (25) - (31) of Jan 25 draft.
 ###
 ### Author: Omkar A. Katta
 ###
 
 ### miqcp_proj -------------------------
-
-#' @param j Relevant index of D
+#' Subvector inference under weak identification with MIQCP
+#'
+#' Invert the null on the full weakly identified vector of endogeneous
+#' coefficients and maximize/minimize the projection of the resulting
+#' multivariate confidence on the axis of a particular coefficient.
+#'
+#' The maximization and minimization of the projection is formulated as a
+#' Mixed Integer Quadratically Constrained Program (MIQCP).
+#'
+#' @param j Index of D associated with the coefficient of interest
+#'  (numeric between 1 and p_D)
+#' @param alpha Alpha level; defaults to 10% (numeric between 0 and 1)
 #' @param sense Maximize or minimize beta_D,j
-#' @param alpha Alpha level; defaults to 10% [numeric between 0 and 1]
+#' @inheritParams iqr_milp
+#'
+#' @return A named list of
+#'  \enumerate{
+#'    \item iqr: Gurobi model that was solved
+#'    \item params: Gurobi parameters used
+#'    \item result: solution to MILP returned by Gurobi
+#'    \item status: status of Gurobi's solution
+#'    \item beta_X: coefficients on exogenous variables
+#'    \item beta_D: coefficients on endogenous variables
+#'    \item u: positive part of residuals
+#'    \item v: negative part of residuals
+#'    \item a: dual variable
+#'    \item k: binary variable associated with u
+#'    \item l: binary variable associated with v
+#'    \item resid: residuals (u - v)
+#'    \item objval: value of objective function (beta_D,j)
+#'  }
 miqcp_proj <- function(j,
                        alpha = 0.1,
                        sense,
@@ -28,7 +59,9 @@ miqcp_proj <- function(j,
                        params = list(FeasibilityTol = 1e-6,
                                      OutputFlag = 0),
                        quietly = TRUE,
-                       show_progress = TRUE) {
+                       show_progress = TRUE,
+                       LogFileName = "",
+                       LogFileExt = ".log") {
 
   # Get dimensions of data
   n <- length(Y)
@@ -442,6 +475,9 @@ miqcp_proj <- function(j,
   iqr$vtype <- vtype
   iqr$modelsense <- sense
   params$TimeLimit <- TimeLimit
+  if (LogFileName != "") {
+    params$LogFile <- paste0(LogFileName, LogFileExt)
+  }
 
   # Quadratic Constraint: (27) and Corollary 2
   Q <- diag(n) - X %*% solve(t(X) %*% X) %*% t(X) # homoskedastic case (p. 25)
