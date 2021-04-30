@@ -55,7 +55,8 @@
 #'    \item a: dual variable
 #'    \item k: binary variable associated with u
 #'    \item l: binary variable associated with v
-#'    \item beta_Phi: coefficients on instruments (beta_Phi_plus - beta_Phi_minus)
+#'    \item beta_Phi: coefficients on instruments
+#'      (beta_Phi_plus - beta_Phi_minus)
 #'    \item resid: residuals (u - v)
 #'    \item objval: value of objective function (absolute value of beta_Phi)
 #'  }
