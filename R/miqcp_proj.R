@@ -53,7 +53,9 @@ miqcp_proj <- function(j,
                        tau,
                        O_neg = NULL,
                        O_pos = NULL,
-                       M = NULL,
+                       M = manipulate_qr_residuals("Y ~ D + X - 1",
+                                                   tau = tau,
+                                                   factor = 10),
                        TimeLimit = 300,
                        projection = TRUE,
                        params = list(FeasibilityTol = 1e-6,
@@ -98,12 +100,7 @@ miqcp_proj <- function(j,
   }
   p_Phi <- ncol(Phi)
 
-  # Choose default M is M is not specified
-  if (is.null(M)) {
-    sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
-    M <- 10 * sd_qr
-  }
-  out$M <- M
+  out$M <- M # by default, M = 10 * sd(resid from QR of Y on X and D)
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X

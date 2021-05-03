@@ -72,7 +72,9 @@ preprocess_iqr_milp <- function(Y,
                                 X,
                                 Z,
                                 tau,
-                                M = NULL,
+                                M = manipulate_qr_residuals("Y ~ D + X - 1",
+                                                            tau = tau,
+                                                            factor = 10),
                                 TimeLimit = NULL,
                                 prop_alpha_initial = 0.7,
                                 r = 1.25,
@@ -93,12 +95,6 @@ preprocess_iqr_milp <- function(Y,
 
   # Determine preliminary residuals
   resid <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
-
-  # Choose default M is M is not specified
-  if (is.null(M)) {
-    sd_qr <- stats::sd(resid)
-    M <- 10 * sd_qr
-  }
 
   # Determine initial residual bounds
   alpha_initial <- stats::quantile(abs(resid), prop_alpha_initial)
@@ -139,7 +135,7 @@ preprocess_iqr_milp <- function(Y,
                     O_neg = O_neg,
                     O_pos = O_pos,
                     TimeLimit = TT,
-                    M = M,
+                    M = M, # by default, M = 10 * sd(resid from QR of Y on X and D)
                     LogFileExt = paste0("_", counter, LogFileExt),
                     ...)
     if (is.null(fit$objval)) {
