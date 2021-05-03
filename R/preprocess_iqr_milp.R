@@ -37,6 +37,8 @@
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #' @param tau Quantile (number strictly between 0 and 1)
 #' @param M A large number that bounds the absolute value of the residuals
 #'  (a positive number); defaults to 10 * standard deviation of residuals from
@@ -71,6 +73,7 @@ preprocess_iqr_milp <- function(Y,
                                 D,
                                 X,
                                 Z,
+                                Phi = linear_projection(D, X, Z),
                                 tau,
                                 M = manipulate_qr_residuals("Y ~ D + X - 1",
                                                             tau = tau,
@@ -131,6 +134,7 @@ preprocess_iqr_milp <- function(Y,
                     X = X,
                     D = D,
                     Z = Z,
+                    Phi = Phi,
                     tau = tau,
                     O_neg = O_neg,
                     O_pos = O_pos,

@@ -50,6 +50,7 @@ miqcp_proj <- function(j,
                        X,
                        D,
                        Z,
+                       Phi = linear_projection(D, X, Z),
                        tau,
                        O_neg = NULL,
                        O_pos = NULL,
@@ -57,7 +58,6 @@ miqcp_proj <- function(j,
                                                    tau = tau,
                                                    factor = 10),
                        TimeLimit = 300,
-                       projection = TRUE,
                        params = list(FeasibilityTol = 1e-6,
                                      OutputFlag = 0),
                        quietly = TRUE,
@@ -72,14 +72,17 @@ miqcp_proj <- function(j,
   n_D <- nrow(D)
   n_X <- nrow(X)
   n_Z <- nrow(Z)
+  n_Phi <- nrow(Phi)
   p_D <- ncol(D)
   p_X <- ncol(X)
   p_Z <- ncol(Z)
+  p_Phi <- ncol(Phi)
 
   # Ensure that number of observations is the same
   stopifnot(all.equal(n, n_D))
   stopifnot(all.equal(n, n_X))
   stopifnot(all.equal(n, n_Z))
+  stopifnot(all.equal(n, n_Phi))
 
   # Check that j is an integer that is between 1 and p_D (inclusive)
   msg <- "`j` must be a single integer between 1 and the number of columns of `D`."
@@ -90,16 +93,7 @@ miqcp_proj <- function(j,
   msg <- "`alpha` must be between 0 and 1."
   send_note_if(msg, alpha <= 0 || alpha >= 1, stop, call. = FALSE)
 
-  if (projection) {
-    # Obtain fitted values from projecting D on space spanned by X and Z
-    XZ <- cbind(X, Z)
-    proj_matrix <- solve(t(XZ) %*% XZ) %*% t(XZ) %*% D
-    Phi <- XZ %*% proj_matrix
-  } else {
-    Phi <- Z
-  }
-  p_Phi <- ncol(Phi)
-
+  out$Phi <- Phi # by default, Phi = projection of D on X and Z
   out$M <- M # by default, M = 10 * sd(resid from QR of Y on X and D)
 
   # Decision variables in order from left/top to right/bottom:
@@ -463,7 +457,6 @@ miqcp_proj <- function(j,
   out$params <- params
   out$result <- result
   out$status <- result$status
-  out$Phi <- Phi
   if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$x
     out$beta_X <- answer[1:p_X]

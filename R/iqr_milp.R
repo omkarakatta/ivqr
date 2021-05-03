@@ -18,6 +18,8 @@
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #' @param tau Quantile (number between 0 and 1)
 #' @param O_neg,O_pos Indices for residuals whose sign is fixed to be negative
 #'  and positive, respectively (vectors)
@@ -26,9 +28,6 @@
 #'  quantile regression of Y on X and D
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
 #'  defaults to 300, will be appended to \code{params}
-#' @param projection If TRUE (default), project D on the space spanned by X and
-#'  Z to construct the vector of functions of transformed instruments; else,
-#'  let Z be the instruments for endogenous variables (boolean)
 #' @param params Gurobi parameters, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
@@ -64,6 +63,7 @@ iqr_milp <- function(Y,
                      X,
                      D,
                      Z,
+                     Phi = linear_projection(D, X, Z),
                      tau,
                      O_neg = NULL,
                      O_pos = NULL,
@@ -71,7 +71,6 @@ iqr_milp <- function(Y,
                                                  tau = tau,
                                                  factor = 10),
                      TimeLimit = 300,
-                     projection = TRUE,
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
                      quietly = TRUE,
@@ -86,28 +85,22 @@ iqr_milp <- function(Y,
   n_D <- nrow(D)
   n_X <- nrow(X)
   n_Z <- nrow(Z)
+  n_Phi <- nrow(Phi)
   p_D <- ncol(D)
   p_X <- ncol(X)
   p_Z <- ncol(Z)
+  p_Phi <- ncol(Phi)
 
   # Ensure that number of observations is the same
   stopifnot(all.equal(n, n_D))
   stopifnot(all.equal(n, n_X))
   stopifnot(all.equal(n, n_Z))
+  stopifnot(all.equal(n, n_Phi))
 
   # Create vector of 1s
   ones <- rep(1, n)
 
-  if (projection) {
-    # Obtain fitted values from projecting D on space spanned by X and Z
-    XZ <- cbind(X, Z)
-    proj_matrix <- solve(t(XZ) %*% XZ) %*% t(XZ) %*% D
-    Phi <- XZ %*% proj_matrix
-  } else {
-    Phi <- Z
-  }
-  p_Phi <- ncol(Phi)
-
+  out$Phi <- Phi # by default, Phi = projection of D on X and Z
   out$M <- M # by default, M = 10 * sd(resid from QR of Y on X and D)
 
   # Decision variables in order from left/top to right/bottom:
@@ -478,7 +471,6 @@ iqr_milp <- function(Y,
   out$params <- params
   out$result <- result
   out$status <- result$status
-  out$Phi <- Phi
   if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$x
     out$beta_X <- answer[1:p_X]
