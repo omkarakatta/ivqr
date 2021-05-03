@@ -24,12 +24,12 @@
 #' @param j Index of D associated with the coefficient of interest
 #'  (numeric between 1 and p_D)
 #' @param alpha Alpha level; defaults to 10% (numeric between 0 and 1)
-#' @param sense Maximize or minimize beta_D,j
+#' @param sense Maximize or minimize beta_D,j (either "max" or "min")
 #' @inheritParams iqr_milp
 #'
 #' @return A named list of
 #'  \enumerate{
-#'    \item iqr: Gurobi model that was solved
+#'    \item proj: Gurobi model that was solved
 #'    \item params: Gurobi parameters used
 #'    \item result: solution to MILP returned by Gurobi
 #'    \item status: status of Gurobi's solution
@@ -422,9 +422,9 @@ miqcp_proj <- function(j,
   }
 
   # Putting it all together
-  iqr <- list()
-  iqr$obj <- obj
-  iqr$A <- rbind(A_pf,    # Primal Feasibility
+  proj <- list()
+  proj$obj <- obj
+  proj$A <- rbind(A_pf,    # Primal Feasibility
                  A_df_X,  # Dual Feasibility - X
                  # A_df_Phi,  # Dual Feasibility - Phi
                  A_cs_uk, # Complementary Slackness - u and k
@@ -434,7 +434,7 @@ miqcp_proj <- function(j,
                  A_pp_a,  # Pre-processing - fixing a
                  A_pp_k,  # Pre-processing - fixing k
                  A_pp_l)  # Pre-processing - fixing l
-  # message(paste("A:", nrow(iqr$A), ncol(iqr$A)))
+  # message(paste("A:", nrow(proj$A), ncol(proj$A)))
   # message(paste("A_pf:", nrow(A_pf), ncol(A_pf)))
   # message(paste("A_df_X:", nrow(A_df_X), ncol(A_df_X)))
   # message(paste("A_df_Phi:", nrow(A_df_Phi), ncol(A_df_Phi)))
@@ -446,7 +446,7 @@ miqcp_proj <- function(j,
   # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
   # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
 
-  iqr$rhs <- c(b_pf,    # Primal Feasibility
+  proj$rhs <- c(b_pf,    # Primal Feasibility
                b_df_X,  # Dual Feasibility - X
                # b_df_Phi,  # Dual Feasibility - Phi
                b_cs_uk, # Complementary Slackness - u and k
@@ -456,9 +456,9 @@ miqcp_proj <- function(j,
                b_pp_a,  # Pre-processing - fixing a
                b_pp_k,  # Pre-processing - fixing k
                b_pp_l)  # Pre-processing - fixing l
-  # message(paste("b:", length(iqr$rhs)))
+  # message(paste("b:", length(proj$rhs)))
 
-  iqr$sense <- c(sense_pf,    # Primal Feasibility
+  proj$sense <- c(sense_pf,    # Primal Feasibility
                  sense_df_X,  # Dual Feasibility - X
                  # sense_df_Phi,  # Dual Feasibility - Phi
                  sense_cs_uk, # Complementary Slackness - u and k
@@ -468,12 +468,12 @@ miqcp_proj <- function(j,
                  sense_pp_a,  # Pre-processing - fixing a
                  sense_pp_k,  # Pre-processing - fixing k
                  sense_pp_l)  # Pre-processing - fixing l
-  # message(paste("sense:", length(iqr$sense)))
+  # message(paste("sense:", length(proj$sense)))
 
-  iqr$lb <- lb
-  iqr$ub <- ub
-  iqr$vtype <- vtype
-  iqr$modelsense <- sense
+  proj$lb <- lb
+  proj$ub <- ub
+  proj$vtype <- vtype
+  proj$modelsense <- sense
   params$TimeLimit <- TimeLimit
   if (LogFileName != "") {
     params$LogFile <- paste0(LogFileName, LogFileExt)
@@ -497,9 +497,9 @@ miqcp_proj <- function(j,
   qc_rhs_2 <- n * tau * (1 - tau) * crit_value
   qc_rhs <- qc_rhs_1 + qc_rhs_2
 
-  iqr$quadcon[[1]]$Qc <- qc
-  iqr$quadcon[[1]]$q <- as.numeric(q)
-  iqr$quadcon[[1]]$rhs <- qc_rhs
+  proj$quadcon[[1]]$Qc <- qc
+  proj$quadcon[[1]]$q <- as.numeric(q)
+  proj$quadcon[[1]]$rhs <- qc_rhs
 
   # print(dim(qc))
   # print(dim(q))
@@ -509,20 +509,20 @@ miqcp_proj <- function(j,
   msg <- "Quadratic Constraints Complete"
   send_note_if(msg, show_progress, message)
 
-  result <- gurobi::gurobi(iqr, params)
+  result <- gurobi::gurobi(proj, params)
 
   msg <- paste("Mixed Integer Linear Program Complete.")
   send_note_if(msg, show_progress, message)
 
   # Return results
-  msg <- paste("Status of IQR program:",
+  msg <- paste("Status of MIQCP Projection program:",
                result$status,
                "| Objective:",
                format(result$objval, scientific = F, digits = 10))
   send_note_if(msg, !quietly, message)  # Print status of program if !quietly
 
   out <- list() # Initialize list of results to return
-  out$iqr <- iqr
+  out$proj <- proj
   out$params <- params
   out$result <- result
   out$status <- result$status
