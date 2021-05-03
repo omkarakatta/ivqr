@@ -343,15 +343,6 @@ iqr_milp <- function(Y,
     b_a_fixed[O_pos] <- 1
     b_a_fixed[O_neg] <- 0
     b_pp_a <- b_a_fixed
-    # b_pp_a <- c(rep(0, p_X),  # beta_X
-    #             rep(0, p_Phi),  # beta_Phi_plus
-    #             rep(0, p_Phi),  # beta_Phi_minus
-    #             rep(0, p_D),  # beta_D
-    #             rep(0, n),    # u
-    #             rep(0, n),    # v
-    #             b_a_fixed,    # a
-    #             rep(0, n),    # k
-    #             rep(0, n))    # l
     sense_pp_a <- rep("=", n)
 
     stopifnot(ncol(A_pp_a) == num_decision_vars)
@@ -374,15 +365,6 @@ iqr_milp <- function(Y,
     b_k_fixed[O_pos] <- 1
     b_k_fixed[O_neg] <- 0
     b_pp_k <- b_k_fixed
-    # b_pp_k <- c(rep(0, p_X),  # beta_X
-    #             rep(0, p_Phi),  # beta_Phi_plus
-    #             rep(0, p_Phi),  # beta_Phi_minus
-    #             rep(0, p_D),  # beta_D
-    #             rep(0, n),    # u
-    #             rep(0, n),    # v
-    #             rep(0, n),    # a
-    #             b_k_fixed,    # k
-    #             rep(0, n))    # l
     sense_pp_k <- rep("=", n)
 
     stopifnot(ncol(A_pp_k) == num_decision_vars)
@@ -405,15 +387,6 @@ iqr_milp <- function(Y,
     b_l_fixed[O_pos] <- 0
     b_l_fixed[O_neg] <- 1
     b_pp_l <- b_l_fixed
-    # b_pp_l <- c(rep(0, p_X),  # beta_X
-    #             rep(0, p_Phi),  # beta_Phi_plus
-    #             rep(0, p_Phi),  # beta_Phi_minus
-    #             rep(0, p_D),  # beta_D
-    #             rep(0, n),    # u
-    #             rep(0, n),    # v
-    #             rep(0, n),    # a
-    #             rep(0, n),    # k
-    #             b_l_fixed)    # l
     sense_pp_l <- rep("=", n)
 
     stopifnot(ncol(A_pp_l) == num_decision_vars)
