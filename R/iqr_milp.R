@@ -478,6 +478,7 @@ iqr_milp <- function(Y,
   out$params <- params
   out$result <- result
   out$status <- result$status
+  out$Phi <- Phi
   if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$x
     out$beta_X <- answer[1:p_X]
