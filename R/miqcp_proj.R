@@ -84,6 +84,10 @@ miqcp_proj <- function(j,
   send_note_if(msg, length(j) != 1 || round(j) != j || j < 1 || j > p_D,
     stop, call. = FALSE)
 
+  # Check that alpha is between 0 and 1 (exclusive)
+  msg <- "`alpha` must be between 0 and 1."
+  send_note_if(msg, alpha <= 0 || alpha >= 1, stop, call. = FALSE)
+
   if (projection) {
     # Obtain fitted values from projecting D on space spanned by X and Z
     XZ <- cbind(X, Z)
@@ -103,16 +107,13 @@ miqcp_proj <- function(j,
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
-  # # 2. beta_Phi_plus
-  # # 3. beta_Phi_minus ; note: abs(beta_Phi) = beta_Phi_plus + beta_Phi_minus
-  # 4. beta_D
-  # 5. u
-  # 6. v
-  # 7. a
-  # 8. k
-  # 9. l
+  # 2. beta_D
+  # 3. u
+  # 4. v
+  # 5. a
+  # 6. k
+  # 7. l
 
-  # num_decision_vars <- p_X + 2 * p_Phi + p_D + 5 * n
   num_decision_vars <- p_X + p_D + 5 * n
 
   # Create vector of 1s
@@ -123,8 +124,6 @@ miqcp_proj <- function(j,
   beta_D_obj <- rep(0, p_D)
   beta_D_obj[j] <- 1
   obj <- c(rep(0, p_X),   # beta_X
-           # rep(0, p_Phi), # beta_Phi_plus
-           # rep(0, p_Phi), # beta_Phi_minus
            beta_D_obj,   # beta_D
            rep(0, n),     # u
            rep(0, n),     # v
@@ -135,8 +134,6 @@ miqcp_proj <- function(j,
 
   # Primal Feasibility Constraint (25)
   A_pf <- cbind(X,                  # beta_X
-                # Phi,                # beta_Phi_plus
-                # -Phi,               # beta_Phi_minus
                 D,                  # beta_D
                 diag(1, nrow = n),  # u
                 -diag(1, nrow = n), # v
@@ -155,14 +152,12 @@ miqcp_proj <- function(j,
 
   # Dual Feasibility Constraint (26)
   A_df_X <- cbind(matrix(0, nrow = p_X, ncol = p_X),  # beta_X
-                  # matrix(0, nrow = p_X, ncol = p_Phi),  # beta_Phi_plus
-                  # matrix(0, nrow = p_X, ncol = p_Phi),  # beta_Phi_minus
                   matrix(0, nrow = p_X, ncol = p_D),  # beta_D
-                  matrix(0, nrow = p_X, ncol = n),  # u
-                  matrix(0, nrow = p_X, ncol = n),  # v
-                  t(X),                 # a
-                  matrix(0, nrow = p_X, ncol = n),  # k
-                  matrix(0, nrow = p_X, ncol = n))  # l
+                  matrix(0, nrow = p_X, ncol = n),    # u
+                  matrix(0, nrow = p_X, ncol = n),    # v
+                  t(X),                               # a
+                  matrix(0, nrow = p_X, ncol = n),    # k
+                  matrix(0, nrow = p_X, ncol = n))    # l
   b_df_X <- (1 - tau) * t(X) %*% ones
   sense_df_X <- rep("=", p_X)
 
@@ -173,26 +168,7 @@ miqcp_proj <- function(j,
   msg <- paste("Dual Feasibility for X Complete.")
   send_note_if(msg, show_progress, message)
 
-  # A_df_Phi <- cbind(matrix(0, nrow = p_Phi, ncol = p_X),    # beta_X
-  #                   matrix(0, nrow = p_Phi, ncol = p_Phi),  # beta_Phi_plus
-  #                   matrix(0, nrow = p_Phi, ncol = p_Phi),  # beta_Phi_minus
-  #                   matrix(0, nrow = p_Phi, ncol = p_D),    # beta_D
-  #                   matrix(0, nrow = p_Phi, ncol = n),      # u
-  #                   matrix(0, nrow = p_Phi, ncol = n),      # v
-  #                   t(Phi),                                 # a
-  #                   matrix(0, nrow = p_Phi, ncol = n),      # k
-  #                   matrix(0, nrow = p_Phi, ncol = n))      # l
-  # b_df_Phi <- (1 - tau) * t(Phi) %*% ones
-  # sense_df_Phi <- rep("=", p_Phi)
-  #
-  # stopifnot(ncol(A_df_Phi) == num_decision_vars)
-  # stopifnot(nrow(A_df_Phi) == p_Phi)
-  # stopifnot(length(b_df_Phi) == p_Phi)
-  # stopifnot(length(sense_df_Phi) == p_Phi)
-  # msg <- paste("Dual Feasibility for Phi Complete.")
-  # send_note_if(msg, show_progress, message)
-
-  # Complementary Slackness (16) and (17)
+  # Complementary Slackness (28)
   A_cs_uk <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
                    # matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_plus
                    # matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_minus
@@ -231,6 +207,7 @@ miqcp_proj <- function(j,
   msg <- paste("Complementary Slackness for v and l Complete.")
   send_note_if(msg, show_progress, message)
 
+  # Complementary Slackness (29)
   A_cs_ak <- cbind(matrix(0, nrow = n, ncol = p_X),     # beta_X
                    # matrix(0, nrow = n, ncol = p_Phi),   # beta_Phi_plus
                    # matrix(0, nrow = n, ncol = p_Phi),   # beta_Phi_minus
@@ -250,15 +227,13 @@ miqcp_proj <- function(j,
   msg <- paste("Complementary Slackness for a and k Complete.")
   send_note_if(msg, show_progress, message)
 
-  A_cs_al <- cbind(matrix(0, nrow = n, ncol = p_X), # beta_X
-                   # matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus
-                   # matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus
-                   matrix(0, nrow = n, ncol = p_D), # beta_D
-                   matrix(0, nrow = n, ncol = n), # u
-                   matrix(0, nrow = n, ncol = n), # v
-                   diag(1, nrow = n, ncol = n), # a
-                   matrix(0, nrow = n, ncol = n), # k
-                   diag(1, nrow = n, ncol = n)) # l
+  A_cs_al <- cbind(matrix(0, nrow = n, ncol = p_X),   # beta_X
+                   matrix(0, nrow = n, ncol = p_D),   # beta_D
+                   matrix(0, nrow = n, ncol = n),     # u
+                   matrix(0, nrow = n, ncol = n),     # v
+                   diag(1, nrow = n, ncol = n),       # a
+                   matrix(0, nrow = n, ncol = n),     # k
+                   diag(1, nrow = n, ncol = n))       # l
   b_cs_al <- rep(1, n)
   sense_cs_al <- rep("<=", n)
 
@@ -269,10 +244,8 @@ miqcp_proj <- function(j,
   msg <- paste("Complementary Slackness for a and l Complete.")
   send_note_if(msg, show_progress, message)
 
-  # Non-negativity and Boundedness Constraints (12) and (15)
+  # Non-negativity and Boundedness Constraints (30) and (31)
   lb <- c(rep(-Inf, p_X), # beta_X
-          # rep(0, p_Phi),    # beta_Phi_plus
-          # rep(0, p_Phi),    # beta_Phi_minus
           rep(-Inf, p_D), # beta_D
           rep(0, n),      # u
           rep(0, n),      # v
@@ -280,8 +253,6 @@ miqcp_proj <- function(j,
           rep(0, n),      # k
           rep(0, n))      # l
   ub <- c(rep(Inf, p_X),  # beta_X
-          # rep(Inf, p_Phi),  # beta_Phi_plus
-          # rep(Inf, p_Phi),  # beta_Phi_minus
           rep(Inf, p_D),  # beta_D
           rep(Inf, n),    # u
           rep(Inf, n),    # v
@@ -296,8 +267,6 @@ miqcp_proj <- function(j,
 
   # Integrality Constraint (see vtype) (18)
   vtype <- c(rep("C", p_X), # beta_X
-             # rep("C", p_Phi), # beta_Phi_plus
-             # rep("C", p_Phi), # beta_Phi_minus
              rep("C", p_D), # beta_D
              rep("C", n),   # u
              rep("C", n),   # v
@@ -325,8 +294,6 @@ miqcp_proj <- function(j,
     fixed_mat <- diag(fixed)
 
     A_pp_a <- cbind(matrix(0, nrow = n, ncol = p_X),    # beta_X
-                    # matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
-                    # matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
                     matrix(0, nrow = n, ncol = p_D),    # beta_D
                     matrix(0, nrow = n, ncol = n),      # u
                     matrix(0, nrow = n, ncol = n),      # v
@@ -337,15 +304,6 @@ miqcp_proj <- function(j,
     b_a_fixed[O_pos] <- 1
     b_a_fixed[O_neg] <- 0
     b_pp_a <- b_a_fixed
-    # b_pp_a <- c(rep(0, p_X),  # beta_X
-    #             rep(0, p_Phi),  # beta_Phi_plus
-    #             rep(0, p_Phi),  # beta_Phi_minus
-    #             rep(0, p_D),  # beta_D
-    #             rep(0, n),    # u
-    #             rep(0, n),    # v
-    #             b_a_fixed,    # a
-    #             rep(0, n),    # k
-    #             rep(0, n))    # l
     sense_pp_a <- rep("=", n)
 
     stopifnot(ncol(A_pp_a) == num_decision_vars)
@@ -356,8 +314,6 @@ miqcp_proj <- function(j,
     send_note_if(msg, show_progress, message)
 
     A_pp_k <- cbind(matrix(0, nrow = n, ncol = p_X),    # beta_X
-                    # matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
-                    # matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
                     matrix(0, nrow = n, ncol = p_D),    # beta_D
                     matrix(0, nrow = n, ncol = n),      # u
                     matrix(0, nrow = n, ncol = n),      # v
@@ -368,15 +324,6 @@ miqcp_proj <- function(j,
     b_k_fixed[O_pos] <- 1
     b_k_fixed[O_neg] <- 0
     b_pp_k <- b_k_fixed
-    # b_pp_k <- c(rep(0, p_X),  # beta_X
-    # #             rep(0, p_Phi),  # beta_Phi_plus
-    # #             rep(0, p_Phi),  # beta_Phi_minus
-    #             rep(0, p_D),  # beta_D
-    #             rep(0, n),    # u
-    #             rep(0, n),    # v
-    #             rep(0, n),    # a
-    #             b_k_fixed,    # k
-    #             rep(0, n))    # l
     sense_pp_k <- rep("=", n)
 
     stopifnot(ncol(A_pp_k) == num_decision_vars)
@@ -387,27 +334,16 @@ miqcp_proj <- function(j,
     send_note_if(msg, show_progress, message)
 
     A_pp_l <- cbind(matrix(0, nrow = n, ncol = p_X),  # beta_X
-                    # matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_plus
-                    # matrix(0, nrow = n, ncol = p_Phi),  # beta_Phi_minus
                     matrix(0, nrow = n, ncol = p_D),  # beta_D
                     matrix(0, nrow = n, ncol = n),    # u
                     matrix(0, nrow = n, ncol = n),    # v
                     matrix(0, nrow = n, ncol = n),    # a
                     matrix(0, nrow = n, ncol = n),    # k
-                    fixed_mat)        # l
+                    fixed_mat)                        # l
     b_l_fixed <- rep(0, n)
     b_l_fixed[O_pos] <- 0
     b_l_fixed[O_neg] <- 1
     b_pp_l <- b_l_fixed
-    # b_pp_l <- c(rep(0, p_X),  # beta_X
-    # #             rep(0, p_Phi),  # beta_Phi_plus
-    # #             rep(0, p_Phi),  # beta_Phi_minus
-    #             rep(0, p_D),  # beta_D
-    #             rep(0, n),    # u
-    #             rep(0, n),    # v
-    #             rep(0, n),    # a
-    #             rep(0, n),    # k
-    #             b_l_fixed)    # l
     sense_pp_l <- rep("=", n)
 
     stopifnot(ncol(A_pp_l) == num_decision_vars)
@@ -432,9 +368,8 @@ miqcp_proj <- function(j,
   # Putting it all together
   proj <- list()
   proj$obj <- obj
-  proj$A <- rbind(A_pf,    # Primal Feasibility
+  proj$A <- rbind(A_pf,   # Primal Feasibility
                  A_df_X,  # Dual Feasibility - X
-                 # A_df_Phi,  # Dual Feasibility - Phi
                  A_cs_uk, # Complementary Slackness - u and k
                  A_cs_vl, # Complementary Slackness - v and l
                  A_cs_ak, # Complementary Slackness - a and k
@@ -456,7 +391,6 @@ miqcp_proj <- function(j,
 
   proj$rhs <- c(b_pf,    # Primal Feasibility
                b_df_X,  # Dual Feasibility - X
-               # b_df_Phi,  # Dual Feasibility - Phi
                b_cs_uk, # Complementary Slackness - u and k
                b_cs_vl, # Complementary Slackness - v and l
                b_cs_ak, # Complementary Slackness - a and k
@@ -466,9 +400,8 @@ miqcp_proj <- function(j,
                b_pp_l)  # Pre-processing - fixing l
   # message(paste("b:", length(proj$rhs)))
 
-  proj$sense <- c(sense_pf,    # Primal Feasibility
+  proj$sense <- c(sense_pf,   # Primal Feasibility
                  sense_df_X,  # Dual Feasibility - X
-                 # sense_df_Phi,  # Dual Feasibility - Phi
                  sense_cs_uk, # Complementary Slackness - u and k
                  sense_cs_vl, # Complementary Slackness - v and l
                  sense_cs_ak, # Complementary Slackness - a and k
@@ -537,14 +470,6 @@ miqcp_proj <- function(j,
   if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$x
     out$beta_X <- answer[1:p_X]
-    # # out$beta_Phi_plus <- answer[(p_X + 1):(p_X + p_Phi)]
-    # # out$beta_Phi_minus <- answer[(p_X + p_Phi + 1):(p_X + 2*p_Phi)]
-    # out$beta_D <- answer[(p_X + 2*p_Phi + 1):(p_X + 2*p_Phi + p_D)]
-    # out$u <- answer[(p_X + 2*p_Phi + p_D + 1):(p_X + 2*p_Phi + p_D + n)]
-    # out$v <- answer[(p_X + 2*p_Phi + p_D + n + 1):(p_X + 2*p_Phi + p_D + 2*n)]
-    # out$a <- answer[(p_X + 2*p_Phi + p_D + 2*n + 1):(p_X + 2*p_Phi + p_D + 3*n)]
-    # out$k <- answer[(p_X + 2*p_Phi + p_D + 3*n + 1):(p_X + 2*p_Phi + p_D + 4*n)]
-    # out$l <- answer[(p_X + 2*p_Phi + p_D + 4*n + 1):(p_X + 2*p_Phi + p_D + 5*n)]
     out$beta_D <- answer[(p_X + 1):(p_X + p_D)]
     out$u <- answer[(p_X + p_D + 1):(p_X + p_D + n)]
     out$v <- answer[(p_X + p_D + n + 1):(p_X + p_D + 2*n)]
@@ -552,7 +477,6 @@ miqcp_proj <- function(j,
     out$k <- answer[(p_X + p_D + 3*n + 1):(p_X + p_D + 4*n)]
     out$l <- answer[(p_X + p_D + 4*n + 1):(p_X + p_D + 5*n)]
 
-    # out$beta_Phi <- out$beta_Phi_plus - out$beta_Phi_minus
     out$resid <- out$u - out$v
     out$objval <- result$objval
   }
