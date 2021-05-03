@@ -7,6 +7,7 @@
 ### Author: Omkar A. Katta
 ###
 
+
 ### manipulate_qr_residuals -------------------------
 #' Manipulate residuals from a quantile regression
 #'
@@ -26,6 +27,10 @@
 #' @param FUN A function to manipulate the residuals;
 #'  defaults to \code{stats::sd}
 #' @param ... Arguments passed to \code{FUN}
+#'
+#' @return Result of \code{factor} multiplied by the output of \code{FUN}
+#'  evaluated at the quantile regression specified by \code{string_formula} and
+#'  \code{tau}
 manipulate_qr_residuals <- function(string_formula,
                                     tau,
                                     factor = 1,
@@ -37,3 +42,22 @@ manipulate_qr_residuals <- function(string_formula,
   factor * fun_resid
 }
 
+### linear_projection -------------------------
+#' Linearly project a vector onto the space spanned by other vectors
+#'
+#' Find the fitted values from a regression of each column of \code{Y} on
+#' regressors, which are given by matrices in \code{...}.
+#'
+#' Ensure that the rows of \code{Y} and \code{...} are the same!
+#'
+#' @param Y Vector or matrix that will be projected (n by p_Y matrix)
+#' @param ... "Regressors" whose span is the destination of the projection
+#'  (matrix of n rows)
+#'
+#' @return Linear projection of \code{Y} on \code{...}
+#'  (matrix of dimension nrow(Y) by ncol(Y))
+linear_projection <- function(Y, ...) {
+  X <- cbind(...)
+  coef <- solve(t(X) %*% X) %*% t(X) %*% Y
+  X %*% coef
+}
