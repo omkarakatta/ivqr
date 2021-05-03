@@ -79,6 +79,11 @@ miqcp_proj <- function(j,
   stopifnot(all.equal(n, n_X))
   stopifnot(all.equal(n, n_Z))
 
+  # Check that j is an integer that is between 1 and p_D (inclusive)
+  msg <- "`j` must be a single integer between 1 and the number of columns of `D`."
+  send_note_if(msg, length(j) != 1 || round(j) != j || j < 1 || j > p_D,
+    stop, call. = FALSE)
+
   if (projection) {
     # Obtain fitted values from projecting D on space spanned by X and Z
     XZ <- cbind(X, Z)
