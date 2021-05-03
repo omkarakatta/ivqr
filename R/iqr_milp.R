@@ -77,6 +77,8 @@ iqr_milp <- function(Y,
                      LogFileName = "",
                      LogFileExt = ".log") {
 
+  out <- list() # Initialize list of results to return
+
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)
@@ -109,6 +111,7 @@ iqr_milp <- function(Y,
     sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
     M <- 10 * sd_qr
   }
+  out$M <- M
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
@@ -501,7 +504,6 @@ iqr_milp <- function(Y,
                format(result$objval, scientific = F, digits = 10))
   send_note_if(msg, !quietly, message)  # Print status of program if !quietly
 
-  out <- list() # Initialize list of results to return
   out$iqr <- iqr
   out$params <- params
   out$result <- result

@@ -63,6 +63,8 @@ miqcp_proj <- function(j,
                        LogFileName = "",
                        LogFileExt = ".log") {
 
+  out <- list() # Initialize list of results to return
+
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)
@@ -92,6 +94,7 @@ miqcp_proj <- function(j,
     sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
     M <- 10 * sd_qr
   }
+  out$M <- M
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
@@ -521,7 +524,6 @@ miqcp_proj <- function(j,
                format(result$objval, scientific = F, digits = 10))
   send_note_if(msg, !quietly, message)  # Print status of program if !quietly
 
-  out <- list() # Initialize list of results to return
   out$proj <- proj
   out$params <- params
   out$result <- result
