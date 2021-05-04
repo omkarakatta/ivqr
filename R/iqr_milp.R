@@ -67,9 +67,7 @@ iqr_milp <- function(Y,
                      tau,
                      O_neg = NULL,
                      O_pos = NULL,
-                     M = manipulate_qr_residuals("Y ~ D + X - 1",
-                                                 tau = tau,
-                                                 factor = 10),
+                     M = NULL,
                      TimeLimit = 300,
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
@@ -101,7 +99,14 @@ iqr_milp <- function(Y,
   ones <- rep(1, n)
 
   out$Phi <- Phi # by default, Phi = projection of D on X and Z
-  out$M <- M # by default, M = 10 * sd(resid from QR of Y on X and D)
+
+  if (is.null(M)) {
+    # by default, M = 10 * sd(resid from QR of Y on X and D)
+    sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    M <- 10 * sd_qr
+  }
+  out$M <- M
+
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
