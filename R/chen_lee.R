@@ -77,13 +77,13 @@ chen_lee <- function(n = 500, p_D = 3) {
   nu <- errors[, -1] # all other columns are shocks to instruments to define D
 
   # Step 3: Define Z (instruments).
-  Z <- matrix(rnorm(n * p_D), ncol = p_D) # n by p_D matrix of instruments
+  Z <- matrix(stats::rnorm(n * p_D), ncol = p_D) # n by p_D matrix of instruments
 
   # Step 4: Define D (endogeneous variables).
   # D is the product of some coefficient and the CDF of shocked instrument.
   coef_D <- c(1, 2.5, 1.5, seq(1, 2, length.out = p_D - 3))
   scale_D <- matrix(rep(coef_D, n), ncol = p_D, byrow = T)
-  D <- pnorm(Z + nu) * scale_D # element-wise product, not matrix multiplication
+  D <- stats::pnorm(Z + nu) * scale_D # element-wise product, not matrix multiplication
 
   # Define Y (outcome variable)
   beta_D <- rep(1, p_D) # coefficients on endogeneous variables!

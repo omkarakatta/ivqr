@@ -9,12 +9,14 @@ preprocess_iqr_milp(
   D,
   X,
   Z,
+  Phi = linear_projection(D, X, Z),
   tau,
   M = NULL,
   TimeLimit = NULL,
   prop_alpha_initial = 0.7,
   r = 1.25,
   show_iterations = FALSE,
+  LogFileExt = ".log",
   ...
 )
 }
@@ -26,6 +28,9 @@ preprocess_iqr_milp(
 \item{X}{Exogenous variable (including constant vector) (n by p_X matrix)}
 
 \item{Z}{Instrumental variable (n by p_Z matrix)}
+
+\item{Phi}{Transformation of X and Z to be used in the program;
+defaults to the linear projection of D on X and Z (matrix with n rows)}
 
 \item{tau}{Quantile (number strictly between 0 and 1)}
 
@@ -46,6 +51,10 @@ iteration (number greater than 1)}
 
 \item{show_iterations}{If TRUE, print the iteration number to the console;
 defaults to FALSE (boolean)}
+
+\item{LogFileExt}{Extension of Gurobi log file; If \code{LogFileName} is
+empty, then Gurobi log won't be saved and this argument will be ignored;
+defaults to "log" (string)}
 
 \item{...}{Arguments that will be passed to \code{\link{iqr_milp}}}
 }

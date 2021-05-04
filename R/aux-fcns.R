@@ -14,7 +14,7 @@
 #' Apply a function to the residuals of a quantile regression
 #'
 #' The purpose of this function is to define the big M constant in
-#' \code{\link{iqr_milp}}, \code{\link{\miqcp_proj}}, and potentially other
+#' \code{iqr_milp}, \code{miqcp_proj}, and potentially other
 #' functions.
 #'
 #' The formula relies on variables defined outside the scope of the function.
@@ -36,7 +36,7 @@ manipulate_qr_residuals <- function(string_formula,
                                     factor = 1,
                                     FUN = stats::sd,
                                     ...) {
-  qr <- quantreg::rq(as.formula(string_formula), tau)
+  qr <- quantreg::rq(stats::as.formula(string_formula), tau)
   resid <- qr$resid
   fun_resid <- FUN(resid, ...)
   factor * fun_resid
