@@ -93,5 +93,3 @@ chen_lee <- function(n = 500, p_D = 3) {
 
   list("Y" = Y, "D" = D, "Z" = Z, "X" = X, "errors" = errors)
 }
-# y_mat <- tmp$Y
-# iqr_milp(Y = y_mat, X = tmp$X, D = tmp$D, Z = tmp$Z, tau = 0.5, TimeLimit = 15)
