@@ -30,3 +30,22 @@ get_initial_beta_D <- function(Y, D, Z, X, ...) {
   stats::coef(qr)[seq_len(ncol(D))]
 }
 
+### center_out -------------------------
+#' Create a univariate grid of values from the center out
+#'
+#' Given some center, extend in the positive and negative directions to create
+#' a grid of values
+#'
+#' @param center Output of \code{get_initial_beta_D} or a number to center
+#'  the grid (numeric)
+#' @param increment Granularity of the grid (numeric)
+#' @param length Number of grid values to the right and left of the grid
+#'  (numeric)
+#'
+#' @return A vector of grid values
+center_out <- function(center, increment, length) {
+  pos <- seq(from = center, by = increment, length.out = length + 1)
+  neg <- seq(to = center, by = increment, length.out = length + 1)
+  grid <- unique(c(neg, pos))
+  grid
+}
