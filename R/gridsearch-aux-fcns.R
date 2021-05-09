@@ -49,3 +49,37 @@ center_out_uni <- function(center, increment, length) {
   grid <- unique(c(neg, pos))
   grid
 }
+
+### center_out_grid -------------------------
+
+#' Create multidimensional grid of values
+#'
+#' Apply \code{center_out_uni} element-wise to each argument of this function
+#' and take all possible combinations of coordinate grid values to create a
+#' data frame of grid coordinates
+#'
+#' @param center Output of \code{get_initial_beta_D}; values that act as
+#'  the center of each axis of the grid (numeric vector of length p_D)
+#' @param increment Granularity of the grid in each axis
+#'  (numeric vector of length p_D)
+#' @param length Number of grid values to the right and left of each axis
+#'  (numeric vector of length p_D)
+#'
+#' @return A data frame with each row acting as the coordinates of the grid.
+#'  If \code{center} is a named vector, the columns of the data frame will
+#'  share the names of the vector. If \code{center} is not a named vector,
+#'  the columns of the data frame are Var1, Var2, etc.
+center_out_grid <- function(center, increment, length) {
+  stopifnot(length(center) == length(increment))
+  stopifnot(length(center) == length(length))
+  grid_list <- vector("list", length(center))
+  for (i in seq_along(center)) {
+    vec <- center_out_uni(center[[i]], increment[[i]], length[[i]])
+    grid_list[[i]] <- vec
+  }
+  grid <- expand.grid(grid_list)
+  if (!is.null(names(center))) {
+    colnames(grid) <- names(center)
+  }
+  grid
+}
