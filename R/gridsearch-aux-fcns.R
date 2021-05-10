@@ -18,15 +18,18 @@
 #' Naively regress \code{Y} on \code{D}, \code{Z}, and \code{X}, and return
 #' the coefficients on \code{D}.
 #'
-#' @param Y Outcome matrix (more precisely, a column vector)
-#' @param D Matrix of endogenous variables
-#' @param Z Matrix of instruments
-#' @param X Matrix of covariates (incl. column of 1's for the intercept)
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param tau Quantile of interest (numeric between 0 and 1)
 #' @param ... Arguments to be passed to \code{quantreg::rq()}
 #'
 #' @return A vector of coefficients on the endogenous variable
-get_initial_beta_D <- function(Y, D, Z, X, ...) {
-  qr <- quantreg::rq(Y ~ D + Z + X - 1, ...)
+get_initial_beta_D <- function(Y, X, D, Z, tau, ...) {
+  msg <- "`tau` is meant to be a single numeric."
+  send_note_if(msg, length(tau) > 1, warning)
+  qr <- quantreg::rq(Y ~ D + Z + X - 1, tau = tau, ...)
   stats::coef(qr)[seq_len(ncol(D))]
 }
 
@@ -51,7 +54,6 @@ center_out_uni <- function(center, increment, length) {
 }
 
 ### center_out_grid -------------------------
-
 #' Create multidimensional grid of values
 #'
 #' Apply \code{center_out_uni} element-wise to each argument of this function
@@ -82,4 +84,90 @@ center_out_grid <- function(center, increment, length) {
     colnames(grid) <- names(center)
   }
   grid
+}
+
+### get_iqr_objective -------------------------
+#' Get value of IQR objective given coefficients on endogeneous variable
+#'
+#' Obtain the sum of the absolute value of the coefficients on the instruments
+#' in a quantile regression of \code{Y} after concentrating out \code{D}
+#' according to \code{beta_D} on \code{Z} and \code{X}.
+#'
+#' @param beta_D Vector of coefficients on the endogenous variable
+#'  (numeric vector)
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param tau Quantile of interest (numeric between 0 and 1)
+#' @param ... Arguments to be passed to \code{quantreg::rq()}
+#'
+#' @return A named list of two entries:
+#'  \enumerate{
+#'    \item \code{beta_Z}: named vector of coefficients on the instruments
+#'    \item \code{tau}: quantile of interest
+#'    \item \code{obj}: sum of absolute value of \code{beta_Z}, i.e., value of
+#'      IQR objective
+#'  }
+get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
+  msg <- "`tau` is meant to be a single numeric."
+  send_note_if(msg, length(tau) > 1, stop, call. = FALSE)
+  qr <- quantreg::rq(Y - D %*% beta_D ~ Z + X - 1, tau = tau, ...)
+
+  # `as.data.frame(coef(qr))` returns a data frame with each row corresponding
+  # to a coefficient and each column corresponding to a quantile.
+  beta_Z <- as.data.frame(coef(qr))[seq_len(ncol(Z)), ]
+  names(beta_Z) <- colnames(Z)
+  list(beta_Z = beta_Z, tau = tau, obj = sum(abs(beta_Z)))
+}
+
+  # beta_Z %>%
+  #   dplyr::mutate(Z = colnames(Z)) %>%
+  #   tidyr::pivot_longer(cols = contains("."),
+  #                       names_to = "tau",
+  #                       values_to = "coef") %>%
+  #     dplyr::mutate(tau = as.numeric(tau))
+
+# msg <- "`tau` is meant to be a single numeric."
+#   send_note_if(msg, length(tau) > 1, stop, call. = FALSE)
+#   qr <- quantreg::rq(Y - D %*% beta_D ~ Z + X - 1, tau = tau, ...)
+# 
+#   # `as.data.frame(coef(qr))` returns a data frame with each row corresponding
+#   # to a coefficient and each column corresponding to a quantile.
+#   beta_Z <- as.data.frame(coef(qr))[seq_len(ncol(Z)), ]
+#   sum(abs(beta_Z))
+#   # TODO: Save the coefficients beta_Z
+
+### get_iqr_objective_grid -------------------------
+#' Compute IQR objective given grid of coefficients on endogeneous variables
+#'
+#' For each set of \code{beta_D} suggested by \code{grid}, compute the
+#' sum of the absolute values of \code{beta_Z}
+#'
+#'
+#'
+get_iqr_objective_grid <- function(grid,
+                                   Y,
+                                   X,
+                                   D,
+                                   Z,
+                                   tau,
+                                   update = round(nrow(grid) / 20),
+                                   ...) {
+  msg <- "`update` is meant to be a single number less than `nrow(grid)`."
+  send_note_if(msg, update > nrow(grid), stop, call. = FALSE)
+  beta_Z_coef <- vector("list", length = nrow(grid))
+  objective <- vector("double", length = nrow(grid))
+  for (i in seq_len(nrow(grid))) {
+    if (i %% update == 0) {
+      msg <- paste("Grid:", i, "out of", nrow(grid))
+      print(msg)
+    }
+    beta_D_vec <- as.numeric(grid[i, ])
+    result <- get_iqr_objective(beta_D_vec, Y, X, D, Z, tau, ...)
+    beta_Z_coef[[i]] <- result$beta_Z
+    objective[[i]] <- result$obj
+  }
+  beta_Z_coef <- do.call(rbind, beta_Z_coef)
+  cbind(grid, beta_Z_coef, objective)
 }
