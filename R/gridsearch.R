@@ -251,7 +251,6 @@ get_iqr_objective_grid_parallel <- function(grid,
     result
   }
 
-  # concatenate_csvs(log_dir, cols, read.csv, header = F, remove_after_merge = T)
   if (create_log) {
     unlink(log_dir, recursive = T)
     dir.create(log_dir)
