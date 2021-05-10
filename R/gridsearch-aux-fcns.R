@@ -121,23 +121,6 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
   list(beta_Z = beta_Z, tau = tau, obj = sum(abs(beta_Z)))
 }
 
-  # beta_Z %>%
-  #   dplyr::mutate(Z = colnames(Z)) %>%
-  #   tidyr::pivot_longer(cols = contains("."),
-  #                       names_to = "tau",
-  #                       values_to = "coef") %>%
-  #     dplyr::mutate(tau = as.numeric(tau))
-
-# msg <- "`tau` is meant to be a single numeric."
-#   send_note_if(msg, length(tau) > 1, stop, call. = FALSE)
-#   qr <- quantreg::rq(Y - D %*% beta_D ~ Z + X - 1, tau = tau, ...)
-# 
-#   # `as.data.frame(coef(qr))` returns a data frame with each row corresponding
-#   # to a coefficient and each column corresponding to a quantile.
-#   beta_Z <- as.data.frame(coef(qr))[seq_len(ncol(Z)), ]
-#   sum(abs(beta_Z))
-#   # TODO: Save the coefficients beta_Z
-
 ### get_iqr_objective_grid -------------------------
 #' Compute IQR objective given grid of coefficients on endogeneous variables
 #'
