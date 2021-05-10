@@ -42,3 +42,23 @@
 #' @rdname education_autor
 "ZInt_educ"
 
+#' @rdname education_autor
+"y_name"
+
+#' @rdname education_autor
+"d_name"
+
+#' @rdname education_autor
+"z_name"
+
+#' @rdname education_autor
+"covs_name"
+
+#' @rdname education_autor
+"educfe_name"
+
+#' @rdname education_autor
+"dint_name"
+
+#' @rdname education_autor
+"zint_name"
