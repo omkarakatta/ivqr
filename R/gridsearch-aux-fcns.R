@@ -127,6 +127,8 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
 #' For each set of \code{beta_D} suggested by \code{grid}, compute the
 #' sum of the absolute values of \code{beta_Z}
 #'
+#' This code is not run in parallel.
+#'
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
@@ -164,4 +166,56 @@ get_iqr_objective_grid <- function(grid,
   }
   beta_Z_coef <- do.call(rbind, beta_Z_coef)
   cbind(grid, beta_Z_coef, objective)
+}
+
+### get_iqr_objective_grid_parallel -------------------------
+#' Compute IQR objective given grid of coefficients on endogeneous variables
+#'
+#' For each set of \code{beta_D} suggested by \code{grid}, compute the
+#' sum of the absolute values of \code{beta_Z}
+#'
+#' This code is run in parallel.
+#'
+#' @import foreach
+#'
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param tau Quantile of interest (numeric between 0 and 1)
+#' @param log_path Path of log file to keep track of parallelized results;
+#'  if NULL (default), log is not saved (string)
+#' @param cores Number of cores to be used in parallelization process
+#' @param ... Arguments to be passed to \code{quantreg::rq()}
+#'
+#' @return A data frame of dimension \code{nrow(grid)} by p_D + p_Z + 1 where
+#'  each row corresponds to one set of coordinate values on the grid, the
+#'  corresponding values for the instrument coefficient, and the resulting
+#'  IQR objective
+get_iqr_objective_grid_parallel <- function(grid,
+                                             Y,
+                                             X,
+                                             D,
+                                             Z,
+                                             tau,
+                                             log_path = NULL,
+                                             cores = parallel::detectCores()[1] - 2,
+                                             ...) {
+  # set up cluster
+  cl <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(cl)
+  on.exit(parallel::stopCluster(cl))
+
+  # TODO: Create log file
+
+  # find IQR objective for each grid coordinate
+  foreach (i = seq_len(nrow(grid)),
+           .combine = rbind,
+           .export = c("get_iqr_objective")) %dopar% {
+    beta_D_vec <- as.numeric(grid[i, ])
+    names(beta_D_vec) <- colnames(grid)
+    result <- get_iqr_objective(beta_D_vec, Y, X, D, Z, tau, ...)
+    # TODO: Store results in log file (csv format)
+    c(beta_D_vec, result$beta_Z, objective = result$obj)
+  }
 }
