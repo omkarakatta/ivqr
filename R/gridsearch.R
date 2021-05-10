@@ -209,6 +209,8 @@ gridsearch <- function(grid,
 #' @param tau Quantile of interest (numeric between 0 and 1)
 #' @param log_dir Path of log directory to store parallelized results;
 #'  if NULL (default), log is not saved (string)
+#' @param log_name Name of CSV file (including extension) to store results;
+#'  defaults to "gridsearch_results.csv" (string)
 #' @param cores Number of cores to be used in parallelization process
 #' @param ... Arguments to be passed to \code{quantreg::rq()}
 #'
@@ -224,6 +226,7 @@ gridsearch_parallel <- function(grid,
                                 Z,
                                 tau,
                                 log_dir = NULL,
+                                log_name = "gridsearch_results.csv",
                                 cores = parallel::detectCores()[1] - 2,
                                 ...) {
   create_log <- FALSE
@@ -275,7 +278,7 @@ gridsearch_parallel <- function(grid,
     unlink(log_dir, recursive = T)
     dir.create(log_dir)
     utils::write.csv(result_with_min_obj,
-                     paste0(log_dir, "/", "gridsearch_results.csv"))
+                     paste0(log_dir, "/", log_name))
   }
 
   # print argmin of grid search
