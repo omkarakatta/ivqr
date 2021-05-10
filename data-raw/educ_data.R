@@ -183,6 +183,14 @@ colnames(ZInt_educ) <- zint_name
 
 ### Save education data -------------------------
 
+usethis::use_data(y_name, overwrite = TRUE)
+usethis::use_data(d_name, overwrite = TRUE)
+usethis::use_data(z_name, overwrite = TRUE)
+usethis::use_data(covs_name, overwrite = TRUE)
+usethis::use_data(educfe_name, overwrite = TRUE)
+usethis::use_data(dint_name, overwrite = TRUE)
+usethis::use_data(zint_name, overwrite = TRUE)
+
 usethis::use_data(Y_educ, overwrite = TRUE)
 usethis::use_data(D_educ, overwrite = TRUE)
 usethis::use_data(Z_educ, overwrite = TRUE)
