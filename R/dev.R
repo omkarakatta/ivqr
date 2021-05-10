@@ -217,7 +217,7 @@ write_prm <- function(params, path, filename) {
 #' @return A CSV called "merged.csv" in \code{dir} directory
 concatenate_csvs <- function(dir,
                              cols,
-                             read = read.csv,
+                             read = utils::read.csv,
                              ...,
                              remove_after_merge = FALSE) {
   filenames <- list.files(dir, full.names = TRUE)
@@ -231,9 +231,9 @@ concatenate_csvs <- function(dir,
   if (!is.null(cols)) {
     colnames(merged) <- cols
   }
-  write.csv(merged, paste0(dir, "/", "merged.csv"))
+  utils::write.csv(merged, paste0(dir, "/", "merged.csv"))
   if (remove_after_merge) {
     lapply(filenames, function(files) { file.remove(files) })
-    message(paste0("Files in ", log_dir, " are removed"))
+    message(paste0("Files in ", dir, " are removed"))
   }
 }

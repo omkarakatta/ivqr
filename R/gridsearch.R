@@ -117,7 +117,7 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
 
   # `as.data.frame(coef(qr))` returns a data frame with each row corresponding
   # to a coefficient and each column corresponding to a quantile.
-  beta_Z <- as.data.frame(coef(qr))[seq_len(ncol(Z)), ]
+  beta_Z <- as.data.frame(stats::coef(qr))[seq_len(ncol(Z)), ]
   if (!is.null(colnames(Z))) {
     names(beta_Z) <- colnames(Z)
   }
@@ -132,6 +132,8 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
 #'
 #' This code is not run in parallel.
 #'
+#' @param grid Data frame with p_D columns where each row is a set of
+#'  \code{beta_D} coefficients; Output of \code{center_out_grid}
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
@@ -190,6 +192,8 @@ get_iqr_objective_grid <- function(grid,
 #'
 #' @import foreach
 #'
+#' @param grid Data frame with p_D columns where each row is a set of
+#'  \code{beta_D} coefficients; Output of \code{center_out_grid}
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
@@ -232,6 +236,7 @@ get_iqr_objective_grid_parallel <- function(grid,
   cols <- c("iteration", colnames(grid), colnames(Z), "objective")
 
   # find IQR objective for each grid coordinate
+  i <- NULL # avoid undefined global variable note in R CMD check results
   result <- foreach (i = seq_len(nrow(grid)),
            .combine = rbind,
            .export = c("get_iqr_objective")) %dopar% {
@@ -254,7 +259,7 @@ get_iqr_objective_grid_parallel <- function(grid,
   if (create_log) {
     unlink(log_dir, recursive = T)
     dir.create(log_dir)
-    write.csv(result, paste0(log_dir, "/", "gridsearch_results.csv"))
+    utils::write.csv(result, paste0(log_dir, "/", "gridsearch_results.csv"))
   }
 
   # return result
