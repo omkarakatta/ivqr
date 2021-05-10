@@ -170,7 +170,15 @@ get_iqr_objective_grid <- function(grid,
     objective[[i]] <- result$obj
   }
   beta_Z_coef <- do.call(rbind, beta_Z_coef)
-  cbind(grid, beta_Z_coef, objective)
+  result_with_min_obj <- cbind(iteration = seq_len(nrow(grid)),
+                               grid, beta_Z_coef, objective) %>%
+    dplyr::mutate(min_obj = objective == min(objective))
+
+  # print argmin of grid search
+  print(result_with_min_obj[result_with_min_obj$min_obj, ])
+
+  # return results of grid evaluations
+  return(invisible(result_with_min_obj))
 }
 
 ### get_iqr_objective_grid_parallel -------------------------
@@ -204,10 +212,11 @@ get_iqr_objective_grid <- function(grid,
 #' @param cores Number of cores to be used in parallelization process
 #' @param ... Arguments to be passed to \code{quantreg::rq()}
 #'
-#' @return A data frame of dimension \code{nrow(grid)} by p_D + p_Z + 1 where
+#' @return A data frame of dimension \code{nrow(grid)} by p_D + p_Z + 3 where
 #'  each row corresponds to one set of coordinate values on the grid, the
 #'  corresponding values for the instrument coefficient, and the resulting
-#'  IQR objective
+#'  IQR objective as well as the row number of the \code{grid} and whether
+#'  the objective is the smallest within the grid search
 get_iqr_objective_grid_parallel <- function(grid,
                                              Y,
                                              X,
@@ -256,12 +265,22 @@ get_iqr_objective_grid_parallel <- function(grid,
     result
   }
 
+  # Find smallest IQR objective
+  result_with_min_obj <- result %>%
+    as.data.frame() %>%
+    dplyr::mutate(min_obj = objective == min(objective))
+
+  # save result in CSV
   if (create_log) {
     unlink(log_dir, recursive = T)
     dir.create(log_dir)
-    utils::write.csv(result, paste0(log_dir, "/", "gridsearch_results.csv"))
+    utils::write.csv(result_with_min_obj,
+                     paste0(log_dir, "/", "gridsearch_results.csv"))
   }
 
-  # return result
-  result
+  # print argmin of grid search
+  print(result_with_min_obj[result_with_min_obj$min_obj, ])
+
+  # return results of grid evaluations
+  return(invisible(result_with_min_obj))
 }
