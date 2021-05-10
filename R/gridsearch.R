@@ -124,7 +124,7 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
   list(beta_Z = beta_Z, tau = tau, obj = sum(abs(beta_Z)))
 }
 
-### get_iqr_objective_grid -------------------------
+### gridsearch -------------------------
 #' Compute IQR objective given grid of coefficients on endogeneous variables
 #'
 #' For each set of \code{beta_D} suggested by \code{grid}, compute the
@@ -147,14 +147,14 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
 #'  each row corresponds to one set of coordinate values on the grid, the
 #'  corresponding values for the instrument coefficient, and the resulting
 #'  IQR objective
-get_iqr_objective_grid <- function(grid,
-                                   Y,
-                                   X,
-                                   D,
-                                   Z,
-                                   tau,
-                                   update = round(nrow(grid) / 20),
-                                   ...) {
+gridsearch <- function(grid,
+                       Y,
+                       X,
+                       D,
+                       Z,
+                       tau,
+                       update = round(nrow(grid) / 20),
+                       ...) {
   msg <- "`update` is meant to be a single number less than `nrow(grid)`."
   send_note_if(msg, update > nrow(grid), stop, call. = FALSE)
   beta_Z_coef <- vector("list", length = nrow(grid))
@@ -181,7 +181,7 @@ get_iqr_objective_grid <- function(grid,
   return(invisible(result_with_min_obj))
 }
 
-### get_iqr_objective_grid_parallel -------------------------
+### gridsearch_parallel -------------------------
 #' Compute IQR objective given grid of coefficients on endogeneous variables
 #'
 #' For each set of \code{beta_D} suggested by \code{grid}, compute the
@@ -217,15 +217,15 @@ get_iqr_objective_grid <- function(grid,
 #'  corresponding values for the instrument coefficient, and the resulting
 #'  IQR objective as well as the row number of the \code{grid} and whether
 #'  the objective is the smallest within the grid search
-get_iqr_objective_grid_parallel <- function(grid,
-                                             Y,
-                                             X,
-                                             D,
-                                             Z,
-                                             tau,
-                                             log_dir = NULL,
-                                             cores = parallel::detectCores()[1] - 2,
-                                             ...) {
+gridsearch_parallel <- function(grid,
+                                Y,
+                                X,
+                                D,
+                                Z,
+                                tau,
+                                log_dir = NULL,
+                                cores = parallel::detectCores()[1] - 2,
+                                ...) {
   create_log <- FALSE
   if (!is.null(log_dir)) {
     if (dir.exists(log_dir) | file.exists(log_dir)) {
