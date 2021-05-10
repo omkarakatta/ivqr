@@ -30,7 +30,8 @@ Imports:
     foreach,
     doParallel,
     utils,
-    magrittr
+    magrittr,
+    dplyr
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
