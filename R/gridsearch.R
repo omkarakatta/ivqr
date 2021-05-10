@@ -1,6 +1,6 @@
 ### Meta -------------------------
 ###
-### Title: Auxiliary Functions for Grid Search Procedure
+### Title: Grid Search Procedure
 ###
 ### Description: Grid search can be decomposed into a series of steps:
 ### 1. Create a grid
@@ -31,6 +31,7 @@ get_initial_beta_D <- function(Y, X, D, Z, tau, ...) {
   send_note_if(msg, length(tau) > 1, warning)
   qr <- quantreg::rq(Y ~ D + Z + X - 1, tau = tau, ...)
   stats::coef(qr)[seq_len(ncol(D))]
+  # TODO: Use colnames(D) for name of coef vector if colnames(D) is not NULL
 }
 
 ### center_out_uni -------------------------
@@ -117,7 +118,9 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
   # `as.data.frame(coef(qr))` returns a data frame with each row corresponding
   # to a coefficient and each column corresponding to a quantile.
   beta_Z <- as.data.frame(coef(qr))[seq_len(ncol(Z)), ]
-  names(beta_Z) <- colnames(Z)
+  if (!is.null(colnames(Z))) {
+    names(beta_Z) <- colnames(Z)
+  }
   list(beta_Z = beta_Z, tau = tau, obj = sum(abs(beta_Z)))
 }
 
@@ -175,6 +178,15 @@ get_iqr_objective_grid <- function(grid,
 #' sum of the absolute values of \code{beta_Z}
 #'
 #' This code is run in parallel.
+#' To store results as they are found, specify a directory with \code{log_dir}
+#' to store intermediate CSV files. Then, use \code{concatenate_csvs} to
+#' merge CSVs into one file, i.e.,
+#' \code{cols = c("iteration", colnames(grid), colnames(Z), "objective")}
+#' \code{concatenate_csv(dir = log_dir, cols = cols, header = FALSE)}
+#'
+#' Note: if the function terminates without any problems, the intermediary
+#' CSV files will be deleted, and the results are saved as a CSV in
+#' \code{log_dir} as "gridsearch_results.csv".
 #'
 #' @import foreach
 #'
@@ -183,7 +195,7 @@ get_iqr_objective_grid <- function(grid,
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param tau Quantile of interest (numeric between 0 and 1)
-#' @param log_path Path of log file to keep track of parallelized results;
+#' @param log_dir Path of log directory to store parallelized results;
 #'  if NULL (default), log is not saved (string)
 #' @param cores Number of cores to be used in parallelization process
 #' @param ... Arguments to be passed to \code{quantreg::rq()}
@@ -198,24 +210,54 @@ get_iqr_objective_grid_parallel <- function(grid,
                                              D,
                                              Z,
                                              tau,
-                                             log_path = NULL,
+                                             log_dir = NULL,
                                              cores = parallel::detectCores()[1] - 2,
                                              ...) {
+  create_log <- FALSE
+  if (!is.null(log_dir)) {
+    if (dir.exists(log_dir) | file.exists(log_dir)) {
+      stop(paste(log_dir, "already exists. Choose a different `log_dir`."))
+    } else { # don't overwrite file
+      create_log <- TRUE
+      dir.create(log_dir)
+    }
+  }
+
   # set up cluster
   cl <- parallel::makeCluster(cores)
   doParallel::registerDoParallel(cl)
   on.exit(parallel::stopCluster(cl))
 
-  # TODO: Create log file
+  # name of results
+  cols <- c("iteration", colnames(grid), colnames(Z), "objective")
 
   # find IQR objective for each grid coordinate
-  foreach (i = seq_len(nrow(grid)),
+  result <- foreach (i = seq_len(nrow(grid)),
            .combine = rbind,
            .export = c("get_iqr_objective")) %dopar% {
     beta_D_vec <- as.numeric(grid[i, ])
     names(beta_D_vec) <- colnames(grid)
-    result <- get_iqr_objective(beta_D_vec, Y, X, D, Z, tau, ...)
-    # TODO: Store results in log file (csv format)
-    c(beta_D_vec, result$beta_Z, objective = result$obj)
+    tmp <- get_iqr_objective(beta_D_vec, Y, X, D, Z, tau, ...)
+    result <- c(i, beta_D_vec, tmp$beta_Z, objective = tmp$obj)
+    names(result) <- cols
+
+    # store results in log
+    if (create_log) {
+      file_path <- paste0(log_dir, "/", "iteration", i, ".csv")
+      file.create(file_path)
+      cat(result, sep = ",", file = file_path)
+      cat("\n", sep = ",", file = file_path, append = TRUE) # add newline at EOF
+    }
+    result
   }
+
+  # concatenate_csvs(log_dir, cols, read.csv, header = F, remove_after_merge = T)
+  if (create_log) {
+    unlink(log_dir, recursive = T)
+    dir.create(log_dir)
+    write.csv(result, paste0(log_dir, "/", "gridsearch_results.csv"))
+  }
+
+  # return result
+  result
 }

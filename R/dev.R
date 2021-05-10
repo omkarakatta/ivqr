@@ -201,3 +201,39 @@ write_prm <- function(params, path, filename) {
   target <- paste0(path, "/", filename, ".prm")
   cat(prm, file = target)
 }
+
+### concatenate_csvs ---------------------------
+#' Combine directory of CSVs into a single CSV
+#'
+#' @param dir Directory of CSVs
+#' @param cols Vector of column names; if NULL (default), default column names
+#'  are applied to the merged CSV (character vector)
+#' @param read Function to read CSV files; defaults to \code{read.csv} but
+#'  other options include \code{data.table::fread}
+#' @param ... Arguments to be passed to \code{read}
+#' @param remove_after_merge If FALSE (default), files in \code{dir} are not
+#'  removed (boolean)
+#'
+#' @return A CSV called "merged.csv" in \code{dir} directory
+concatenate_csvs <- function(dir,
+                             cols,
+                             read = read.csv,
+                             ...,
+                             remove_after_merge = FALSE) {
+  filenames <- list.files(dir, full.names = TRUE)
+  csv_list <- lapply(
+    filenames,
+    function(files) {
+      read(files, ...)
+    }
+  )
+  merged <- do.call(rbind, csv_list)
+  if (!is.null(cols)) {
+    colnames(merged) <- cols
+  }
+  write.csv(merged, paste0(dir, "/", "merged.csv"))
+  if (remove_after_merge) {
+    lapply(filenames, function(files) { file.remove(files) })
+    message(paste0("Files in ", log_dir, " are removed"))
+  }
+}
