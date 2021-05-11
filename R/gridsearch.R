@@ -40,16 +40,41 @@ get_initial_beta_D <- function(Y, X, D, Z, tau, ...) {
 #' Given some center, extend in the positive and negative directions to create
 #' a grid of values
 #'
+#' If \code{increment} or \code{length} is a vector of two elements, the first
+#' element corresponds to the left of \code{center} and the second element
+#' corresponds to the right of \code{center}.
+#' If one element is given for \code{increment} or \code{length}, then this
+#' element applies to both the left and the right of \code{center}.
+#'
 #' @param center Output of \code{get_initial_beta_D} or a number to center
 #'  the grid (numeric)
-#' @param increment Granularity of the grid (numeric)
-#' @param length Number of grid values to the right and left of the grid
-#'  (numeric)
+#' @param increment Granularity of the grid to the left and to the right of
+#'  \code{center} (numeric scalar or vector of length two)
+#' @param length Number of grid values to the left and right of the grid
+#'  (numeric scalar or vector of length two)
 #'
 #' @return A vector of grid values
 center_out_uni <- function(center, increment, length) {
-  pos <- seq(from = center, by = increment, length.out = length + 1)
-  neg <- seq(to = center, by = increment, length.out = length + 1)
+  if (length(increment) == 1) {
+    increment_left <- increment
+    increment_right <- increment
+  } else if (length(increment) == 2) {
+    increment_left <- increment[[1]]
+    increment_right <- increment[[2]]
+  } else {
+    stop("`increment` should only be of length one or two.", call. = FALSE)
+  }
+  if (length(length) == 1) {
+    length_left <- length
+    length_right <- length
+  } else if (length(length) == 2) {
+    length_left <- length[[1]]
+    length_right <- length[[2]]
+  } else {
+    stop("`length` should only be of length one or two.", call. = FALSE)
+  }
+  pos <- seq(from = center, by = increment_right, length.out = length_right + 1)
+  neg <- seq(to = center, by = increment_left, length.out = length_left + 1)
   grid <- unique(c(neg, pos))
   grid
 }
@@ -61,12 +86,17 @@ center_out_uni <- function(center, increment, length) {
 #' and take all possible combinations of coordinate grid values to create a
 #' data frame of grid coordinates
 #'
+#' If the grid axis corresponding to one of the \code{beta_D}'s should be
+#' be assymetric, let \code{increment} and/or \code{length} be a list instead
+#' of a vector where the corresponding element is itself a vector of length two.
+#'
+#'
 #' @param center Output of \code{get_initial_beta_D}; values that act as
 #'  the center of each axis of the grid (numeric vector of length p_D)
 #' @param increment Granularity of the grid in each axis
-#'  (numeric vector of length p_D)
+#'  (numeric vector/list of length p_D)
 #' @param length Number of grid values to the right and left of each axis
-#'  (numeric vector of length p_D)
+#'  (numeric vector/list of length p_D)
 #'
 #' @return A data frame with each row acting as the coordinates of the grid.
 #'  If \code{center} is a named vector, the columns of the data frame will
@@ -77,7 +107,12 @@ center_out_grid <- function(center, increment, length) {
   stopifnot(length(center) == length(length))
   grid_list <- vector("list", length(center))
   for (i in seq_along(center)) {
-    vec <- center_out_uni(center[[i]], increment[[i]], length[[i]])
+    vec <- tryCatch({
+      center_out_uni(center[[i]], increment[[i]], length[[i]])
+    }, error = function(e) {
+      iter_msg <- paste0("Check index ", i)
+      stop(paste(e, iter_msg), call. = FALSE)
+    })
     grid_list[[i]] <- vec
   }
   grid <- expand.grid(grid_list)
