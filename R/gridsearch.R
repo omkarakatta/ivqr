@@ -272,8 +272,7 @@ gridsearch_parallel <- function(grid,
     # create path of log file
     # note that date and time will be prepended: yymmdd_hhmmss
     date_time <- format(Sys.time(), "%y%m%d_%H%M%S")
-    title <- paste0(date_time, "_", log_name)
-    log_path <- paste0(log_dir, "/", title)
+    log_path <- paste0(log_dir, "/", date_time, "_", log_name)
     if (file.exists(log_path)) {
       stop(paste(log_path, "already exists. Choose a different `log_name` or `log_dir`."))
     } else {
@@ -332,6 +331,7 @@ gridsearch_parallel <- function(grid,
 
   # return results of grid evaluations
   return(invisible(list(result = result_with_min_obj,
-                        title = title,
+                        date_time = date_time,
+                        log_name = log_name,
                         time_elapsed = elapsed_time)))
 }
