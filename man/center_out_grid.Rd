@@ -11,10 +11,10 @@ center_out_grid(center, increment, length)
 the center of each axis of the grid (numeric vector of length p_D)}
 
 \item{increment}{Granularity of the grid in each axis
-(numeric vector of length p_D)}
+(numeric vector/list of length p_D)}
 
 \item{length}{Number of grid values to the right and left of each axis
-(numeric vector of length p_D)}
+(numeric vector/list of length p_D)}
 }
 \value{
 A data frame with each row acting as the coordinates of the grid.
@@ -26,4 +26,9 @@ the columns of the data frame are Var1, Var2, etc.
 Apply \code{center_out_uni} element-wise to each argument of this function
 and take all possible combinations of coordinate grid values to create a
 data frame of grid coordinates
+}
+\details{
+If the grid axis corresponding to one of the \code{beta_D}'s should be
+be assymetric, let \code{increment} and/or \code{length} be a list instead
+of a vector where the corresponding element is itself a vector of length two.
 }

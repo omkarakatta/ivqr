@@ -10,6 +10,13 @@
 \alias{EducFE_educ}
 \alias{DInt_educ}
 \alias{ZInt_educ}
+\alias{y_name}
+\alias{d_name}
+\alias{z_name}
+\alias{covs_name}
+\alias{educfe_name}
+\alias{dint_name}
+\alias{zint_name}
 \title{Education-relevant Data}
 \format{
 An object of class \code{matrix} (inherits from \code{array}) with 24684 rows and 1 columns.
@@ -25,6 +32,20 @@ An object of class \code{matrix} (inherits from \code{array}) with 24684 rows an
 An object of class \code{matrix} (inherits from \code{array}) with 24684 rows and 2 columns.
 
 An object of class \code{matrix} (inherits from \code{array}) with 24684 rows and 2 columns.
+
+An object of class \code{character} of length 1.
+
+An object of class \code{character} of length 1.
+
+An object of class \code{character} of length 1.
+
+An object of class \code{character} of length 50.
+
+An object of class \code{character} of length 2.
+
+An object of class \code{character} of length 2.
+
+An object of class \code{character} of length 2.
 }
 \usage{
 Y_educ
@@ -40,6 +61,20 @@ EducFE_educ
 DInt_educ
 
 ZInt_educ
+
+y_name
+
+d_name
+
+z_name
+
+covs_name
+
+educfe_name
+
+dint_name
+
+zint_name
 }
 \description{
 24684 observations with known education status

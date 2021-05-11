@@ -10,10 +10,11 @@ center_out_uni(center, increment, length)
 \item{center}{Output of \code{get_initial_beta_D} or a number to center
 the grid (numeric)}
 
-\item{increment}{Granularity of the grid (numeric)}
+\item{increment}{Granularity of the grid to the left and to the right of
+\code{center} (numeric scalar or vector of length two)}
 
-\item{length}{Number of grid values to the right and left of the grid
-(numeric)}
+\item{length}{Number of grid values to the left and right of the grid
+(numeric scalar or vector of length two)}
 }
 \value{
 A vector of grid values
@@ -21,4 +22,11 @@ A vector of grid values
 \description{
 Given some center, extend in the positive and negative directions to create
 a grid of values
+}
+\details{
+If \code{increment} or \code{length} is a vector of two elements, the first
+element corresponds to the left of \code{center} and the second element
+corresponds to the right of \code{center}.
+If one element is given for \code{increment} or \code{length}, then this
+element applies to both the left and the right of \code{center}.
 }

@@ -12,6 +12,7 @@ gridsearch_parallel(
   Z,
   tau,
   log_dir = NULL,
+  log_name = "gridsearch_results.csv",
   cores = parallel::detectCores()[1] - 2,
   ...
 )
@@ -32,6 +33,9 @@ gridsearch_parallel(
 
 \item{log_dir}{Path of log directory to store parallelized results;
 if NULL (default), log is not saved (string)}
+
+\item{log_name}{Name of CSV file (including extension) to store results;
+defaults to "gridsearch_results.csv" (string)}
 
 \item{cores}{Number of cores to be used in parallelization process}
 
