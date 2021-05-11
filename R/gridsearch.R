@@ -264,13 +264,22 @@ gridsearch_parallel <- function(grid,
                                 log_name = "gridsearch_results.csv",
                                 cores = parallel::detectCores()[1] - 2,
                                 ...) {
+  # Start clock
+  clock_start <- Sys.time()
+
   create_log <- FALSE
   if (!is.null(log_dir)) {
-    if (dir.exists(log_dir) | file.exists(log_dir)) {
-      stop(paste(log_dir, "already exists. Choose a different `log_dir`."))
-    } else { # don't overwrite file
+    # create path of log file
+    # note that date and time will be prepended: yymmdd_hhmmss
+    date_time <- format(Sys.time(), "%y%m%d_%H%M%S")
+    title <- paste0(date_time, "_", log_name)
+    log_path <- paste0(log_dir, "/", title)
+    if (file.exists(log_path)) {
+      stop(paste(log_path, "already exists. Choose a different `log_name` or `log_dir`."))
+    } else {
       create_log <- TRUE
-      dir.create(log_dir)
+      # create directory if nonexistent
+      # dir.create(log_dir, showWarnings = FALSE)
     }
   }
 
@@ -310,15 +319,19 @@ gridsearch_parallel <- function(grid,
 
   # save result in CSV
   if (create_log) {
-    unlink(log_dir, recursive = T)
-    dir.create(log_dir)
-    utils::write.csv(result_with_min_obj,
-                     paste0(log_dir, "/", log_name))
+    utils::write.csv(result_with_min_obj, log_path)
+    file.remove(list.files(log_dir, pattern = "iteration", full.names = T))
   }
 
   # print argmin of grid search
   print(result_with_min_obj[result_with_min_obj$min_obj, ])
 
+  # Stop the clock
+  clock_end <- Sys.time()
+  elapsed_time <- difftime(clock_end, clock_start, units = "mins")
+
   # return results of grid evaluations
-  return(invisible(result_with_min_obj))
+  return(invisible(list(result = result_with_min_obj,
+                        title = title,
+                        time_elapsed = elapsed_time)))
 }
