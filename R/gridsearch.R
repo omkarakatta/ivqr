@@ -268,10 +268,10 @@ gridsearch_parallel <- function(grid,
   clock_start <- Sys.time()
 
   create_log <- FALSE
+  date_time <- format(Sys.time(), "%y%m%d_%H%M%S")
   if (!is.null(log_dir)) {
     # create path of log file
     # note that date and time will be prepended: yymmdd_hhmmss
-    date_time <- format(Sys.time(), "%y%m%d_%H%M%S")
     log_path <- paste0(log_dir, "/", date_time, "_", log_name)
     if (file.exists(log_path)) {
       stop(paste(log_path, "already exists. Choose a different `log_name` or `log_dir`."))
