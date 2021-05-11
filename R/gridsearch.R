@@ -26,6 +26,8 @@
 #' @param ... Arguments to be passed to \code{quantreg::rq()}
 #'
 #' @return A vector of coefficients on the endogenous variable
+#'
+#' @export
 get_initial_beta_D <- function(Y, X, D, Z, tau, ...) {
   msg <- "`tau` is meant to be a single numeric."
   send_note_if(msg, length(tau) > 1, warning)
@@ -102,6 +104,8 @@ center_out_uni <- function(center, increment, length) {
 #'  If \code{center} is a named vector, the columns of the data frame will
 #'  share the names of the vector. If \code{center} is not a named vector,
 #'  the columns of the data frame are Var1, Var2, etc.
+#'
+#' @export
 center_out_grid <- function(center, increment, length) {
   stopifnot(length(center) == length(increment))
   stopifnot(length(center) == length(length))
@@ -182,6 +186,8 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
 #'  each row corresponds to one set of coordinate values on the grid, the
 #'  corresponding values for the instrument coefficient, and the resulting
 #'  IQR objective
+#'
+#' @export
 gridsearch <- function(grid,
                        Y,
                        X,
@@ -254,6 +260,8 @@ gridsearch <- function(grid,
 #'  corresponding values for the instrument coefficient, and the resulting
 #'  IQR objective as well as the row number of the \code{grid} and whether
 #'  the objective is the smallest within the grid search
+#'
+#' @export
 gridsearch_parallel <- function(grid,
                                 Y,
                                 X,
