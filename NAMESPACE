@@ -2,6 +2,7 @@
 
 export("%>%")
 export(center_out_grid)
+export(concatenate_csvs)
 export(get_initial_beta_D)
 export(gridsearch)
 export(gridsearch_parallel)
