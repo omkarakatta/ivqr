@@ -210,6 +210,8 @@ write_prm <- function(params, path, filename) {
 #'  are applied to the merged CSV (character vector)
 #' @param pattern Regular expression to filter files in \code{dir};
 #'  If NULL (default), all files in \code{dir} will be read
+#' @param merged_name Name of concatenated CSV; defaults to "merged.csv"
+#'  (string)
 #' @param read Function to read CSV files; defaults to \code{read.csv} but
 #'  other options include \code{data.table::fread}
 #' @param ... Arguments to be passed to \code{read}
@@ -222,6 +224,7 @@ write_prm <- function(params, path, filename) {
 concatenate_csvs <- function(dir,
                              cols,
                              pattern = NULL,
+                             merged_name = "merged.csv",
                              read = utils::read.csv,
                              ...,
                              remove_after_merge = FALSE) {
@@ -236,7 +239,7 @@ concatenate_csvs <- function(dir,
   if (!is.null(cols)) {
     colnames(merged) <- cols
   }
-  utils::write.csv(merged, paste0(dir, "/", "merged.csv"))
+  utils::write.csv(merged, paste0(dir, "/", merged_name))
   if (remove_after_merge) {
     lapply(filenames, function(files) { file.remove(files) })
     message(paste0("Files in ", dir, " are removed"))

@@ -8,6 +8,7 @@ concatenate_csvs(
   dir,
   cols,
   pattern = NULL,
+  merged_name = "merged.csv",
   read = utils::read.csv,
   ...,
   remove_after_merge = FALSE
@@ -21,6 +22,9 @@ are applied to the merged CSV (character vector)}
 
 \item{pattern}{Regular expression to filter files in \code{dir};
 If NULL (default), all files in \code{dir} will be read}
+
+\item{merged_name}{Name of concatenated CSV; defaults to "merged.csv"
+(string)}
 
 \item{read}{Function to read CSV files; defaults to \code{read.csv} but
 other options include \code{data.table::fread}}
