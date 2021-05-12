@@ -286,7 +286,7 @@ gridsearch_parallel <- function(grid,
     } else {
       create_log <- TRUE
       # create directory if nonexistent
-      # dir.create(log_dir, showWarnings = FALSE)
+      dir.create(log_dir, showWarnings = FALSE)
     }
   }
 
@@ -301,10 +301,12 @@ gridsearch_parallel <- function(grid,
   # find IQR objective for each grid coordinate
   i <- NULL # avoid undefined global variable note in R CMD check results
   result <- foreach (i = seq_len(nrow(grid)),
-           .combine = rbind,
-           .export = c("get_iqr_objective")) %dopar% {
+                     .combine = rbind,
+                     .export = c("get_iqr_objective")) %dopar% {
+
     beta_D_vec <- as.numeric(grid[i, ])
     names(beta_D_vec) <- colnames(grid)
+
     tmp <- get_iqr_objective(beta_D_vec, Y, X, D, Z, tau, ...)
     result <- c(i, beta_D_vec, tmp$beta_Z, objective = tmp$obj)
     names(result) <- cols
