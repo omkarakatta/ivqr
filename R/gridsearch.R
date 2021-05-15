@@ -274,6 +274,7 @@ gridsearch_parallel <- function(grid,
                                 ...) {
   # Start clock
   clock_start <- Sys.time()
+  message(paste("Clock started:", clock_start))
 
   create_log <- FALSE
   date_time <- format(Sys.time(), "%y%m%d_%H%M%S")
@@ -288,6 +289,7 @@ gridsearch_parallel <- function(grid,
       # create directory if nonexistent
       dir.create(log_dir, showWarnings = FALSE)
     }
+    message(paste("Log created"))
   }
 
   # set up cluster
@@ -297,6 +299,8 @@ gridsearch_parallel <- function(grid,
 
   # name of results
   cols <- c("iteration", colnames(grid), colnames(Z), "objective")
+
+  message(paste("Evaluating grid..."))
 
   # find IQR objective for each grid coordinate
   i <- NULL # avoid undefined global variable note in R CMD check results
@@ -338,6 +342,7 @@ gridsearch_parallel <- function(grid,
   # Stop the clock
   clock_end <- Sys.time()
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
+  message(paste("Clock stopped:", clock_end))
 
   # return results of grid evaluations
   return(invisible(list(result = result_with_min_obj,
