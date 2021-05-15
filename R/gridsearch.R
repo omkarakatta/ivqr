@@ -304,7 +304,7 @@ gridsearch_parallel <- function(grid,
 
   # find IQR objective for each grid coordinate
   i <- NULL # avoid undefined global variable note in R CMD check results
-  result <- foreach (i = seq_len(nrow(grid)),
+  result_gridsearch <- foreach (i = seq_len(nrow(grid)),
                      .combine = rbind,
                      .export = c("get_iqr_objective")) %dopar% {
 
@@ -326,7 +326,7 @@ gridsearch_parallel <- function(grid,
   }
 
   # Find smallest IQR objective
-  result_with_min_obj <- result %>%
+  result_with_min_obj <- result_gridsearch %>%
     as.data.frame() %>%
     dplyr::mutate(min_obj = objective == min(objective))
 
