@@ -59,6 +59,8 @@
 #'    \item resid: residuals (u - v)
 #'    \item objval: value of objective function (absolute value of beta_Phi)
 #'  }
+#'
+#' @export
 iqr_milp <- function(Y,
                      X,
                      D,

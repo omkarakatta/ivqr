@@ -69,6 +69,8 @@
 #'    \item O_pos: indices for residuals that are fixed to be positive
 #'      by the final iteration
 #'  }
+#'
+#' @export
 preprocess_iqr_milp <- function(Y,
                                 D,
                                 X,
