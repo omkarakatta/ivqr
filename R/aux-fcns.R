@@ -56,6 +56,8 @@ manipulate_qr_residuals <- function(string_formula,
 #'
 #' @return Linear projection of \code{Y} on \code{...}
 #'  (matrix of dimension nrow(Y) by ncol(Y))
+#'
+#' @export
 linear_projection <- function(Y, ...) {
   X <- cbind(...)
   coef <- solve(t(X) %*% X) %*% t(X) %*% Y
