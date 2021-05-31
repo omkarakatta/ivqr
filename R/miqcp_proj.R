@@ -113,7 +113,7 @@ miqcp_proj <- function(j,
 
   # Create vector of 1s
   ones <- rep(1, n)
-  ones_decision_vars <- rep(1, num_decision_vars)
+  ones_dv <- rep(1, num_decision_vars) # dv stands for decision variable to remind us that this vector has dimension equal to the number of decision variables
 
   # Objective: maximize or minimize beta_D,j
   beta_D_obj <- rep(0, p_D)
@@ -416,25 +416,23 @@ miqcp_proj <- function(j,
   }
 
   # Quadratic Constraint: (27) and Corollary 2
-  Q <- diag(n) - X %*% solve(t(X) %*% X) %*% t(X) # homoskedastic case (p. 25)
-  Phi_tilde <- Q %*% Phi
-  # M_inv <- solve(1 / n * t(Phi_tilde) %*% Phi_tilde)
-  M_inv <- solve(t(Phi_tilde) %*% Phi_tilde)
+  # TODO: code the heteroskedastic case!
+  # Below, we just do the homoskedastic case (see p. 25)
+  Phi_tilde <- (diag(n) - X %*% solve(t(X) %*% X) %*% t(X)) %*% Phi
+  Q <- Phi %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi)
   crit_value <- stats::qchisq(1 - alpha, p_D)
 
-  qc_a <- Phi_tilde %*% M_inv %*% t(Phi_tilde)
+  # qc_a <- Phi_tilde %*% M_inv %*% t(Phi_tilde)
   qc <- matrix(0, nrow = num_decision_vars, ncol = num_decision_vars)
-  qc[(p_X + p_D + 2*n + 1):(p_X + p_D + 3*n),
-     (p_X + p_D + 2*n + 1):(p_X + p_D + 3*n)] <- qc_a
+  qc[(p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n),
+     (p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)] <- Q
 
-  q <- -2 * (1 - tau) * qc %*% ones_decision_vars
-  # q <- -1 * (1 - tau) * Phi_tilde %*% (M_inv + t(M_inv)) %*% ones_decision_vars
-  qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_decision_vars) %*% qc %*% ones_decision_vars
-  qc_rhs_2 <- n * tau * (1 - tau) * crit_value
+  qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_dv) %*% qc %*% ones_dv
+  qc_rhs_2 <- tau * (1 - tau) * crit_value
   qc_rhs <- qc_rhs_1 + qc_rhs_2
 
   proj$quadcon[[1]]$Qc <- qc
-  proj$quadcon[[1]]$q <- as.numeric(q)
+  proj$quadcon[[1]]$q <- as.numeric(-2 * (1 - tau) * qc %*% ones_dv)
   proj$quadcon[[1]]$rhs <- qc_rhs
 
   # print(dim(qc))
