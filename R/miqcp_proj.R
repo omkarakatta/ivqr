@@ -25,6 +25,8 @@
 #'  (numeric between 1 and p_D)
 #' @param alpha Alpha level; defaults to 10% (numeric between 0 and 1)
 #' @param sense Maximize or minimize beta_D,j (either "max" or "min")
+#' @param orthogonalize_statistic If TRUE, \eqn{\tilde{B}} will be used in
+#'  numerator of test statistic; defaults to FALSE; for advanced users only
 #' @inheritParams iqr_milp
 #'
 #' @return A named list of
@@ -52,6 +54,7 @@ miqcp_proj <- function(j,
                        Z,
                        Phi = linear_projection(D, X, Z),
                        tau,
+                       orthogonalize_statistic = FALSE,
                        O_neg = NULL,
                        O_pos = NULL,
                        M = NULL,
@@ -419,7 +422,11 @@ miqcp_proj <- function(j,
   # TODO: code the heteroskedastic case!
   # Below, we just do the homoskedastic case (see p. 25)
   Phi_tilde <- (diag(n) - X %*% solve(t(X) %*% X) %*% t(X)) %*% Phi
-  Q <- Phi %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi)
+  if (orthogonalize_statistic) {
+    Q <- Phi_tilde %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi_tilde)
+  } else {
+    Q <- Phi %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi)
+  }
   crit_value <- stats::qchisq(1 - alpha, p_D)
 
   # qc_a <- Phi_tilde %*% M_inv %*% t(Phi_tilde)
