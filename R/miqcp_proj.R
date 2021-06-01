@@ -421,18 +421,18 @@ miqcp_proj <- function(j,
   # Quadratic Constraint: (27) and Corollary 2
   # TODO: code the heteroskedastic case!
   # Below, we just do the homoskedastic case (see p. 25)
-  Phi_tilde <- (diag(n) - X %*% solve(t(X) %*% X) %*% t(X)) %*% Phi
+  Phi_tilde <- Phi - X %*% solve(t(X) %*% X) %*% t(X) %*% Phi
   if (orthogonalize_statistic) {
-    Q <- Phi_tilde %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi_tilde)
+    tmp <- Phi_tilde %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi_tilde)
   } else {
-    Q <- Phi %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi)
+    tmp <- Phi %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi)
   }
   crit_value <- stats::qchisq(1 - alpha, p_D)
 
   # qc_a <- Phi_tilde %*% M_inv %*% t(Phi_tilde)
   qc <- matrix(0, nrow = num_decision_vars, ncol = num_decision_vars)
   qc[(p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n),
-     (p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)] <- Q
+     (p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)] <- tmp
 
   qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_dv) %*% qc %*% ones_dv
   qc_rhs_2 <- tau * (1 - tau) * crit_value
