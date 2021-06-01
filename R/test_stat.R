@@ -71,6 +71,8 @@
 #'  "Powell" (default) to use the Powell estimator or
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
+#' @param show_progress If TRUE (default), sends progress messages during
+#'  execution (boolean); also passed to \code{FUN}
 #' @param FUN Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}
 #' @param ... Arguments passed to \code{FUN}
 test_stat <- function(beta_D_null,
@@ -86,6 +88,7 @@ test_stat <- function(beta_D_null,
                       orthogonalize_statistic = FALSE,
                       homoskedasticity = FALSE,
                       kernel = "Powell",
+                      show_progress = TRUE,
                       FUN = preprocess_iqr_milp,
                       ...) {
 
@@ -103,14 +106,8 @@ test_stat <- function(beta_D_null,
 
   # Get dimensions of data
   n <- length(Y)
-  # n_D <- nrow(D) # TODO: remove
-  # n_X <- nrow(X) # TODO: remove
-  # n_Z <- nrow(Z) # TODO: remove
-  # n_Phi <- nrow(Phi) # TODO: remove
   p_D <- ncol(D)
   p_X <- ncol(X)
-  # p_Z <- ncol(Z) # TODO: remove
-  # p_Phi <- ncol(Phi) # TODO: remove
 
   # Check dimensions of vectors under null hypothesis
   stopifnot(length(beta_D_null) == p_D)
@@ -120,6 +117,8 @@ test_stat <- function(beta_D_null,
   out$beta_D_null <- beta_D_null
   out$beta_X_null <- beta_X_null
   out$alpha <- alpha
+
+  send_note_if("Obtained data", show_progress, message)
 
   # Get indices as a boolean vector: TRUE => specified under null, FALSE => o/w
   J <- !is.na(beta_D_null)
@@ -142,27 +141,8 @@ test_stat <- function(beta_D_null,
   Z_J_minus <- Z[, !J, drop = FALSE]
   Phi_J <- Phi[, J, drop = FALSE]
   Phi_J_minus <- Phi[, !J, drop = FALSE]
-  # if |J| = p_D, then D_J = D and D_J_minus = 0 column vector of length n
-  # if |J| = 0, then D_J = 0 column vector of length n and D_J_minus = D
-  # Similarly for Phi...
-  # if |K| = p_X, then X_K = X and X_K_minus = 0 column vector of length n
-  # if |K| = 0, then X_K = 0 column vector of length n and X_K_minus = X
-  # We create these zero-vectors to create `short_iqr`
-  zero_n <- matrix(0, nrow = n, ncol = 1)
-  if (cardinality_J == p_D) {
-    D_J_minus <- zero_n
-    Phi_J_minus <- zero_n
-    Z_J_minus <- zero_n
-  } else if (cardinality_J == 0) {
-    D_J <- zero_n
-    Phi_J <- zero_n
-    # Z_J <- zero_n # not used
-  }
-  if (cardinality_K == p_X) {
-    X_K_minus <- zero_n
-  } else if (cardinality_K == 0) {
-    X_K <- zero_n
-  }
+
+  send_note_if("Constructed basic matrices", show_progress, message)
 
   # Concentrate out D_J and X_K
   tmp <- Y
@@ -174,6 +154,8 @@ test_stat <- function(beta_D_null,
   }
   Y_tilde <- tmp
 
+  send_note_if("Concentrated out Y", show_progress, message)
+
   # Obtain \hat{a} and residuals
   short_iqr <- FUN(
     Y = Y_tilde,
@@ -182,8 +164,12 @@ test_stat <- function(beta_D_null,
     Z = Z_J_minus, # not really important since we specify Phi
     Phi = Phi_J_minus,
     tau = tau,
+    show_progress = show_progress,
     ...
   )
+
+  send_note_if("Computed short-IQR solution", show_progress, message)
+
   if (identical(FUN, preprocess_iqr_milp)) {
     short_iqr_result <- short_iqr$final_fit
   } else if (identical(FUN, iqr_milp)) {
@@ -220,6 +206,8 @@ test_stat <- function(beta_D_null,
   }
   stopifnot(nrow(B) == n)
   stopifnot(ncol(B) == cardinality_J + cardinality_K)
+
+  send_note_if("Created `B`", show_progress, message)
 
   # Create \tilde{B} depending on homoskedasticity or heteroskedasticity
   if (cardinality_J == p_D) {
@@ -269,6 +257,8 @@ test_stat <- function(beta_D_null,
   G_minus <- Psi %*% C_minus
   B_tilde <- B - B_minus %*% solve(t(G_minus) %*% B_minus) %*% t(G_minus) %*% B
 
+  send_note_if("Created `B_tilde`", show_progress, message)
+
   out$Psi <- Psi
   out$B_tilde <- B_tilde
   out$homoskedasticity <- homoskedasticity
@@ -285,6 +275,8 @@ test_stat <- function(beta_D_null,
 
   out$S_n <- S_n
 
+  send_note_if("Created `S_n`", show_progress, message)
+
   # Construct L_n or Q_n depending on |J| + |K| == or != 1
   # Compute p-value
   if (cardinality_J + cardinality_K == 1) {
@@ -296,10 +288,14 @@ test_stat <- function(beta_D_null,
     p_val <- 1 - stats::pchisq(test_stat, df = cardinality_J + cardinality_K)
   }
 
+  send_note_if("Computed test statistic and p-value", show_progress, message)
+
   print(paste("Alpha:", alpha))
   print(paste("Test Statistic:", test_stat))
   print(paste("p-value:", p_val))
 
   out$test_stat <- test_stat
   out$p_val <- p_val
+
+  return(out)
 }
