@@ -27,6 +27,12 @@
 #' @param sense Maximize or minimize beta_D,j (either "max" or "min")
 #' @param orthogonalize_statistic If TRUE, \eqn{\tilde{B}} will be used in
 #'  numerator of test statistic; defaults to FALSE; for advanced users only
+#' @param homoskedasticity If TRUE, assume density of error at 0 is constant;
+#'  defaults to FALSE (boolean)
+#' @param kernel Only active if \code{homoskedasticity} is FALSE; either
+#'  "Powell" (default) to use the Powell estimator or
+#'  "Gaussian" to use a Gaussian kernel; only used when
+#'  \code{homoskedasticity} is FALSE
 #' @inheritParams iqr_milp
 #'
 #' @return A named list of
@@ -55,6 +61,8 @@ miqcp_proj <- function(j,
                        Phi = linear_projection(D, X, Z),
                        tau,
                        orthogonalize_statistic = FALSE,
+                       homoskedasticity = FALSE,
+                       kernel = "Powell",
                        O_neg = NULL,
                        O_pos = NULL,
                        M = NULL,
@@ -67,6 +75,17 @@ miqcp_proj <- function(j,
                        LogFileExt = ".log") {
 
   out <- list() # Initialize list of results to return
+
+  # Check that alpha is between 0 and 1 (exclusive)
+  msg <- "`alpha` must be between 0 and 1."
+  send_note_if(msg, alpha <= 0 || alpha >= 1, stop, call. = FALSE)
+
+  # Check that kernel is appropriate
+  kernel <- tolower(kernel)
+  if (kernel != "powell" & kernel != "gaussian" & !homoskedasticity) {
+    stop(paste0("`kernel` should either be 'Powell' or 'Gaussian', not ",
+                kernel))
+  }
 
   # Get dimensions of data
   n <- length(Y)
@@ -90,10 +109,6 @@ miqcp_proj <- function(j,
   msg <- "`j` must be an integer between 1 and the number of columns of `D`."
   send_note_if(msg, length(j) != 1 || round(j) != j || j < 1 || j > p_D,
     stop, call. = FALSE)
-
-  # Check that alpha is between 0 and 1 (exclusive)
-  msg <- "`alpha` must be between 0 and 1."
-  send_note_if(msg, alpha <= 0 || alpha >= 1, stop, call. = FALSE)
 
   out$Phi <- Phi # by default, Phi = projection of D on X and Z
 
@@ -364,9 +379,36 @@ miqcp_proj <- function(j,
   }
 
   # Quadratic Constraint: (27) and Corollary 2
-  # TODO: code the heteroskedastic case!
-  # Below, we just do the homoskedastic case (see p. 25)
-  Phi_tilde <- Phi - X %*% solve(t(X) %*% X) %*% t(X) %*% Phi
+  if (homoskedasticity) {
+    Psi <- diag(1, nrow = n)
+  } else {
+    # Hall and Sheather (1988) bandwidth
+    tmp_a <- n ^ (1 / 3)
+    tmp_b <- stats::qnorm(1 - 0.5 * alpha) ^ (2 / 3)
+    tmp_c <- 1.5 * (stats::dnorm(stats::qnorm(tau)) ^ 2)
+    tmp_d <- 2 * (stats::qnorm(tau) ^ 2) + 1
+    hs <- tmp_a * tmp_b * ((tmp_c / tmp_d) ^ (1 / 3))
+    if (kernel == "powell") {
+      bw <- hs
+      # TODO: double-check whether this is correct
+      # Note that the 1 / (2 * n * bw) is negated in the formula for B_tilde
+      Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n)
+    } else if (kernel == "gaussian") {
+      bw <- hs
+      # Note that the 1 / (n * bw) is negated in the formula for B_tilde
+      Psi <- diag(stats::dnorm(resid / bw), nrow = n, ncol = n)
+    } else {
+      stop(
+       "Let `homoskedasticity` be TRUE or choose an appropriate `kernel`."
+      )
+    }
+  }
+  Phi_tilde <- Phi - X %*% solve(t(X) %*% Psi %*% X) %*% t(X) %*% Psi %*% Phi
+  out$Phi_tilde <- Phi_tilde
+  out$Psi <- Psi
+  out$homoskedasticity <- homoskedasticity
+  out$kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
+
   if (orthogonalize_statistic) {
     tmp <- Phi_tilde %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi_tilde)
   } else {
