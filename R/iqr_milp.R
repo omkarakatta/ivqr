@@ -97,6 +97,9 @@ iqr_milp <- function(Y,
   stopifnot(all.equal(n, n_Z))
   stopifnot(all.equal(n, n_Phi))
 
+  # Ensure that there are some RHS variables
+  stopifnot(p_D + p_X > 0)
+
   # Create vector of 1s
   ones <- rep(1, n)
 
@@ -104,7 +107,13 @@ iqr_milp <- function(Y,
 
   if (is.null(M)) {
     # by default, M = 10 * sd(resid from QR of Y on X and D)
-    sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    if (p_X == 0) {
+      sd_qr <- stats::sd(quantreg::rq(Y ~ D - 1, tau = tau)$residuals)
+    } else if (p_D == 0) {
+      sd_qr <- stats::sd(quantreg::rq(Y ~ X - 1, tau = tau)$residuals)
+    } else {
+      sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    }
     M <- 10 * sd_qr
   }
   out$M <- M

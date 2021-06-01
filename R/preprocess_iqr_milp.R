@@ -96,8 +96,17 @@ preprocess_iqr_milp <- function(Y,
   p_X <- ncol(X)
   p_Z <- ncol(Z)
 
+  # Ensure that there are some RHS variables
+  stopifnot(p_D + p_X > 0)
+
   # Determine preliminary residuals
-  resid <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
+  if (p_X == 0) {
+    resid <- quantreg::rq(Y ~ D - 1, tau = tau)$residuals
+  } else if (p_D == 0) {
+    resid <- quantreg::rq(Y ~ X - 1, tau = tau)$residuals
+  } else {
+    resid <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
+  }
 
   # Determine initial residual bounds
   alpha_initial <- stats::quantile(abs(resid), prop_alpha_initial)

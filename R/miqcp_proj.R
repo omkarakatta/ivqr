@@ -85,6 +85,9 @@ miqcp_proj <- function(j,
   stopifnot(all.equal(n, n_Z))
   stopifnot(all.equal(n, n_Phi))
 
+  # Ensure that there are some RHS variables
+  stopifnot(p_D + p_X > 0)
+
   # Check that j is an integer that is between 1 and p_D (inclusive)
   msg <- "`j` must be a single integer between 1 and the number of columns of `D`."
   send_note_if(msg, length(j) != 1 || round(j) != j || j < 1 || j > p_D,
@@ -98,7 +101,13 @@ miqcp_proj <- function(j,
 
   if (is.null(M)) {
     # by default, M = 10 * sd(resid from QR of Y on X and D)
-    sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    if (p_X == 0) {
+      sd_qr <- stats::sd(quantreg::rq(Y ~ D - 1, tau = tau)$residuals)
+    } else if (p_D == 0) {
+      sd_qr <- stats::sd(quantreg::rq(Y ~ X - 1, tau = tau)$residuals)
+    } else {
+      sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+    }
     M <- 10 * sd_qr
   }
   out$M <- M
