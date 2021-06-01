@@ -24,7 +24,7 @@
 #' homoskedasticity or heteroskedasticity.
 #'
 #' For example, if \code{beta_D_null = c(NA, 0, NA)} and \code{beta_X_null =
-#' c(1, NA)}, then $\beta_{D,2} = 0$ and $\beta_{X,1} = 1$ is the null
+#' c(1, NA)}, then \eqn{\beta_{D,2} = 0} and \eqn{\beta_{X,1} = 1} is the null
 #' hypothesis.
 #' Note that in this example, p_D is 3 and p_X is 2, which corresponds to the
 #' lengths of the coefficient vectors.
@@ -247,9 +247,9 @@ test_stat <- function(beta_D_null,
   } else {
     # Hall and Sheather (1988) bandwidth
     tmp_a <- n ^ (1 / 3)
-    tmp_b <- qnorm(1 - 0.5 * alpha) ^ (2 / 3)
-    tmp_c <- 1.5 * (dnorm(qnorm(tau)) ^ 2)
-    tmp_d <- 2 * (qnorm(tau) ^ 2) + 1
+    tmp_b <- stats::qnorm(1 - 0.5 * alpha) ^ (2 / 3)
+    tmp_c <- 1.5 * (stats::dnorm(stats::qnorm(tau)) ^ 2)
+    tmp_d <- 2 * (stats::qnorm(tau) ^ 2) + 1
     hs <- tmp_a * tmp_b * ((tmp_c / tmp_d) ^ (1 / 3))
     if (kernel == "powell") {
       bw <- hs
@@ -259,7 +259,7 @@ test_stat <- function(beta_D_null,
     } else if (kernel == "gaussian") {
       bw <- hs
       # Note that the 1 / (n * bw) is negated in the formula for B_tilde
-      Psi <- diag(dnorm(resid / bw), nrow = n, ncol = n)
+      Psi <- diag(stats::dnorm(resid / bw), nrow = n, ncol = n)
     } else {
       stop(
        "Let `homoskedasticity` be TRUE or choose an appropriate `kernel`."
@@ -289,11 +289,11 @@ test_stat <- function(beta_D_null,
   # Compute p-value
   if (cardinality_J + cardinality_K == 1) {
     test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde)
-    p_val <- 2 * (1 - pnorm(abs(test_stat)))
+    p_val <- 2 * (1 - stats::pnorm(abs(test_stat)))
   } else {
     M_n <- (1 / n) * t(B_tilde) %*% B_tilde
     test_stat <- t(S_n) %*% solve(M_n) %*% S_n / (tau * (1 - tau))
-    p_val <- 1 - pchisq(test_stat, df = cardinality_J + cardinality_K)
+    p_val <- 1 - stats::pchisq(test_stat, df = cardinality_J + cardinality_K)
   }
 
   print(paste("Alpha:", alpha))
