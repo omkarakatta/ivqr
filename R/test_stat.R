@@ -196,13 +196,7 @@ test_stat <- function(beta_D_null,
 
   # Create B
   if (is.null(B)) {
-    if (cardinality_J == 0) {
-      B <- X_K
-    } else if (cardinality_K == 0) {
-      B <- Phi_J
-    } else {
-      B <- cbind(Phi_J, X_K)
-    }
+    B <- cbind(Phi_J, X_K)
   }
   stopifnot(nrow(B) == n)
   stopifnot(ncol(B) == cardinality_J + cardinality_K)
@@ -210,23 +204,10 @@ test_stat <- function(beta_D_null,
   send_note_if("Created `B`", show_progress, message)
 
   # Create \tilde{B} depending on homoskedasticity or heteroskedasticity
-  if (cardinality_J == p_D) {
-    B_minus <- X_K_minus
-  } else if (cardinality_K == p_X) {
-    B_minus <- Phi_J_minus
-  } else {
-    B_minus <- cbind(Phi_J_minus, X_K_minus)
-  }
+  B_minus <- cbind(Phi_J_minus, X_K_minus)
   stopifnot(nrow(B_minus) == n)
   stopifnot(ncol(B_minus) == p_D - cardinality_J + p_X - cardinality_K)
-
-  if (cardinality_J == p_D) {
-    C_minus <- X_K_minus
-  } else if (cardinality_K == p_X) {
-    C_minus <- D_J_minus
-  } else {
-    C_minus <- cbind(D_J_minus, X_K_minus)
-  }
+  C_minus <- cbind(D_J_minus, X_K_minus)
   stopifnot(nrow(C_minus) == n)
   stopifnot(ncol(C_minus) == p_D - cardinality_J + p_X - cardinality_K)
 
