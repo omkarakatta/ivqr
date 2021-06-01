@@ -14,6 +14,7 @@ miqcp_proj(
   Z,
   Phi = linear_projection(D, X, Z),
   tau,
+  orthogonalize_statistic = FALSE,
   O_neg = NULL,
   O_pos = NULL,
   M = NULL,
@@ -45,6 +46,9 @@ miqcp_proj(
 defaults to the linear projection of D on X and Z (matrix with n rows)}
 
 \item{tau}{Quantile (number between 0 and 1)}
+
+\item{orthogonalize_statistic}{If TRUE, \eqn{\tilde{B}} will be used in
+numerator of test statistic; defaults to FALSE; for advanced users only}
 
 \item{O_neg}{Indices for residuals whose sign is fixed to be negative
 and positive, respectively (vectors)}
