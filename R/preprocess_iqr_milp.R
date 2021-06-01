@@ -102,6 +102,12 @@ preprocess_iqr_milp <- function(Y,
   # Determine initial residual bounds
   alpha_initial <- stats::quantile(abs(resid), prop_alpha_initial)
 
+  # Determine M before iqr_milp to avoid rerunning quantreg::rq
+  if (is.null(M)) {
+    sd_qr <- stats::sd(resid)
+    M <- 10 * sd_qr
+  }
+
   # Start the while loop
   alpha <- alpha_initial
   status <- "TIME_LIMIT"
