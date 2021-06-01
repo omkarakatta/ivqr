@@ -76,8 +76,6 @@ miqcp_proj <- function(j,
   n_Phi <- nrow(Phi)
   p_D <- ncol(D)
   p_X <- ncol(X)
-  p_Z <- ncol(Z)
-  p_Phi <- ncol(Phi)
 
   # Ensure that number of observations is the same
   stopifnot(all.equal(n, n_D))
@@ -89,7 +87,7 @@ miqcp_proj <- function(j,
   stopifnot(p_D + p_X > 0)
 
   # Check that j is an integer that is between 1 and p_D (inclusive)
-  msg <- "`j` must be a single integer between 1 and the number of columns of `D`."
+  msg <- "`j` must be an integer between 1 and the number of columns of `D`."
   send_note_if(msg, length(j) != 1 || round(j) != j || j < 1 || j > p_D,
     stop, call. = FALSE)
 
@@ -177,8 +175,6 @@ miqcp_proj <- function(j,
 
   # Complementary Slackness (28)
   A_cs_uk <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
-                   # matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_plus
-                   # matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_minus
                    matrix(0, nrow = n, ncol = p_D),       # beta_D
                    diag(1, nrow = n, ncol = n),           # u
                    matrix(0, nrow = n, ncol = n),         # v
@@ -196,8 +192,6 @@ miqcp_proj <- function(j,
   send_note_if(msg, show_progress, message)
 
   A_cs_vl <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
-                   # matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_plus
-                   # matrix(0, nrow = n, ncol = p_Phi),     # beta_Phi_minus
                    matrix(0, nrow = n, ncol = p_D),       # beta_D
                    matrix(0, nrow = n, ncol = n),         # u
                    diag(1, nrow = n, ncol = n),           # v
@@ -216,8 +210,6 @@ miqcp_proj <- function(j,
 
   # Complementary Slackness (29)
   A_cs_ak <- cbind(matrix(0, nrow = n, ncol = p_X),     # beta_X
-                   # matrix(0, nrow = n, ncol = p_Phi),   # beta_Phi_plus
-                   # matrix(0, nrow = n, ncol = p_Phi),   # beta_Phi_minus
                    matrix(0, nrow = n, ncol = p_D),     # beta_D
                    matrix(0, nrow = n, ncol = n),       # u
                    matrix(0, nrow = n, ncol = n),       # v
@@ -359,7 +351,6 @@ miqcp_proj <- function(j,
     stopifnot(length(sense_pp_l) == n)
     msg <- "Pre-processing for l Complete."
     send_note_if(msg, show_progress, message)
-
   } else {
     A_pp_a <- c()
     b_pp_a <- c()
@@ -370,61 +361,6 @@ miqcp_proj <- function(j,
     A_pp_l <- c()
     b_pp_l <- c()
     sense_pp_l <- c()
-  }
-
-  # Putting it all together
-  proj <- list()
-  proj$obj <- obj
-  proj$A <- rbind(A_pf,   # Primal Feasibility
-                 A_df_X,  # Dual Feasibility - X
-                 A_cs_uk, # Complementary Slackness - u and k
-                 A_cs_vl, # Complementary Slackness - v and l
-                 A_cs_ak, # Complementary Slackness - a and k
-                 A_cs_al, # Complementary Slackness - a and l
-                 A_pp_a,  # Pre-processing - fixing a
-                 A_pp_k,  # Pre-processing - fixing k
-                 A_pp_l)  # Pre-processing - fixing l
-  # message(paste("A:", nrow(proj$A), ncol(proj$A)))
-  # message(paste("A_pf:", nrow(A_pf), ncol(A_pf)))
-  # message(paste("A_df_X:", nrow(A_df_X), ncol(A_df_X)))
-  # message(paste("A_df_Phi:", nrow(A_df_Phi), ncol(A_df_Phi)))
-  # message(paste("A_cs_uk:", nrow(A_cs_uk), ncol(A_cs_uk)))
-  # message(paste("A_cs_vl:", nrow(A_cs_vl), ncol(A_cs_vl)))
-  # message(paste("A_cs_ak:", nrow(A_cs_ak), ncol(A_cs_ak)))
-  # message(paste("A_cs_al:", nrow(A_cs_al), ncol(A_cs_al)))
-  # message(paste("A_pp_a:", nrow(A_pp_a), ncol(A_pp_a)))
-  # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
-  # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
-
-  proj$rhs <- c(b_pf,    # Primal Feasibility
-               b_df_X,  # Dual Feasibility - X
-               b_cs_uk, # Complementary Slackness - u and k
-               b_cs_vl, # Complementary Slackness - v and l
-               b_cs_ak, # Complementary Slackness - a and k
-               b_cs_al, # Complementary Slackness - a and l
-               b_pp_a,  # Pre-processing - fixing a
-               b_pp_k,  # Pre-processing - fixing k
-               b_pp_l)  # Pre-processing - fixing l
-  # message(paste("b:", length(proj$rhs)))
-
-  proj$sense <- c(sense_pf,   # Primal Feasibility
-                 sense_df_X,  # Dual Feasibility - X
-                 sense_cs_uk, # Complementary Slackness - u and k
-                 sense_cs_vl, # Complementary Slackness - v and l
-                 sense_cs_ak, # Complementary Slackness - a and k
-                 sense_cs_al, # Complementary Slackness - a and l
-                 sense_pp_a,  # Pre-processing - fixing a
-                 sense_pp_k,  # Pre-processing - fixing k
-                 sense_pp_l)  # Pre-processing - fixing l
-  # message(paste("sense:", length(proj$sense)))
-
-  proj$lb <- lb
-  proj$ub <- ub
-  proj$vtype <- vtype
-  proj$modelsense <- sense
-  params$TimeLimit <- TimeLimit
-  if (LogFileName != "") {
-    params$LogFile <- paste0(LogFileName, LogFileExt)
   }
 
   # Quadratic Constraint: (27) and Corollary 2
@@ -438,26 +374,76 @@ miqcp_proj <- function(j,
   }
   crit_value <- stats::qchisq(1 - alpha, p_D)
 
-  # qc_a <- Phi_tilde %*% M_inv %*% t(Phi_tilde)
   qc <- matrix(0, nrow = num_decision_vars, ncol = num_decision_vars)
   qc[(p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n),
-     (p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)] <- tmp
-
+     (p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)] <- tmp # quadratic
+  q <- as.numeric(-2 * (1 - tau) * qc %*% ones_dv) # linear
   qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_dv) %*% qc %*% ones_dv
   qc_rhs_2 <- tau * (1 - tau) * crit_value
-  qc_rhs <- qc_rhs_1 + qc_rhs_2
+  qc_rhs <- qc_rhs_1 + qc_rhs_2 # constant
 
+  msg <- "Quadratic Constraints Complete."
+  send_note_if(msg, show_progress, message)
+
+  # Putting it all together
+  proj <- list()
+  proj$obj <- obj
+  proj$A <- rbind(A_pf,    # Primal Feasibility
+                  A_df_X,  # Dual Feasibility - X
+                  A_cs_uk, # Complementary Slackness - u and k
+                  A_cs_vl, # Complementary Slackness - v and l
+                  A_cs_ak, # Complementary Slackness - a and k
+                  A_cs_al, # Complementary Slackness - a and l
+                  A_pp_a,  # Pre-processing - fixing a
+                  A_pp_k,  # Pre-processing - fixing k
+                  A_pp_l)  # Pre-processing - fixing l
+  # message(paste("A:", nrow(proj$A), ncol(proj$A)))
+  # message(paste("A_pf:", nrow(A_pf), ncol(A_pf)))
+  # message(paste("A_df_X:", nrow(A_df_X), ncol(A_df_X)))
+  # message(paste("A_df_Phi:", nrow(A_df_Phi), ncol(A_df_Phi)))
+  # message(paste("A_cs_uk:", nrow(A_cs_uk), ncol(A_cs_uk)))
+  # message(paste("A_cs_vl:", nrow(A_cs_vl), ncol(A_cs_vl)))
+  # message(paste("A_cs_ak:", nrow(A_cs_ak), ncol(A_cs_ak)))
+  # message(paste("A_cs_al:", nrow(A_cs_al), ncol(A_cs_al)))
+  # message(paste("A_pp_a:", nrow(A_pp_a), ncol(A_pp_a)))
+  # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
+  # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
+
+  proj$rhs <- c(b_pf,    # Primal Feasibility
+                b_df_X,  # Dual Feasibility - X
+                b_cs_uk, # Complementary Slackness - u and k
+                b_cs_vl, # Complementary Slackness - v and l
+                b_cs_ak, # Complementary Slackness - a and k
+                b_cs_al, # Complementary Slackness - a and l
+                b_pp_a,  # Pre-processing - fixing a
+                b_pp_k,  # Pre-processing - fixing k
+                b_pp_l)  # Pre-processing - fixing l
+  # message(paste("b:", length(proj$rhs)))
+
+  proj$sense <- c(sense_pf,   # Primal Feasibility
+                 sense_df_X,  # Dual Feasibility - X
+                 sense_cs_uk, # Complementary Slackness - u and k
+                 sense_cs_vl, # Complementary Slackness - v and l
+                 sense_cs_ak, # Complementary Slackness - a and k
+                 sense_cs_al, # Complementary Slackness - a and l
+                 sense_pp_a,  # Pre-processing - fixing a
+                 sense_pp_k,  # Pre-processing - fixing k
+                 sense_pp_l)  # Pre-processing - fixing l
+  # message(paste("sense:", length(proj$sense)))
+
+  # Quadratic Constraint
   proj$quadcon[[1]]$Qc <- qc
-  proj$quadcon[[1]]$q <- as.numeric(-2 * (1 - tau) * qc %*% ones_dv)
+  proj$quadcon[[1]]$q <- q
   proj$quadcon[[1]]$rhs <- qc_rhs
 
-  # print(dim(qc))
-  # print(dim(q))
-  # print(dim(qc_rhs))
-  # print(num_decision_vars)
-
-  msg <- "Quadratic Constraints Complete"
-  send_note_if(msg, show_progress, message)
+  proj$lb <- lb
+  proj$ub <- ub
+  proj$vtype <- vtype
+  proj$modelsense <- sense
+  params$TimeLimit <- TimeLimit
+  if (LogFileName != "") {
+    params$LogFile <- paste0(LogFileName, LogFileExt)
+  }
 
   result <- gurobi::gurobi(proj, params)
 
@@ -480,10 +466,10 @@ miqcp_proj <- function(j,
     out$beta_X <- answer[1:p_X]
     out$beta_D <- answer[(p_X + 1):(p_X + p_D)]
     out$u <- answer[(p_X + p_D + 1):(p_X + p_D + n)]
-    out$v <- answer[(p_X + p_D + n + 1):(p_X + p_D + 2*n)]
-    out$a <- answer[(p_X + p_D + 2*n + 1):(p_X + p_D + 3*n)]
-    out$k <- answer[(p_X + p_D + 3*n + 1):(p_X + p_D + 4*n)]
-    out$l <- answer[(p_X + p_D + 4*n + 1):(p_X + p_D + 5*n)]
+    out$v <- answer[(p_X + p_D + n + 1):(p_X + p_D + 2 * n)]
+    out$a <- answer[(p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)]
+    out$k <- answer[(p_X + p_D + 3 * n + 1):(p_X + p_D + 4 * n)]
+    out$l <- answer[(p_X + p_D + 4 * n + 1):(p_X + p_D + 5 * n)]
 
     out$resid <- out$u - out$v
     out$objval <- result$objval
@@ -491,4 +477,3 @@ miqcp_proj <- function(j,
 
   return(out)
 }
-
