@@ -15,14 +15,29 @@
 #' Subvector inference under weak identification with MIQCP
 #'
 #' Invert the null on the full weakly identified vector of endogeneous
-#' coefficients and maximize/minimize the projection of the resulting
-#' multivariate confidence on the axis of a particular coefficient.
+#' coefficients and project the resulting multivariate confidence region on the
+#' axis of a specified coefficient.
 #'
 #' The maximization and minimization of the projection is formulated as a
 #' Mixed Integer Quadratically Constrained Program (MIQCP).
 #'
-#' @param j Index of D associated with the coefficient of interest
-#'  (numeric between 1 and p_D)
+#' The index of projection is given by \code{projection_index} and \code{endogeneous}.
+#' For example, if \code{projection_index} is 1 and \code{endogeneous} is TRUE, we project on the axis of \eqn{\beta_{D, 1}}.
+#' If \code{projection_index} is 2 and \code{endogeneous} is FALSE, we project on the axis of \eqn{\beta_{X, 2}}.
+#'
+#' Under weak identification, we invert the null hypothesis on the full weakly identified vector of endogeneous coefficients.
+#' To include exogeneous coefficients in the null, specify the desired indices of the exogeneous variables in \code{\beta_X_indices}.
+#'
+#' @param projection_index Index associated with the coefficient of interest
+#'  (numeric between 1 and p_D if \code{endogeneous} is TRUE;
+#'  numeric between 1 and p_X if \code{endogeneous} is FALSE)
+#' @param endogeneous If TRUE (default), the function will project on the axis
+#'  of the corresponding endogeneous variable's coefficient; if FALSE, the
+#'  function will project on the axis of the corresponding exogeneous variable's
+#'  coefficient (boolean)
+#' @param beta_X_indices Indices of endogeneous variables to be included in the
+#'  null hypothesis; if NULL (default), none of the coefficients on the
+#'  endogeneous variables will be specified in the null (numeric vector)
 #' @param alpha Alpha level; defaults to 10% (numeric between 0 and 1)
 #' @param sense Maximize or minimize beta_D,j (either "max" or "min")
 #' @param orthogonalize_statistic If TRUE, \eqn{\tilde{B}} will be used in
@@ -35,7 +50,7 @@
 #'  \code{homoskedasticity} is FALSE
 #' @inheritParams iqr_milp
 #'
-#' @return A named list of
+#' @return A named list of # TODO: update
 #'  \enumerate{
 #'    \item proj: Gurobi model that was solved
 #'    \item params: Gurobi parameters used
@@ -50,8 +65,14 @@
 #'    \item l: binary variable associated with v
 #'    \item resid: residuals (u - v)
 #'    \item objval: value of objective function (beta_D,j)
+#'    \item M: big M constant used for complementary slackness conditions
+#'    \item Phi_J,Phi_J_minus,X_K,X_K_minus,B,B_tilde,Psi: matrices used in program
+#'    \item projection_index,endogeneous: coefficient onto which the multivariate confidence region was projected
+#'    \item homoskedasticity,kernel: indicates estimator of residual density
 #'  }
-miqcp_proj <- function(j,
+miqcp_proj <- function(projection_index,
+                       endogeneous = TRUE,
+                       beta_X_indices = NULL,
                        alpha = 0.1,
                        sense,
                        Y,
@@ -105,12 +126,51 @@ miqcp_proj <- function(j,
   # Ensure that there are some RHS variables
   stopifnot(p_D + p_X > 0)
 
-  # Check that j is an integer that is between 1 and p_D (inclusive)
-  msg <- "`j` must be an integer between 1 and the number of columns of `D`."
-  send_note_if(msg, length(j) != 1 || round(j) != j || j < 1 || j > p_D,
-    stop, call. = FALSE)
+  # Check beta_X_indices and create K
+  if (is.null(beta_X_indices)) {
+    beta_X_indices <- NULL
+  } else {
+    stopifnot(sum(beta_X_indices < 0) == 0) # no negative indices
+    stopifnot(all.equal(round(beta_X_indices), beta_X_indices)) # indices are integers
+    stopifnot(max(beta_X_indices) < p_X) # no indices greater than p_X
+    stopifnot(length(beta_X_indices) < p_X) # number of indices specified can't exceed p_X
+  }
+  K <- rep(FALSE, p_X)
+  K[beta_X_indices] <- TRUE
+  cardinality_K <- sum(K)
 
-  out$Phi <- Phi # by default, Phi = projection of D on X and Z
+  # Create J
+  J <- rep(TRUE, p_D)
+  cardinality_J <- sum(J)
+
+  # Check that projection_index is an integer that is between 1 and p_D or p_X (inclusive)
+  stopifnot(projection_index > 0) # can't be negative
+  stopifnot(length(projection_index) == 1) # we project on axis of only one coefficient
+  stopifnot(round(projection_index) == projection_index) # must be integer
+  if (endogeneous) {
+    stopifnot(projection_index < p_D)
+  } else {
+    stopifnot(any(projection_index %in% beta_X_indices))
+  }
+  out$projection_index <- projection_index
+  out$endogeneous <- endogeneous
+
+  # Create basic matrices
+  D_J <- D[, J, drop = FALSE]
+  D_J_minus <- D[, !J, drop = FALSE]
+  X_K <- X[, K, drop = FALSE]
+  X_K_minus <- X[, !K, drop = FALSE]
+  # Z_J <- Z[, J, drop = FALSE] # not used
+  # Z_J_minus <- Z[, !J, drop = FALSE] # not used
+  Phi_J <- Phi[, J, drop = FALSE] # by default, Phi = projection of D on X and Z
+  Phi_J_minus <- Phi[, !J, drop = FALSE]
+
+  out$Phi_J <- Phi_J
+  # out$Phi_J_minus <- Phi_J_minus # don't need to return; this will always be empty since |J| = p_D under weak identification
+  out$X_K <- X_K
+  out$X_K_minus <- X_K_minus
+
+  # Concentrate out D_J and X_K
 
   if (is.null(M)) {
     # by default, M = 10 * sd(resid from QR of Y on X and D)
@@ -140,11 +200,16 @@ miqcp_proj <- function(j,
   ones <- rep(1, n)
   ones_dv <- rep(1, num_decision_vars) # dv stands for decision variable to remind us that this vector has dimension equal to the number of decision variables
 
-  # Objective: maximize or minimize beta_D,j
+  # Objective: maximize or minimize beta_D,projection_index
   beta_D_obj <- rep(0, p_D)
-  beta_D_obj[j] <- 1
-  obj <- c(rep(0, p_X),   # beta_X
-           beta_D_obj,   # beta_D
+  beta_X_obj <- rep(0, p_X)
+  if (endogeneous) {
+    beta_D_obj[projection_index] <- 1
+  } else {
+    beta_X_obj[projection_index] <- 1
+  }
+  obj <- c(beta_X_obj,   # beta_X
+           beta_D_obj,    # beta_D
            rep(0, n),     # u
            rep(0, n),     # v
            rep(0, n),     # a
@@ -175,7 +240,7 @@ miqcp_proj <- function(j,
                   matrix(0, nrow = p_X, ncol = p_D),  # beta_D
                   matrix(0, nrow = p_X, ncol = n),    # u
                   matrix(0, nrow = p_X, ncol = n),    # v
-                  t(X),                               # a
+                  t(X_K_minus),                       # a
                   matrix(0, nrow = p_X, ncol = n),    # k
                   matrix(0, nrow = p_X, ncol = n))    # l
   b_df_X <- (1 - tau) * t(X) %*% ones
@@ -379,6 +444,15 @@ miqcp_proj <- function(j,
   }
 
   # Quadratic Constraint: (27) and Corollary 2
+  B <- cbind(Phi_J, X_K)
+  stopifnot(nrow(B) == n)
+  stopifnot(ncol(B) == cardinality_J + cardinality_K)
+  B_minus <- cbind(Phi_J_minus, X_K_minus)
+  stopifnot(nrow(B_minus) == n)
+  stopifnot(ncol(B_minus) == p_D - cardinality_J + p_X - cardinality_K)
+  C_minus <- cbind(D_J_minus, X_K_minus)
+  stopifnot(nrow(C_minus) == n)
+  stopifnot(ncol(C_minus) == p_D - cardinality_J + p_X - cardinality_K)
   if (homoskedasticity) {
     Psi <- diag(1, nrow = n)
   } else {
@@ -392,27 +466,29 @@ miqcp_proj <- function(j,
       bw <- hs
       # TODO: double-check whether this is correct
       # Note that the 1 / (2 * n * bw) is negated in the formula for B_tilde
-      Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n)
+      Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n) # TODO: how do we replace resid with u - v?
     } else if (kernel == "gaussian") {
       bw <- hs
       # Note that the 1 / (n * bw) is negated in the formula for B_tilde
-      Psi <- diag(stats::dnorm(resid / bw), nrow = n, ncol = n)
+      Psi <- diag(stats::dnorm(resid / bw), nrow = n, ncol = n) # TODO: how do we replace resid with u - v?
     } else {
       stop(
        "Let `homoskedasticity` be TRUE or choose an appropriate `kernel`."
       )
     }
   }
-  Phi_tilde <- Phi - X %*% solve(t(X) %*% Psi %*% X) %*% t(X) %*% Psi %*% Phi
-  out$Phi_tilde <- Phi_tilde
+  G_minus <- Psi %*% C_minus
+  B_tilde <- B - B_minus %*% solve(t(G_minus) %*% B_minus) %*% t(G_minus) %*% B
+  out$B <- B
+  out$B_tilde <- B_tilde
   out$Psi <- Psi
   out$homoskedasticity <- homoskedasticity
   out$kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
 
   if (orthogonalize_statistic) {
-    tmp <- Phi_tilde %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi_tilde)
+    tmp <- B_tilde %*% solve(t(B_tilde) %*% B_tilde) %*% t(B_tilde)
   } else {
-    tmp <- Phi %*% solve(t(Phi_tilde) %*% Phi_tilde) %*% t(Phi)
+    tmp <- B %*% solve(t(B_tilde) %*% B_tilde) %*% t(B)
   }
   crit_value <- stats::qchisq(1 - alpha, p_D)
 
