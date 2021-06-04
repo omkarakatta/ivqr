@@ -246,7 +246,7 @@ line_confint <- function(index,
         ...
       )
       # determine test status
-      current_p_val <- ts$pval
+      current_p_val <- ts$p_val
       current_ts_reject <- ts$p_val < alpha
       # update direction and step size
       if (old_ts_reject != current_ts_reject) {
@@ -256,7 +256,7 @@ line_confint <- function(index,
       # save results
       results <- c(type, counter, index, endogeneous, current_beta, current_p_val, ts$test_stat)
       if (create_log) {
-        file_path <- paste0(log_dir, "/", stub, "_", type, "_counter_", counter, ".csv")
+        file_path <- paste0(log_dir, "/", date_time, "_", stub, "_", type, "_counter_", counter, ".csv")
         file.create(file_path)
         cat(results, sep = ",", file = file_path)
         cat("\n", sep = ",", file = file_path, append = TRUE) # add newline at EOF
