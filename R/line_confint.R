@@ -161,7 +161,7 @@ line_confint <- function(index,
 
   send_note_if(paste0("left bound:", bounds[1]))
   send_note_if(paste0("right bound:", bounds[2]))
-  send_note_if(paste0("width:" width))
+  send_note_if(paste0("width:", width))
   send_note_if(paste0("stopping tolerance:", stopping_tolerance), message)
   send_note_if(paste0("step size:", step_size), message)
 
