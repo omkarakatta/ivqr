@@ -21,12 +21,16 @@
 #' The maximization and minimization of the projection is formulated as a
 #' Mixed Integer Quadratically Constrained Program (MIQCP).
 #'
-#' The index of projection is given by \code{projection_index} and \code{endogeneous}.
-#' For example, if \code{projection_index} is 1 and \code{endogeneous} is TRUE, we project on the axis of \eqn{\beta_{D, 1}}.
-#' If \code{projection_index} is 2 and \code{endogeneous} is FALSE, we project on the axis of \eqn{\beta_{X, 2}}.
+#' The index of projection is given by \code{projection_index} and
+#' \code{endogeneous}.  For example, if \code{projection_index} is 1 and
+#' \code{endogeneous} is TRUE, we project on the axis of \eqn{\beta_{D, 1}}.
+#' If \code{projection_index} is 2 and \code{endogeneous} is FALSE, we project
+#' on the axis of \eqn{\beta_{X, 2}}.
 #'
-#' Under weak identification, we invert the null hypothesis on the full weakly identified vector of endogeneous coefficients.
-#' To include exogeneous coefficients in the null, specify the desired indices of the exogeneous variables in \code{\beta_X_indices}.
+#' Under weak identification, we invert the null hypothesis on the full weakly
+#' identified vector of endogeneous coefficients.  To include exogeneous
+#' coefficients in the null, specify the desired indices of the exogeneous
+#' variables in \code{\beta_X_indices}.
 #'
 #' @param projection_index Index associated with the coefficient of interest
 #'  (numeric between 1 and p_D if \code{endogeneous} is TRUE;
@@ -48,6 +52,8 @@
 #'  "Powell" (default) to use the Powell estimator or
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
+#' @param residuals Residuals from IQR MILP program; if NULL (default), use
+#'  naive residuals from quantile regression
 #' @inheritParams iqr_milp
 #'
 #' @return A named list of # TODO: update
@@ -84,6 +90,7 @@ miqcp_proj <- function(projection_index,
                        orthogonalize_statistic = FALSE,
                        homoskedasticity = FALSE,
                        kernel = "Powell",
+                       residuals = NULL,
                        O_neg = NULL,
                        O_pos = NULL,
                        M = NULL,
@@ -170,18 +177,22 @@ miqcp_proj <- function(projection_index,
   out$X_K <- X_K
   out$X_K_minus <- X_K_minus
 
-  # Concentrate out D_J and X_K
+  # Get residuals
+  if (is.null(residuals)) {
+    if (p_X == 0) {
+      residuals <- quantreg::rq(Y ~ D - 1, tau = tau)$residuals
+    } else if (p_D == 0) {
+      residuals <- quantreg::rq(Y ~ X - 1, tau = tau)$residuals
+    } else {
+      residuals <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
+    }
+  }
+  stopifnot(is.numeric(residuals))
+  stopifnot(length(residuals) == n)
 
   if (is.null(M)) {
     # by default, M = 10 * sd(resid from QR of Y on X and D)
-    if (p_X == 0) {
-      sd_qr <- stats::sd(quantreg::rq(Y ~ D - 1, tau = tau)$residuals)
-    } else if (p_D == 0) {
-      sd_qr <- stats::sd(quantreg::rq(Y ~ X - 1, tau = tau)$residuals)
-    } else {
-      sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
-    }
-    M <- 10 * sd_qr
+    M <- 10 * stats::sd(residuals)
   }
   out$M <- M
 
@@ -466,11 +477,11 @@ miqcp_proj <- function(projection_index,
       bw <- hs
       # TODO: double-check whether this is correct
       # Note that the 1 / (2 * n * bw) is negated in the formula for B_tilde
-      Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n) # TODO: how do we replace resid with u - v?
+      Psi <- diag(as.numeric(abs(residuals) < bw), nrow = n, ncol = n)
     } else if (kernel == "gaussian") {
       bw <- hs
       # Note that the 1 / (n * bw) is negated in the formula for B_tilde
-      Psi <- diag(stats::dnorm(resid / bw), nrow = n, ncol = n) # TODO: how do we replace resid with u - v?
+      Psi <- diag(stats::dnorm(residuals / bw), nrow = n, ncol = n)
     } else {
       stop(
        "Let `homoskedasticity` be TRUE or choose an appropriate `kernel`."
