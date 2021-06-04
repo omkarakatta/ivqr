@@ -96,6 +96,7 @@ test_stat <- function(beta_D_null,
 
   # Check arguments
   if (!identical(FUN, preprocess_iqr_milp) & !identical(FUN, iqr_milp)) {
+    print(FUN) # TODO: remove after debugging
     stop("`FUN` should either be `preprocess_iqr_milp` or `iqr_milp`.")
   }
   kernel <- tolower(kernel)

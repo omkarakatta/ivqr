@@ -63,3 +63,16 @@ linear_projection <- function(Y, ...) {
   coef <- solve(t(X) %*% X) %*% t(X) %*% Y
   X %*% coef
 }
+
+### round_to_magnitude -------------------------
+#' Round up the nearest order of magnitude
+#'
+#' For example, if \code{x} is 12, this function returns 100.
+#' If \code{x} is 0.12, this function returns 0.1.
+#'
+#' @param x Number to be rounded (numeric)
+#'
+#' @return Nearest order of magnitude larger than \code{x}
+round_to_magnitude <- function(x) {
+  10 ^ (ceiling(log10(x)))
+}
