@@ -205,7 +205,9 @@ line_confint <- function(index,
   on.exit(parallel::stopCluster(cl))
   confint <- foreach (direction = c(-1, 1),
                       .combine = c,
-                      .export = c("test_stat", "preprocess_iqr_milp", "iqr_milp")) %dopar% {
+                      .export = c("test_stat",
+                                  "preprocess_iqr_milp",
+                                  "iqr_milp")) %dopar% {
     type <- ifelse(direction == 1, "max", "min")
     step <- step_size
     current_beta <- beta_null
@@ -254,12 +256,22 @@ line_confint <- function(index,
         step <- step * step_rate
       }
       # save results
-      results <- c(type, counter, index, endogeneous, current_beta, current_p_val, ts$test_stat)
+      results <- c(type,
+                   counter,
+                   index,
+                   endogeneous,
+                   current_beta,
+                   current_p_val,
+                   ts$test_stat)
       if (create_log) {
-        file_path <- paste0(log_dir, "/", date_time, "_", stub, "_", type, "_counter_", counter, ".csv")
+        file_path <- paste0(log_dir, "/",
+                            date_time, "_", stub, "_",
+                            type, "_counter_", counter, ".csv")
         file.create(file_path)
         cat(results, sep = ",", file = file_path)
-        cat("\n", sep = ",", file = file_path, append = TRUE) # add newline at EOF
+        cat("\n", sep = ",",
+            file = file_path,
+            append = TRUE) # add newline at EOF
       }
     }
 
