@@ -223,6 +223,7 @@ line_confint <- function(index,
     current_p_val <- initial_test_stat$p_val
     counter <- 0
     while (step > stopping_tolerance) {
+      # TODO: count how much time is spent in each loop
       counter <- counter + 1
       old_p_val <- current_p_val # save previous p-value
       old_ts_reject <- current_ts_reject # save previous status of test

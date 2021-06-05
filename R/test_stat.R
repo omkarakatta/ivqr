@@ -279,5 +279,7 @@ test_stat <- function(beta_D_null,
   out$test_stat <- test_stat
   out$p_val <- p_val
 
+  # TODO: find time elapsed
+
   return(out)
 }
