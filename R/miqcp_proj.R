@@ -561,9 +561,9 @@ miqcp_proj <- function(projection_index,
   # message(paste("sense:", length(proj$sense)))
 
   # Quadratic Constraint
-  # proj$quadcon[[1]]$Qc <- qc
-  # proj$quadcon[[1]]$q <- q
-  # proj$quadcon[[1]]$rhs <- qc_rhs
+  proj$quadcon[[1]]$Qc <- qc
+  proj$quadcon[[1]]$q <- q
+  proj$quadcon[[1]]$rhs <- qc_rhs
 
   proj$lb <- lb
   proj$ub <- ub
