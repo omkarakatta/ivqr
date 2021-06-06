@@ -576,7 +576,7 @@ miqcp_proj <- function(projection_index,
 
   result <- gurobi::gurobi(proj, params)
 
-  msg <- paste("Mixed Integer Linear Program Complete.")
+  msg <- paste("Mixed Integer Quadratic Program Complete.")
   send_note_if(msg, show_progress, message)
 
   # Return results
