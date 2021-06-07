@@ -574,6 +574,8 @@ miqcp_proj <- function(projection_index,
     params$LogFile <- paste0(LogFileName, LogFileExt)
   }
 
+  # return(out) # DEBUG
+
   result <- gurobi::gurobi(proj, params)
 
   msg <- paste("Mixed Integer Quadratic Program Complete.")
