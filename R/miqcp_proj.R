@@ -247,20 +247,20 @@ miqcp_proj <- function(projection_index,
   send_note_if(msg, show_progress, message)
 
   # Dual Feasibility Constraint (26)
-  A_df_X <- cbind(matrix(0, nrow = p_X, ncol = p_X),  # beta_X
-                  matrix(0, nrow = p_X, ncol = p_D),  # beta_D
-                  matrix(0, nrow = p_X, ncol = n),    # u
-                  matrix(0, nrow = p_X, ncol = n),    # v
-                  t(X_K_minus),                       # a
-                  matrix(0, nrow = p_X, ncol = n),    # k
-                  matrix(0, nrow = p_X, ncol = n))    # l
+  A_df_X <- cbind(matrix(0, nrow = p_X - cardinality_K, ncol = p_X),  # beta_X
+                  matrix(0, nrow = p_X - cardinality_K, ncol = p_D),  # beta_D
+                  matrix(0, nrow = p_X - cardinality_K, ncol = n),    # u
+                  matrix(0, nrow = p_X - cardinality_K, ncol = n),    # v
+                  t(X_K_minus),                                       # a
+                  matrix(0, nrow = p_X - cardinality_K, ncol = n),    # k
+                  matrix(0, nrow = p_X - cardinality_K, ncol = n))    # l
   b_df_X <- (1 - tau) * t(X) %*% ones
   sense_df_X <- rep("=", p_X)
 
   stopifnot(ncol(A_df_X) == num_decision_vars)
-  stopifnot(nrow(A_df_X) == p_X)
-  stopifnot(length(b_df_X) == p_X)
-  stopifnot(length(sense_df_X) == p_X)
+  stopifnot(nrow(A_df_X) == p_X - cardinality_K)
+  stopifnot(length(b_df_X) == p_X - cardinality_K)
+  stopifnot(length(sense_df_X) == p_X - cardinality_K)
   msg <- paste("Dual Feasibility for X Complete.")
   send_note_if(msg, show_progress, message)
 
