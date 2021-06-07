@@ -123,6 +123,7 @@ miqcp_proj <- function(projection_index,
   n_Phi <- nrow(Phi)
   p_D <- ncol(D)
   p_X <- ncol(X)
+  p_Phi <- ncol(Phi) # DEBUG
 
   # Ensure that number of observations is the same
   stopifnot(all.equal(n, n_D))
@@ -198,6 +199,8 @@ miqcp_proj <- function(projection_index,
 
   # Decision variables in order from left/top to right/bottom:
   # 1. beta_X
+  # -- beta_Phi_plus
+  # -- beta_Phi_minus
   # 2. beta_D
   # 3. u
   # 4. v
@@ -206,6 +209,7 @@ miqcp_proj <- function(projection_index,
   # 7. l
 
   num_decision_vars <- p_X + p_D + 5 * n
+  num_decision_vars <- num_decision_vars + 2 * p_Phi # DEBUG
 
   # Create vector of 1s
   ones <- rep(1, n)
@@ -220,6 +224,8 @@ miqcp_proj <- function(projection_index,
     beta_X_obj[projection_index] <- 1
   }
   obj <- c(beta_X_obj,   # beta_X
+           rep(0, p_Phi), # beta_Phi_plus # DEBUG
+           -rep(0, p_Phi), # beta_Phi_minus # DEBUG
            beta_D_obj,    # beta_D
            rep(0, n),     # u
            rep(0, n),     # v
@@ -230,6 +236,8 @@ miqcp_proj <- function(projection_index,
 
   # Primal Feasibility Constraint (25)
   A_pf <- cbind(X,                  # beta_X
+                matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                 D,                  # beta_D
                 diag(1, nrow = n),  # u
                 -diag(1, nrow = n), # v
@@ -248,6 +256,8 @@ miqcp_proj <- function(projection_index,
 
   # Dual Feasibility Constraint (26)
   A_df_X <- cbind(matrix(0, nrow = p_X - cardinality_K, ncol = p_X),  # beta_X
+                  matrix(0, nrow = p_X - cardinality_K, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                  matrix(0, nrow = p_X - cardinality_K, ncol = p_Phi), # beta_Phi_minus # DEBUG
                   matrix(0, nrow = p_X - cardinality_K, ncol = p_D),  # beta_D
                   matrix(0, nrow = p_X - cardinality_K, ncol = n),    # u
                   matrix(0, nrow = p_X - cardinality_K, ncol = n),    # v
@@ -264,8 +274,30 @@ miqcp_proj <- function(projection_index,
   msg <- paste("Dual Feasibility for X Complete.")
   send_note_if(msg, show_progress, message)
 
+  # Dual Feasibility Constraint in Phi ### DEBUG
+  A_df_Phi <- cbind(matrix(0, nrow = p_Phi, ncol = p_X),  # beta_X # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = p_Phi), # beta_Phi_minus # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = p_D),  # beta_D # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = n),    # u # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = n),    # v # DEBUG
+                    t(Phi),                                       # a # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = n),    # k # DEBUG
+                    matrix(0, nrow = p_Phi, ncol = n))    # l # DEBUG
+  b_df_Phi <- (1 - tau) * t(Phi) %*% ones # DEBUG
+  sense_df_Phi <- rep("=", p_Phi) # DEBUG
+
+  stopifnot(ncol(A_df_Phi) == num_decision_vars) # DEBUG
+  stopifnot(nrow(A_df_Phi) == p_Phi) # DEBUG
+  stopifnot(length(b_df_Phi) == p_Phi) # DEBUG
+  stopifnot(length(sense_df_Phi) == p_Phi) # DEBUG
+  msg <- paste("Dual Feasibility for Phi Complete.") # DEBUG
+  send_note_if(msg, show_progress, message) # DEBUG
+
   # Complementary Slackness (28)
   A_cs_uk <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                    matrix(0, nrow = n, ncol = p_D),       # beta_D
                    diag(1, nrow = n, ncol = n),           # u
                    matrix(0, nrow = n, ncol = n),         # v
@@ -283,6 +315,8 @@ miqcp_proj <- function(projection_index,
   send_note_if(msg, show_progress, message)
 
   A_cs_vl <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                    matrix(0, nrow = n, ncol = p_D),       # beta_D
                    matrix(0, nrow = n, ncol = n),         # u
                    diag(1, nrow = n, ncol = n),           # v
@@ -301,6 +335,8 @@ miqcp_proj <- function(projection_index,
 
   # Complementary Slackness (29)
   A_cs_ak <- cbind(matrix(0, nrow = n, ncol = p_X),     # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                    matrix(0, nrow = n, ncol = p_D),     # beta_D
                    matrix(0, nrow = n, ncol = n),       # u
                    matrix(0, nrow = n, ncol = n),       # v
@@ -318,6 +354,8 @@ miqcp_proj <- function(projection_index,
   send_note_if(msg, show_progress, message)
 
   A_cs_al <- cbind(matrix(0, nrow = n, ncol = p_X),   # beta_X
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                   matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                    matrix(0, nrow = n, ncol = p_D),   # beta_D
                    matrix(0, nrow = n, ncol = n),     # u
                    matrix(0, nrow = n, ncol = n),     # v
@@ -336,6 +374,8 @@ miqcp_proj <- function(projection_index,
 
   # Non-negativity and Boundedness Constraints (30) and (31)
   lb <- c(rep(-Inf, p_X), # beta_X
+          rep(0, p_Phi), # beta_Phi_plus # DEBUG
+          rep(0, p_Phi), # beta_Phi_minus # DEBUG
           rep(-Inf, p_D), # beta_D
           rep(0, n),      # u
           rep(0, n),      # v
@@ -343,6 +383,8 @@ miqcp_proj <- function(projection_index,
           rep(0, n),      # k
           rep(0, n))      # l
   ub <- c(rep(Inf, p_X),  # beta_X
+          rep(Inf, p_Phi), # beta_Phi_plus # DEBUG
+          rep(Inf, p_Phi), # beta_Phi_minus # DEBUG
           rep(Inf, p_D),  # beta_D
           rep(Inf, n),    # u
           rep(Inf, n),    # v
@@ -357,6 +399,8 @@ miqcp_proj <- function(projection_index,
 
   # Integrality Constraint (see vtype) (18)
   vtype <- c(rep("C", p_X), # beta_X
+             rep("C", p_Phi), # beta_Phi_plus # DEBUG
+             rep("C", p_Phi), # beta_Phi_minus # DEBUG
              rep("C", p_D), # beta_D
              rep("C", n),   # u
              rep("C", n),   # v
@@ -384,6 +428,8 @@ miqcp_proj <- function(projection_index,
     fixed_mat <- diag(fixed)
 
     A_pp_a <- cbind(matrix(0, nrow = n, ncol = p_X),    # beta_X
+                    matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                    matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                     matrix(0, nrow = n, ncol = p_D),    # beta_D
                     matrix(0, nrow = n, ncol = n),      # u
                     matrix(0, nrow = n, ncol = n),      # v
@@ -404,6 +450,8 @@ miqcp_proj <- function(projection_index,
     send_note_if(msg, show_progress, message)
 
     A_pp_k <- cbind(matrix(0, nrow = n, ncol = p_X),    # beta_X
+                    matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                    matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                     matrix(0, nrow = n, ncol = p_D),    # beta_D
                     matrix(0, nrow = n, ncol = n),      # u
                     matrix(0, nrow = n, ncol = n),      # v
@@ -424,6 +472,8 @@ miqcp_proj <- function(projection_index,
     send_note_if(msg, show_progress, message)
 
     A_pp_l <- cbind(matrix(0, nrow = n, ncol = p_X),  # beta_X
+                    matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_plus # DEBUG
+                    matrix(0, nrow = n, ncol = p_Phi), # beta_Phi_minus # DEBUG
                     matrix(0, nrow = n, ncol = p_D),  # beta_D
                     matrix(0, nrow = n, ncol = n),    # u
                     matrix(0, nrow = n, ncol = n),    # v
@@ -497,15 +547,15 @@ miqcp_proj <- function(projection_index,
   out$kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
 
   if (orthogonalize_statistic) {
-    tmp <- B_tilde %*% solve(t(B_tilde) %*% B_tilde) %*% t(B_tilde)
+    tmp <- n * B_tilde %*% solve(t(B_tilde) %*% B_tilde) %*% t(B_tilde) # DEBUG
   } else {
-    tmp <- B %*% solve(t(B_tilde) %*% B_tilde) %*% t(B)
+    tmp <- n * B %*% solve(t(B_tilde) %*% B_tilde) %*% t(B) # DEBUG
   }
   crit_value <- stats::qchisq(1 - alpha, p_D)
 
   qc <- matrix(0, nrow = num_decision_vars, ncol = num_decision_vars)
-  qc[(p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n),
-     (p_X + p_D + 2 * n + 1):(p_X + p_D + 3 * n)] <- tmp # quadratic
+  qc[(p_X + 2 * p_Phi + p_D + 2 * n + 1):(p_X + 2 * p_Phi + p_D + 3 * n), # DEBUG
+     (p_X + 2 * p_Phi + p_D + 2 * n + 1):(p_X + 2 * p_Phi + p_D + 3 * n)] <- tmp # quadratic # DEBUG
   q <- as.numeric(-2 * (1 - tau) * qc %*% ones_dv) # linear
   qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_dv) %*% qc %*% ones_dv
   qc_rhs_2 <- tau * (1 - tau) * crit_value
@@ -519,6 +569,7 @@ miqcp_proj <- function(projection_index,
   proj$obj <- obj
   proj$A <- rbind(A_pf,    # Primal Feasibility
                   A_df_X,  # Dual Feasibility - X
+                  A_df_Phi,  # Dual Feasibility - Phi
                   A_cs_uk, # Complementary Slackness - u and k
                   A_cs_vl, # Complementary Slackness - v and l
                   A_cs_ak, # Complementary Slackness - a and k
@@ -540,6 +591,7 @@ miqcp_proj <- function(projection_index,
 
   proj$rhs <- c(b_pf,    # Primal Feasibility
                 b_df_X,  # Dual Feasibility - X
+                b_df_Phi,  # Dual Feasibility - Phi
                 b_cs_uk, # Complementary Slackness - u and k
                 b_cs_vl, # Complementary Slackness - v and l
                 b_cs_ak, # Complementary Slackness - a and k
@@ -551,6 +603,7 @@ miqcp_proj <- function(projection_index,
 
   proj$sense <- c(sense_pf,   # Primal Feasibility
                  sense_df_X,  # Dual Feasibility - X
+                 sense_df_Phi,  # Dual Feasibility - Phi
                  sense_cs_uk, # Complementary Slackness - u and k
                  sense_cs_vl, # Complementary Slackness - v and l
                  sense_cs_ak, # Complementary Slackness - a and k
