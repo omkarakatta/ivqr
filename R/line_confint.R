@@ -223,7 +223,7 @@ line_confint <- function(index,
     current_p_val <- initial_test_stat$p_val
     counter <- 0
     while (step > stopping_tolerance) {
-      # TODO: count how much time is spent in each loop
+      clock_start_while <- Sys.time()
       counter <- counter + 1
       old_p_val <- current_p_val # save previous p-value
       old_ts_reject <- current_ts_reject # save previous status of test
@@ -262,14 +262,24 @@ line_confint <- function(index,
         direction <- -1 * direction
         step <- step * step_rate
       }
+
+      clock_end_while <- Sys.time()
+      elapsed_while <- difftime(clock_end_while,
+                                clock_start_while,
+                                units = "mins")
+
       # save results
-      results <- c(type,
-                   counter,
-                   index,
-                   endogeneous,
-                   current_beta,
-                   current_p_val,
-                   ts$test_stat)
+      results <- c(type,                # min or max
+                   counter,             # iteration through while loop
+                   index,               # coefficient of interest
+                   endogeneous,         # coefficient of interest
+                   current_beta,        # current value of null
+                   current_p_val,       # current p-value
+                   ts$test_stat,        # current test-stat
+                   current_ts_reject,   # p-val < alpha => reject null?
+                   elapsed_while,       # time for current iteration
+                   step,                # new step
+                   direction)           # new direction
       if (create_log) {
         file_path <- paste0(log_dir, "/",
                             date_time, "_", stub, "_",
