@@ -280,7 +280,8 @@ line_confint <- function(index,
                    current_ts_reject,   # p-val < alpha => reject null?
                    elapsed_while,       # time for current iteration
                    step,                # new step
-                   direction)           # new direction
+                   direction,           # new direction
+                   stopping_tolerance)  # stopping tolerance
       if (create_log) {
         file_path <- paste0(log_dir, "/",
                             date_time, "_", stub, "_",
