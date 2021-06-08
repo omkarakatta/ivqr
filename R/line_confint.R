@@ -159,11 +159,12 @@ line_confint <- function(index,
   stopifnot(is.numeric(step_size))
   stopifnot(step_size > 0)
 
-  send_note_if(paste0("left bound:", bounds[1]))
-  send_note_if(paste0("right bound:", bounds[2]))
-  send_note_if(paste0("width:", width))
-  send_note_if(paste0("stopping tolerance:", stopping_tolerance), message)
-  send_note_if(paste0("step size:", step_size), message)
+  send_note_if(paste0("left bound:", bounds[1]), show_progress, message)
+  send_note_if(paste0("right bound:", bounds[2]), show_progress, message)
+  send_note_if(paste0("width:", width), show_progress, message)
+  send_note_if(paste0("stopping tolerance:", stopping_tolerance),
+               show_progress, message)
+  send_note_if(paste0("step size:", step_size), show_progress, message)
 
   # Construct null hypothesis
   beta_D_null <- rep(NA, p_D)
