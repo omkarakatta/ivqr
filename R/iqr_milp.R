@@ -97,8 +97,8 @@ iqr_milp <- function(Y,
   stopifnot(all.equal(n, n_Z))
   stopifnot(all.equal(n, n_Phi))
 
-  # Ensure that there are some RHS variables
-  stopifnot(p_D + p_X > 0)
+  # Ensure that there are some exogeneous variables
+  stopifnot(p_D > 0)
 
   # Create vector of 1s
   ones <- rep(1, n)
@@ -489,10 +489,23 @@ iqr_milp <- function(Y,
   out$status <- result$status
   if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
     answer <- result$x
-    out$beta_X <- answer[1:p_X]
-    out$beta_Phi_plus <- answer[(p_X + 1):(p_X + p_Phi)]
-    out$beta_Phi_minus <- answer[(p_X + p_Phi + 1):(p_X + 2*p_Phi)]
-    out$beta_D <- answer[(p_X + 2*p_Phi + 1):(p_X + 2*p_Phi + p_D)]
+    if (p_X > 0) {
+      out$beta_X <- answer[1:p_X]
+    } else {
+      out$beta_X <- NA
+    }
+    if (p_Phi > 0) {
+      out$beta_Phi_plus <- answer[(p_X + 1):(p_X + p_Phi)]
+      out$beta_Phi_minus <- answer[(p_X + p_Phi + 1):(p_X + 2*p_Phi)]
+    } else {
+      out$beta_Phi_plus <- NA
+      out$beta_Phi_minus <- NA
+    }
+    if (p_D > 0) {
+      out$beta_D <- answer[(p_X + 2*p_Phi + 1):(p_X + 2*p_Phi + p_D)]
+    } else {
+      out$beta_D <- NA
+    }
     out$u <- answer[(p_X + 2*p_Phi + p_D + 1):(p_X + 2*p_Phi + p_D + n)]
     out$v <- answer[(p_X + 2*p_Phi + p_D + n + 1):(p_X + 2*p_Phi + p_D + 2*n)]
     out$a <- answer[(p_X + 2*p_Phi + p_D + 2*n + 1):(p_X + 2*p_Phi + p_D + 3*n)]

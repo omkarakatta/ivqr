@@ -96,8 +96,8 @@ preprocess_iqr_milp <- function(Y,
   p_X <- ncol(X)
   p_Z <- ncol(Z)
 
-  # Ensure that there are some RHS variables
-  stopifnot(p_D + p_X > 0)
+  # Ensure that there are some endogeneous variables
+  stopifnot(p_D > 0)
 
   # Determine preliminary residuals
   if (p_X == 0) {
