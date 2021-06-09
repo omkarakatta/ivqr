@@ -201,6 +201,7 @@ test_stat <- function(beta_D_null,
   }
   stopifnot(nrow(B) == n)
   stopifnot(ncol(B) == cardinality_J + cardinality_K)
+  out$B <- B
 
   send_note_if("Created `B`", show_progress, message)
 
