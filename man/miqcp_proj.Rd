@@ -5,7 +5,9 @@
 \title{Subvector inference under weak identification with MIQCP}
 \usage{
 miqcp_proj(
-  j,
+  projection_index,
+  endogeneous = TRUE,
+  beta_X_indices = NULL,
   alpha = 0.1,
   sense,
   Y,
@@ -15,6 +17,9 @@ miqcp_proj(
   Phi = linear_projection(D, X, Z),
   tau,
   orthogonalize_statistic = FALSE,
+  homoskedasticity = FALSE,
+  kernel = "Powell",
+  residuals = NULL,
   O_neg = NULL,
   O_pos = NULL,
   M = NULL,
@@ -27,8 +32,18 @@ miqcp_proj(
 )
 }
 \arguments{
-\item{j}{Index of D associated with the coefficient of interest
-(numeric between 1 and p_D)}
+\item{projection_index}{Index associated with the coefficient of interest
+(numeric between 1 and p_D if \code{endogeneous} is TRUE;
+numeric between 1 and p_X if \code{endogeneous} is FALSE)}
+
+\item{endogeneous}{If TRUE (default), the function will project on the axis
+of the corresponding endogeneous variable's coefficient; if FALSE, the
+function will project on the axis of the corresponding exogeneous variable's
+coefficient (boolean)}
+
+\item{beta_X_indices}{Indices of endogeneous variables to be included in the
+null hypothesis; if NULL (default), none of the coefficients on the
+endogeneous variables will be specified in the null (numeric vector)}
 
 \item{alpha}{Alpha level; defaults to 10\% (numeric between 0 and 1)}
 
@@ -49,6 +64,17 @@ defaults to the linear projection of D on X and Z (matrix with n rows)}
 
 \item{orthogonalize_statistic}{If TRUE, \eqn{\tilde{B}} will be used in
 numerator of test statistic; defaults to FALSE; for advanced users only}
+
+\item{homoskedasticity}{If TRUE, assume density of error at 0 is constant;
+defaults to FALSE (boolean)}
+
+\item{kernel}{Only active if \code{homoskedasticity} is FALSE; either
+"Powell" (default) to use the Powell estimator or
+"Gaussian" to use a Gaussian kernel; only used when
+\code{homoskedasticity} is FALSE}
+
+\item{residuals}{Residuals from IQR MILP program; if NULL (default), use
+naive residuals from quantile regression}
 
 \item{O_neg}{Indices for residuals whose sign is fixed to be negative
 and positive, respectively (vectors)}
@@ -79,7 +105,7 @@ empty, then Gurobi log won't be saved and this argument will be ignored;
 defaults to "log" (string)}
 }
 \value{
-A named list of
+A named list of # TODO: update
 \enumerate{
 \item proj: Gurobi model that was solved
 \item params: Gurobi parameters used
@@ -94,14 +120,29 @@ A named list of
 \item l: binary variable associated with v
 \item resid: residuals (u - v)
 \item objval: value of objective function (beta_D,j)
+\item M: big M constant used for complementary slackness conditions
+\item Phi_J,Phi_J_minus,X_K,X_K_minus,B,B_tilde,Psi: matrices used in program
+\item projection_index,endogeneous: coefficient onto which the multivariate confidence region was projected
+\item homoskedasticity,kernel: indicates estimator of residual density
 }
 }
 \description{
 Invert the null on the full weakly identified vector of endogeneous
-coefficients and maximize/minimize the projection of the resulting
-multivariate confidence on the axis of a particular coefficient.
+coefficients and project the resulting multivariate confidence region on the
+axis of a specified coefficient.
 }
 \details{
 The maximization and minimization of the projection is formulated as a
 Mixed Integer Quadratically Constrained Program (MIQCP).
+
+The index of projection is given by \code{projection_index} and
+\code{endogeneous}.  For example, if \code{projection_index} is 1 and
+\code{endogeneous} is TRUE, we project on the axis of \eqn{\beta_{D, 1}}.
+If \code{projection_index} is 2 and \code{endogeneous} is FALSE, we project
+on the axis of \eqn{\beta_{X, 2}}.
+
+Under weak identification, we invert the null hypothesis on the full weakly
+identified vector of endogeneous coefficients.  To include exogeneous
+coefficients in the null, specify the desired indices of the exogeneous
+variables in \code{beta_X_indices}.
 }

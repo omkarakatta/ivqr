@@ -18,6 +18,7 @@ test_stat(
   orthogonalize_statistic = FALSE,
   homoskedasticity = FALSE,
   kernel = "Powell",
+  show_progress = TRUE,
   FUN = preprocess_iqr_milp,
   ...
 )
@@ -63,6 +64,9 @@ defaults to FALSE (boolean)}
 "Powell" (default) to use the Powell estimator or
 "Gaussian" to use a Gaussian kernel; only used when
 \code{homoskedasticity} is FALSE}
+
+\item{show_progress}{If TRUE (default), sends progress messages during
+execution (boolean); also passed to \code{FUN}}
 
 \item{FUN}{Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}}
 
