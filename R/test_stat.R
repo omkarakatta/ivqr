@@ -139,7 +139,7 @@ test_stat <- function(beta_D_null,
   X_K <- X[, K, drop = FALSE]
   X_K_minus <- X[, !K, drop = FALSE]
   # Z_J <- Z[, J, drop = FALSE] # not used
-  Z_J_minus <- Z[, !J, drop = FALSE]
+  # Z_J_minus <- Z[, !J, drop = FALSE] # TODO: should I remove Jth columns from Z_J?
   Phi_J <- Phi[, J, drop = FALSE]
   Phi_J_minus <- Phi[, !J, drop = FALSE]
 
@@ -162,7 +162,7 @@ test_stat <- function(beta_D_null,
     Y = Y_tilde,
     X = X_K_minus,
     D = D_J_minus,
-    Z = Z_J_minus, # not really important since we specify Phi
+    Z = Z, # not really important since we specify Phi
     Phi = Phi_J_minus,
     tau = tau,
     show_progress = show_progress,
