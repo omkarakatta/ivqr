@@ -45,7 +45,7 @@
 #'  border of the confidence interval; defaults to 0.5 (numeric, less than 1)
 #'  defaults to 1 (numeric)
 #' @param cores Number of cores to be used in parallelization process; defaults
-#'  to 2 less than available number of cores
+#'  to 2 (no more than 2 needed) # TODO: send a warning if \code{cores} > 2
 #' @param log_dir Path of log directory to store parallelized results;
 #'  if NULL (default), log is not saved (string)
 #' @param log_name Name of CSV file (including extension) to store results;
@@ -62,7 +62,7 @@ line_confint <- function(index,
                          width_ratio = 1,
                          step_size = NULL,
                          step_rate = 0.5,
-                         cores = parallel::detectCores()[1] - 2,
+                         cores = 2,
                          log_dir = NULL,
                          log_name = "line_search.csv",
                          alpha = 0.1,
