@@ -162,7 +162,7 @@ test_stat <- function(beta_D_null,
     Y = Y_tilde,
     X = X_K_minus,
     D = D_J_minus,
-    Z = Z, # not really important since we specify Phi
+    Z = Z, # not really important since we specify Phi # TODO: should Z_J_minus go here?
     Phi = Phi_J_minus,
     tau = tau,
     show_progress = show_progress,
