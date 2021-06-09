@@ -30,7 +30,7 @@
 #' Under weak identification, we invert the null hypothesis on the full weakly
 #' identified vector of endogeneous coefficients.  To include exogeneous
 #' coefficients in the null, specify the desired indices of the exogeneous
-#' variables in \code{\beta_X_indices}.
+#' variables in \code{beta_X_indices}.
 #'
 #' @param projection_index Index associated with the coefficient of interest
 #'  (numeric between 1 and p_D if \code{endogeneous} is TRUE;
