@@ -182,14 +182,25 @@ test_stat <- function(beta_D_null,
   }
   out$short_iqr <- short_iqr_result
 
-  if (short_iqr_result$status != "OPTIMAL") {
-    warning(paste("Short IQR Status:", short_iqr_result$status))
+  # To get a_hat under full-vector inference (i.e., cardinality_J == p_D),
+  # we run a quantile regression, not the usual IQR MILP procedure.
+  # Hence, we don't need to print "status" or "objval" if we are in
+  # the full-vector setting because quantile regression doesn't return such
+  # results.
+  if (cardinality_J != p_D) {
+    if (short_iqr_result$status != "OPTIMAL") {
+      warning(paste("Short IQR Status:", short_iqr_result$status))
+    }
+    if (short_iqr_result$status == "TIME_LIMIT" | short_iqr_result$objval != 0) {
+      message(paste("Short IQR Objective Value:", short_iqr_result$objval))
+      return(out)
+    }
+    a_hat <- short_iqr_result$a
+  } else {
+    # In full-vector inference, we use the dual variables of quantile
+    # regression to define a_hat.
+    a_hat <- short_iqr_result$dual
   }
-  if (short_iqr_result$status == "TIME_LIMIT" | short_iqr_result$objval != 0) {
-    message(paste("Short IQR Objective Value:", short_iqr_result$objval))
-    return(out)
-  }
-  a_hat <- short_iqr_result$a
   resid <- short_iqr_result$resid
 
   # Obtain \hat{b}

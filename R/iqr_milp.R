@@ -97,8 +97,12 @@ iqr_milp <- function(Y,
   stopifnot(all.equal(n, n_Z))
   stopifnot(all.equal(n, n_Phi))
 
-  # Ensure that there are some exogeneous variables
-  stopifnot(p_D > 0)
+  # If there are no endogeneous variables, return quantile regression results:
+  if (p_D == 0) {
+    qr <- quantreg::rq(Y ~ X - 1, tau = tau)
+    out <- qr
+    return(out)
+  }
 
   # Create vector of 1s
   ones <- rep(1, n)
