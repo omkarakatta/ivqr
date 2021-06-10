@@ -263,7 +263,8 @@ test_stat <- function(beta_D_null,
   # Construct L_n or Q_n depending on |J| + |K| == or != 1
   # Compute p-value
   if (cardinality_J + cardinality_K == 1) {
-    test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde)
+    # TODO: check that the "/ n" in denominator is correct
+    test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde / n)
     p_val <- 2 * (1 - stats::pnorm(abs(test_stat)))
   } else {
     M_n <- (1 / n) * t(B_tilde) %*% B_tilde
