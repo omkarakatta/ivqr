@@ -158,6 +158,7 @@ line_confint <- function(index,
   stopifnot(is.numeric(beta_null))
   stopifnot(is.numeric(step_size))
   stopifnot(step_size > 0)
+  # TODO: return beta_null, stopping_tolerance, initial step_size
 
   send_note_if(paste0("left bound: ", bounds[1]), show_progress, message)
   send_note_if(paste0("right bound: ", bounds[2]), show_progress, message)
@@ -327,6 +328,7 @@ line_confint <- function(index,
     # save results in CSV
     utils::write.csv(results, log_path)
     # remove files save during while loop
+    # TODO: add option to concatenate these files instead of removing them
     file.remove(list.files(log_dir, pattern = "counter", full.names = T))
   }
 
