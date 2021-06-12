@@ -233,6 +233,7 @@ test_stat <- function(beta_D_null,
     tmp_c <- 1.5 * (stats::dnorm(stats::qnorm(tau)) ^ 2)
     tmp_d <- 2 * (stats::qnorm(tau) ^ 2) + 1
     hs <- tmp_a * tmp_b * ((tmp_c / tmp_d) ^ (1 / 3))
+    out$hs <- hs
     if (kernel == "powell") {
       bw <- hs
       # TODO: double-check whether this is correct
