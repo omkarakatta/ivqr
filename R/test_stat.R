@@ -71,6 +71,8 @@
 #'  "Powell" (default) to use the Powell estimator or
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
+#' @param residuals Residuals from IQR MILP program; if NULL (default), use
+#'  naive residuals from quantile regression
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean); also passed to \code{FUN}
 #' @param FUN Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}
@@ -87,6 +89,7 @@ test_stat <- function(beta_D_null,
                       B = NULL,
                       orthogonalize_statistic = FALSE,
                       homoskedasticity = FALSE,
+                      residuals = NULL,
                       kernel = "Powell",
                       show_progress = TRUE,
                       FUN = preprocess_iqr_milp,
@@ -201,7 +204,13 @@ test_stat <- function(beta_D_null,
     # regression to define a_hat.
     a_hat <- short_iqr_result$dual
   }
-  resid <- short_iqr_result$resid
+  if (is.null(residuals)) {
+    resid <- short_iqr_result$resid
+    out$resid <- resid
+  } else {
+    resid <- residuals
+    out$resid <- resid
+  }
 
   # Obtain \hat{b}
   b_hat <- a_hat - (1 - tau)
