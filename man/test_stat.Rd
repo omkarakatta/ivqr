@@ -17,6 +17,7 @@ test_stat(
   B = NULL,
   orthogonalize_statistic = FALSE,
   homoskedasticity = FALSE,
+  residuals = NULL,
   kernel = "Powell",
   show_progress = TRUE,
   FUN = preprocess_iqr_milp,
@@ -59,6 +60,9 @@ numerator of test statistic; defaults to FALSE; for advanced users only}
 
 \item{homoskedasticity}{If TRUE, assume density of error at 0 is constant;
 defaults to FALSE (boolean)}
+
+\item{residuals}{Residuals from IQR MILP program; if NULL (default), use
+naive residuals from quantile regression}
 
 \item{kernel}{Only active if \code{homoskedasticity} is FALSE; either
 "Powell" (default) to use the Powell estimator or

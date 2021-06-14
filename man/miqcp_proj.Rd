@@ -25,6 +25,7 @@ miqcp_proj(
   M = NULL,
   TimeLimit = 300,
   params = list(FeasibilityTol = 1e-06, OutputFlag = 0),
+  sparse = TRUE,
   quietly = TRUE,
   show_progress = TRUE,
   LogFileName = "",
@@ -91,6 +92,8 @@ defaults to 300, will be appended to \code{params}}
 
 \item{params}{Gurobi parameters, see
 \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}
+
+\item{sparse}{If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp}
 
 \item{quietly}{If TRUE (default), sends messages during execution (boolean)}
 
