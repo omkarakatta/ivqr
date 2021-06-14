@@ -57,6 +57,8 @@
 #' @param sparse If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp
 #' @inheritParams iqr_milp
 #'
+#' @importFrom methods as
+#'
 #' @return A named list of # TODO: update
 #'  \enumerate{
 #'    \item proj: Gurobi model that was solved
