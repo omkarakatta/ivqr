@@ -54,6 +54,7 @@
 #'  \code{homoskedasticity} is FALSE
 #' @param residuals Residuals from IQR MILP program; if NULL (default), use
 #'  naive residuals from quantile regression
+#' @param sparse If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp
 #' @inheritParams iqr_milp
 #'
 #' @return A named list of # TODO: update
@@ -97,6 +98,7 @@ miqcp_proj <- function(projection_index,
                        TimeLimit = 300,
                        params = list(FeasibilityTol = 1e-6,
                                      OutputFlag = 0),
+                       sparse = TRUE, # TODO: document
                        quietly = TRUE,
                        show_progress = TRUE,
                        LogFileName = "",
@@ -219,7 +221,7 @@ miqcp_proj <- function(projection_index,
   } else {
     beta_X_obj[projection_index] <- 1
   }
-  obj <- c(beta_X_obj,   # beta_X
+  obj <- c(beta_X_obj,    # beta_X
            beta_D_obj,    # beta_D
            rep(0, n),     # u
            rep(0, n),     # v
@@ -227,6 +229,9 @@ miqcp_proj <- function(projection_index,
            rep(0, n),     # k
            rep(0, n))     # l
   stopifnot(length(obj) == num_decision_vars)
+  if (sparse) {
+    obj <- as(obj, "sparseVector")
+  }
 
   # Primal Feasibility Constraint (25)
   A_pf <- cbind(X,                  # beta_X
@@ -243,6 +248,10 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_pf) == n)
   stopifnot(length(b_pf) == n)
   stopifnot(length(sense_pf) == n)
+  if (sparse) {
+    A_pf <- as(A_pf, "sparseMatrix")
+    b_pf <- as(b_pf, "sparseVector")
+  }
   msg <- paste("Primal Feasibility Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -261,6 +270,10 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_df_X) == p_X - cardinality_K)
   stopifnot(length(b_df_X) == p_X - cardinality_K)
   stopifnot(length(sense_df_X) == p_X - cardinality_K)
+  if (sparse) {
+    A_df_X <- as(A_df_X, "sparseMatrix")
+    b_df_X <- as(b_df_X, "sparseVector")
+  }
   msg <- paste("Dual Feasibility for X Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -280,6 +293,10 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(b_cs_uk) == n)
   stopifnot(length(sense_cs_uk) == n)
   msg <- paste("Complementary Slackness for u and k Complete.")
+  if (sparse) {
+    A_cs_uk <- as(A_cs_uk, "sparseMatrix")
+    b_cs_uk <- as(b_cs_uk, "sparseVector")
+  }
   send_note_if(msg, show_progress, message)
 
   A_cs_vl <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
@@ -296,6 +313,10 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_cs_vl) == n)
   stopifnot(length(b_cs_vl) == n)
   stopifnot(length(sense_cs_vl) == n)
+  if (sparse) {
+    A_cs_vl <- as(A_cs_vl, "sparseMatrix")
+    b_cs_vl <- as(b_cs_vl, "sparseVector")
+  }
   msg <- paste("Complementary Slackness for v and l Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -314,6 +335,10 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_cs_ak) == n)
   stopifnot(length(b_cs_ak) == n)
   stopifnot(length(sense_cs_ak) == n)
+  if (sparse) {
+    A_cs_ak <- as(A_cs_ak, "sparseMatrix")
+    b_cs_ak <- as(b_cs_ak, "sparseVector")
+  }
   msg <- paste("Complementary Slackness for a and k Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -331,6 +356,10 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_cs_al) == n)
   stopifnot(length(b_cs_al) == n)
   stopifnot(length(sense_cs_al) == n)
+  if (sparse) {
+    A_cs_al <- as(A_cs_al, "sparseMatrix")
+    b_cs_al <- as(b_cs_al, "sparseVector")
+  }
   msg <- paste("Complementary Slackness for a and l Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -352,6 +381,10 @@ miqcp_proj <- function(projection_index,
 
   stopifnot(length(lb) == num_decision_vars)
   stopifnot(length(ub) == num_decision_vars)
+  if (sparse) {
+    lb <- as(lb, "sparseVector")
+    ub <- as(ub, "sparseVector")
+  }
   msg <- "Non-negativity and Boundedness Constraints Complete."
   send_note_if(msg, show_progress, message)
 
@@ -365,6 +398,9 @@ miqcp_proj <- function(projection_index,
              rep("B", n))   # l
 
   stopifnot(length(vtype) == num_decision_vars)
+  if (sparse) {
+    vtype <- as(vtype, "sparseVector")
+  }
   msg <- "Integrality Constraints Complete."
   send_note_if(msg, show_progress, message)
 
@@ -400,6 +436,10 @@ miqcp_proj <- function(projection_index,
     stopifnot(nrow(A_pp_a) == n)
     stopifnot(length(b_pp_a) == n)
     stopifnot(length(sense_pp_a) == n)
+    if (sparse) {
+      A_pp_a <- as(A_pp_a, "sparseMatrix")
+      b_pp_a <- as(b_pp_a, "sparseMatrix")
+    }
     msg <- "Pre-processing for a Complete."
     send_note_if(msg, show_progress, message)
 
@@ -420,6 +460,10 @@ miqcp_proj <- function(projection_index,
     stopifnot(nrow(A_pp_k) == n)
     stopifnot(length(b_pp_k) == n)
     stopifnot(length(sense_pp_k) == n)
+    if (sparse) {
+      A_pp_k <- as(A_pp_k, "sparseMatrix")
+      b_pp_k <- as(b_pp_k, "sparseMatrix")
+    }
     msg <- "Pre-processing for k Complete."
     send_note_if(msg, show_progress, message)
 
@@ -440,6 +484,10 @@ miqcp_proj <- function(projection_index,
     stopifnot(nrow(A_pp_l) == n)
     stopifnot(length(b_pp_l) == n)
     stopifnot(length(sense_pp_l) == n)
+    if (sparse) {
+      A_pp_l <- as(A_pp_l, "sparseMatrix")
+      b_pp_l <- as(b_pp_l, "sparseMatrix")
+    }
     msg <- "Pre-processing for l Complete."
     send_note_if(msg, show_progress, message)
   } else {
@@ -510,6 +558,10 @@ miqcp_proj <- function(projection_index,
   qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_dv) %*% qc %*% ones_dv
   qc_rhs_2 <- tau * (1 - tau) * crit_value
   qc_rhs <- qc_rhs_1 + qc_rhs_2 # constant
+  if (sparse) {
+    qc <- as(qc, "sparseMatrix")
+    q <- as(q, "sparseVector")
+  }
 
   msg <- "Quadratic Constraints Complete."
   send_note_if(msg, show_progress, message)
