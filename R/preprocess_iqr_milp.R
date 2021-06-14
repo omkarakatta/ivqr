@@ -84,6 +84,9 @@ preprocess_iqr_milp <- function(Y,
                                 show_iterations = FALSE,
                                 LogFileExt = ".log",
                                 ...) {
+
+  out <- list() # Initialize list of results to return
+
   # Start the clock
   clock_start <- Sys.time()
 
@@ -96,8 +99,14 @@ preprocess_iqr_milp <- function(Y,
   p_X <- ncol(X)
   p_Z <- ncol(Z)
 
-  # Ensure that there are some endogeneous variables
-  stopifnot(p_D > 0)
+  # If there are no endogeneous variables, return quantile regression results:
+  if (p_D == 0) {
+    msg <- paste("p_D is 0 -- running QR instead of IQR MILP...")
+    send_note_if(msg, TRUE, warning)
+    qr <- quantreg::rq(Y ~ X - 1, tau = tau)
+    out$final_fit <- qr
+    return(out)
+  }
 
   # Determine preliminary residuals
   if (p_X == 0) {
@@ -179,7 +188,6 @@ preprocess_iqr_milp <- function(Y,
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
 
   # Return results
-  out <- list()
   out$final_fit <- fit
   out$time <- elapsed_time
   out$O_neg <- O_neg

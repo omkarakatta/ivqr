@@ -71,6 +71,8 @@
 #'  "Powell" (default) to use the Powell estimator or
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
+#' @param residuals Residuals from IQR MILP program; if NULL (default), use
+#'  naive residuals from quantile regression
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean); also passed to \code{FUN}
 #' @param FUN Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}
@@ -87,6 +89,7 @@ test_stat <- function(beta_D_null,
                       B = NULL,
                       orthogonalize_statistic = FALSE,
                       homoskedasticity = FALSE,
+                      residuals = NULL,
                       kernel = "Powell",
                       show_progress = TRUE,
                       FUN = preprocess_iqr_milp,
@@ -182,15 +185,32 @@ test_stat <- function(beta_D_null,
   }
   out$short_iqr <- short_iqr_result
 
-  if (short_iqr_result$status != "OPTIMAL") {
-    warning(paste("Short IQR Status:", short_iqr_result$status))
+  # To get a_hat under full-vector inference (i.e., cardinality_J == p_D),
+  # we run a quantile regression, not the usual IQR MILP procedure.
+  # Hence, we don't need to print "status" or "objval" if we are in
+  # the full-vector setting because quantile regression doesn't return such
+  # results.
+  if (cardinality_J != p_D) {
+    if (short_iqr_result$status != "OPTIMAL") {
+      warning(paste("Short IQR Status:", short_iqr_result$status))
+    }
+    if (short_iqr_result$status == "TIME_LIMIT" | short_iqr_result$objval != 0) {
+      message(paste("Short IQR Objective Value:", short_iqr_result$objval))
+      return(out)
+    }
+    a_hat <- short_iqr_result$a
+  } else {
+    # In full-vector inference, we use the dual variables of quantile
+    # regression to define a_hat.
+    a_hat <- short_iqr_result$dual
   }
-  if (short_iqr_result$status == "TIME_LIMIT" | short_iqr_result$objval != 0) {
-    message(paste("Short IQR Objective Value:", short_iqr_result$objval))
-    return(out)
+  if (is.null(residuals)) {
+    resid <- short_iqr_result$resid
+    out$resid <- resid
+  } else {
+    resid <- residuals
+    out$resid <- resid
   }
-  a_hat <- short_iqr_result$a
-  resid <- short_iqr_result$resid
 
   # Obtain \hat{b}
   b_hat <- a_hat - (1 - tau)
@@ -222,6 +242,7 @@ test_stat <- function(beta_D_null,
     tmp_c <- 1.5 * (stats::dnorm(stats::qnorm(tau)) ^ 2)
     tmp_d <- 2 * (stats::qnorm(tau) ^ 2) + 1
     hs <- tmp_a * tmp_b * ((tmp_c / tmp_d) ^ (1 / 3))
+    out$hs <- hs
     if (kernel == "powell") {
       bw <- hs
       # TODO: double-check whether this is correct
@@ -263,7 +284,8 @@ test_stat <- function(beta_D_null,
   # Construct L_n or Q_n depending on |J| + |K| == or != 1
   # Compute p-value
   if (cardinality_J + cardinality_K == 1) {
-    test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde)
+    # TODO: check that the "/ n" in denominator is correct
+    test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde / n)
     p_val <- 2 * (1 - stats::pnorm(abs(test_stat)))
   } else {
     M_n <- (1 / n) * t(B_tilde) %*% B_tilde

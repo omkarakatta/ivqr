@@ -155,7 +155,7 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(projection_index) == 1) # we project on axis of only one coefficient
   stopifnot(round(projection_index) == projection_index) # must be integer
   if (endogeneous) {
-    stopifnot(projection_index < p_D)
+    stopifnot(projection_index <= p_D)
   } else {
     stopifnot(any(projection_index %in% beta_X_indices))
   }
