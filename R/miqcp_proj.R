@@ -231,9 +231,6 @@ miqcp_proj <- function(projection_index,
            rep(0, n),     # k
            rep(0, n))     # l
   stopifnot(length(obj) == num_decision_vars)
-  if (sparse) {
-    obj <- as(obj, "sparseVector")
-  }
 
   # Primal Feasibility Constraint (25)
   A_pf <- cbind(X,                  # beta_X
@@ -252,7 +249,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(sense_pf) == n)
   if (sparse) {
     A_pf <- as(A_pf, "sparseMatrix")
-    b_pf <- as(b_pf, "sparseVector")
   }
   msg <- paste("Primal Feasibility Complete.")
   send_note_if(msg, show_progress, message)
@@ -274,7 +270,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(sense_df_X) == p_X - cardinality_K)
   if (sparse) {
     A_df_X <- as(A_df_X, "sparseMatrix")
-    b_df_X <- as(b_df_X, "sparseVector")
   }
   msg <- paste("Dual Feasibility for X Complete.")
   send_note_if(msg, show_progress, message)
@@ -297,7 +292,6 @@ miqcp_proj <- function(projection_index,
   msg <- paste("Complementary Slackness for u and k Complete.")
   if (sparse) {
     A_cs_uk <- as(A_cs_uk, "sparseMatrix")
-    b_cs_uk <- as(b_cs_uk, "sparseVector")
   }
   send_note_if(msg, show_progress, message)
 
@@ -317,7 +311,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(sense_cs_vl) == n)
   if (sparse) {
     A_cs_vl <- as(A_cs_vl, "sparseMatrix")
-    b_cs_vl <- as(b_cs_vl, "sparseVector")
   }
   msg <- paste("Complementary Slackness for v and l Complete.")
   send_note_if(msg, show_progress, message)
@@ -339,7 +332,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(sense_cs_ak) == n)
   if (sparse) {
     A_cs_ak <- as(A_cs_ak, "sparseMatrix")
-    b_cs_ak <- as(b_cs_ak, "sparseVector")
   }
   msg <- paste("Complementary Slackness for a and k Complete.")
   send_note_if(msg, show_progress, message)
@@ -360,7 +352,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(sense_cs_al) == n)
   if (sparse) {
     A_cs_al <- as(A_cs_al, "sparseMatrix")
-    b_cs_al <- as(b_cs_al, "sparseVector")
   }
   msg <- paste("Complementary Slackness for a and l Complete.")
   send_note_if(msg, show_progress, message)
@@ -383,10 +374,6 @@ miqcp_proj <- function(projection_index,
 
   stopifnot(length(lb) == num_decision_vars)
   stopifnot(length(ub) == num_decision_vars)
-  if (sparse) {
-    lb <- as(lb, "sparseVector")
-    ub <- as(ub, "sparseVector")
-  }
   msg <- "Non-negativity and Boundedness Constraints Complete."
   send_note_if(msg, show_progress, message)
 
@@ -400,9 +387,6 @@ miqcp_proj <- function(projection_index,
              rep("B", n))   # l
 
   stopifnot(length(vtype) == num_decision_vars)
-  # if (sparse) {
-  #   vtype <- as(vtype, "sparseVector")
-  # }
   msg <- "Integrality Constraints Complete."
   send_note_if(msg, show_progress, message)
 
@@ -440,7 +424,6 @@ miqcp_proj <- function(projection_index,
     stopifnot(length(sense_pp_a) == n)
     if (sparse) {
       A_pp_a <- as(A_pp_a, "sparseMatrix")
-      b_pp_a <- as(b_pp_a, "sparseMatrix")
     }
     msg <- "Pre-processing for a Complete."
     send_note_if(msg, show_progress, message)
@@ -464,7 +447,6 @@ miqcp_proj <- function(projection_index,
     stopifnot(length(sense_pp_k) == n)
     if (sparse) {
       A_pp_k <- as(A_pp_k, "sparseMatrix")
-      b_pp_k <- as(b_pp_k, "sparseMatrix")
     }
     msg <- "Pre-processing for k Complete."
     send_note_if(msg, show_progress, message)
@@ -488,7 +470,6 @@ miqcp_proj <- function(projection_index,
     stopifnot(length(sense_pp_l) == n)
     if (sparse) {
       A_pp_l <- as(A_pp_l, "sparseMatrix")
-      b_pp_l <- as(b_pp_l, "sparseMatrix")
     }
     msg <- "Pre-processing for l Complete."
     send_note_if(msg, show_progress, message)
@@ -602,24 +583,15 @@ miqcp_proj <- function(projection_index,
   # out$b_pp_k <- b_pp_k # DEBUG
   # out$b_pp_l <- b_pp_l # DEBUG
 
-  if (!is.null(O)) {
-    proj$rhs <- c(b_pf,    # Primal Feasibility
-                  b_df_X,  # Dual Feasibility - X
-                  b_cs_uk, # Complementary Slackness - u and k
-                  b_cs_vl, # Complementary Slackness - v and l
-                  b_cs_ak, # Complementary Slackness - a and k
-                  b_cs_al, # Complementary Slackness - a and l
-                  b_pp_a,  # Pre-processing - fixing a
-                  b_pp_k,  # Pre-processing - fixing k
-                  b_pp_l)  # Pre-processing - fixing l
-  } else {
-    proj$rhs <- c(b_pf,    # Primal Feasibility
-                  b_df_X,  # Dual Feasibility - X
-                  b_cs_uk, # Complementary Slackness - u and k
-                  b_cs_vl, # Complementary Slackness - v and l
-                  b_cs_ak, # Complementary Slackness - a and k
-                  b_cs_al) # Complementary Slackness - a and l
-  }
+  proj$rhs <- c(b_pf,    # Primal Feasibility
+                b_df_X,  # Dual Feasibility - X
+                b_cs_uk, # Complementary Slackness - u and k
+                b_cs_vl, # Complementary Slackness - v and l
+                b_cs_ak, # Complementary Slackness - a and k
+                b_cs_al, # Complementary Slackness - a and l
+                b_pp_a,  # Pre-processing - fixing a
+                b_pp_k,  # Pre-processing - fixing k
+                b_pp_l)  # Pre-processing - fixing l
   # message(paste("b:", length(proj$rhs)))
 
   proj$sense <- c(sense_pf,   # Primal Feasibility
@@ -647,6 +619,7 @@ miqcp_proj <- function(projection_index,
     params$LogFile <- paste0(LogFileName, LogFileExt)
   }
 
+  # out$proj <- proj # DEBUG
   # return(out) # DEBUG
 
   result <- gurobi::gurobi(proj, params)
