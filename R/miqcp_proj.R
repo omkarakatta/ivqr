@@ -400,9 +400,9 @@ miqcp_proj <- function(projection_index,
              rep("B", n))   # l
 
   stopifnot(length(vtype) == num_decision_vars)
-  if (sparse) {
-    vtype <- as(vtype, "sparseVector")
-  }
+  # if (sparse) {
+  #   vtype <- as(vtype, "sparseVector")
+  # }
   msg <- "Integrality Constraints Complete."
   send_note_if(msg, show_progress, message)
 
@@ -592,15 +592,34 @@ miqcp_proj <- function(projection_index,
   # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
   # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
 
-  proj$rhs <- c(b_pf,    # Primal Feasibility
-                b_df_X,  # Dual Feasibility - X
-                b_cs_uk, # Complementary Slackness - u and k
-                b_cs_vl, # Complementary Slackness - v and l
-                b_cs_ak, # Complementary Slackness - a and k
-                b_cs_al, # Complementary Slackness - a and l
-                b_pp_a,  # Pre-processing - fixing a
-                b_pp_k,  # Pre-processing - fixing k
-                b_pp_l)  # Pre-processing - fixing l
+  # out$b_pf <- b_pf # DEBUG
+  # out$b_df_X <- b_df_X # DEBUG
+  # out$b_cs_uk <- b_cs_uk # DEBUG
+  # out$b_cs_vl <- b_cs_vl # DEBUG
+  # out$b_cs_ak <- b_cs_ak # DEBUG
+  # out$b_cs_al <- b_cs_al # DEBUG
+  # out$b_pp_a <- b_pp_a # DEBUG
+  # out$b_pp_k <- b_pp_k # DEBUG
+  # out$b_pp_l <- b_pp_l # DEBUG
+
+  if (!is.null(O)) {
+    proj$rhs <- c(b_pf,    # Primal Feasibility
+                  b_df_X,  # Dual Feasibility - X
+                  b_cs_uk, # Complementary Slackness - u and k
+                  b_cs_vl, # Complementary Slackness - v and l
+                  b_cs_ak, # Complementary Slackness - a and k
+                  b_cs_al, # Complementary Slackness - a and l
+                  b_pp_a,  # Pre-processing - fixing a
+                  b_pp_k,  # Pre-processing - fixing k
+                  b_pp_l)  # Pre-processing - fixing l
+  } else {
+    proj$rhs <- c(b_pf,    # Primal Feasibility
+                  b_df_X,  # Dual Feasibility - X
+                  b_cs_uk, # Complementary Slackness - u and k
+                  b_cs_vl, # Complementary Slackness - v and l
+                  b_cs_ak, # Complementary Slackness - a and k
+                  b_cs_al) # Complementary Slackness - a and l
+  }
   # message(paste("b:", length(proj$rhs)))
 
   proj$sense <- c(sense_pf,   # Primal Feasibility
