@@ -123,7 +123,7 @@ line_confint <- function(index,
   if (!is.null(log_dir)) {
     # create path of log file
     # note that date and time will be prepended: yymmdd_hhmmss
-    stub <- paste0(index, "_", ifelse(endogeneous, "endo", "exo"))
+    stub <- paste0("index", index, "_", ifelse(endogeneous, "endo", "exo"))
     log_path <- paste0(log_dir, "/", date_time, "_", stub, "_", log_name)
     if (file.exists(log_path)) {
       msg <- paste(log_path,
@@ -335,7 +335,7 @@ line_confint <- function(index,
     utils::write.csv(results, log_path)
     # remove files save during while loop
     # TODO: add option to concatenate these files instead of removing them
-    file.remove(list.files(log_dir, pattern = "counter", full.names = T))
+    file.remove(list.files(log_dir, pattern = "counter", full.names = T)) # TODO: maybe let the pattern use date_time to not disturb other files
   }
 
   return(out)
