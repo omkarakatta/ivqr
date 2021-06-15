@@ -280,6 +280,8 @@ line_confint <- function(index,
       results <- c(type,                # min or max
                    counter,             # iteration through while loop
                    index,               # coefficient of interest
+                   homoskedasticity,    # homoskedasticity
+                   kernel,              # kernel (only relevant if homoskedasticity is FALSE)
                    endogeneous,         # coefficient of interest
                    current_beta,        # current value of null
                    current_p_val,       # current p-value
@@ -300,6 +302,7 @@ line_confint <- function(index,
             append = TRUE) # add newline at EOF
       }
     }
+    out$counter <- counter
 
     # Linearly interpolate between previous two values of beta
     # One of these values of beta will be inside the confidence interval, while
@@ -316,6 +319,12 @@ line_confint <- function(index,
   out$lower <- confint[1] # lower bound
   out$upper <- confint[2] # upper bound
 
+  out$homoskedasticity <- homoskedasticity
+  kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
+  out$kernel <- kernel
+  out$alpha <- alpha
+  out$cores <- cores
+
   # Stop the clock
   clock_end <- Sys.time()
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
@@ -325,6 +334,9 @@ line_confint <- function(index,
   # save results
   results <- data.frame(index = index,
                         endogeneous = endogeneous,
+                        homoskedasticity = homoskedasticity,
+                        kernel = kernel,
+                        alpha = alpha,
                         lower = confint[1],
                         upper = confint[2],
                         cores = cores,
