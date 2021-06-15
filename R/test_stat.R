@@ -199,6 +199,7 @@ test_stat <- function(beta_D_null,
     }
     if (short_iqr_result$status == "TIME_LIMIT" || short_iqr_result$objval != 0) {
       message(paste("Short IQR Objective Value:", short_iqr_result$objval))
+      out$ended_early <- TRUE
       return(out)
     }
     a_hat <- short_iqr_result$a

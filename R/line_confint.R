@@ -210,6 +210,9 @@ line_confint <- function(index,
     FUN = FUN,
     ...
   )
+  if (!is.null(initial_test_stat$ended_early)) {
+    return(out)
+  }
   out$initial_test_stat <- initial_test_stat
   initial_rejected <- initial_test_stat$p_val < alpha
   if (initial_rejected) {
