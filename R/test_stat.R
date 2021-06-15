@@ -95,11 +95,14 @@ test_stat <- function(beta_D_null,
                       FUN = preprocess_iqr_milp,
                       ...) {
 
+  # Start clock
+  clock_start <- Sys.time()
+  message(paste("Clock started:", clock_start))
+
   out <- list() # Initialize list of results to return
 
   # Check arguments
   if (!identical(FUN, preprocess_iqr_milp) & !identical(FUN, iqr_milp)) {
-    print(FUN) # TODO: remove after debugging
     stop("`FUN` should either be `preprocess_iqr_milp` or `iqr_milp`.")
   }
   kernel <- tolower(kernel)
@@ -142,7 +145,7 @@ test_stat <- function(beta_D_null,
   X_K <- X[, K, drop = FALSE]
   X_K_minus <- X[, !K, drop = FALSE]
   # Z_J <- Z[, J, drop = FALSE] # not used
-  # Z_J_minus <- Z[, !J, drop = FALSE] # TODO: should I remove Jth columns from Z_J?
+  Z_J_minus <- Z[, !J, drop = FALSE]
   Phi_J <- Phi[, J, drop = FALSE]
   Phi_J_minus <- Phi[, !J, drop = FALSE]
 
@@ -165,7 +168,7 @@ test_stat <- function(beta_D_null,
     Y = Y_tilde,
     X = X_K_minus,
     D = D_J_minus,
-    Z = Z, # not really important since we specify Phi # TODO: should Z_J_minus go here?
+    Z = Z_J_minus, # not really important since we specify Phi
     Phi = Phi_J_minus,
     tau = tau,
     show_progress = show_progress,
@@ -245,7 +248,6 @@ test_stat <- function(beta_D_null,
     out$hs <- hs
     if (kernel == "powell") {
       bw <- hs
-      # TODO: double-check whether this is correct
       # Note that the 1 / (2 * n * bw) is negated in the formula for B_tilde
       Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n)
     } else if (kernel == "gaussian") {
@@ -284,7 +286,6 @@ test_stat <- function(beta_D_null,
   # Construct L_n or Q_n depending on |J| + |K| == or != 1
   # Compute p-value
   if (cardinality_J + cardinality_K == 1) {
-    # TODO: check that the "/ n" in denominator is correct
     test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde / n)
     p_val <- 2 * (1 - stats::pnorm(abs(test_stat)))
   } else {
@@ -302,7 +303,10 @@ test_stat <- function(beta_D_null,
   out$test_stat <- test_stat
   out$p_val <- p_val
 
-  # TODO: find time elapsed
+  # Stop the clock
+  clock_end <- Sys.time()
+  elapsed_time <- difftime(clock_end, clock_start, units = "mins")
+  out$time_elapsed <- elapsed_time
 
   return(out)
 }
