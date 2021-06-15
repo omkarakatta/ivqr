@@ -123,7 +123,9 @@ line_confint <- function(index,
   if (!is.null(log_dir)) {
     # create path of log file
     # note that date and time will be prepended: yymmdd_hhmmss
-    stub <- paste0("index", index, "_", ifelse(endogeneous, "endo", "exo"))
+    stub <- paste0("index", index, "_", ifelse(endogeneous, "endo", "exo"),
+                   "_tau", tau,
+                   "_kernel", ifelse(homoskedasticity, "homoskedasticity", kernel))
     log_path <- paste0(log_dir, "/", date_time, "_", stub, "_", log_name)
     if (file.exists(log_path)) {
       msg <- paste(log_path,
