@@ -148,7 +148,14 @@ line_confint <- function(index,
     }
     qr_summary <- summary(qr)
     out$qr_summary <- qr_summary
-    bounds <- qr_summary$coef[index, 2:3, drop = FALSE]
+    if (ncol(qr_summary$coef) == 4) {
+      center <- c(qr_summary$coef[index, "Value"])
+      se <- c(qr_summary$coef[index, "Std. Error"])
+      crit_val <- qnorm(1 - alpha / 2)
+      bounds <- c(center - crit_val * se, center + crit_val * se)
+    } else if (ncol(qr_summary$coef) == 3) {
+      bounds <- qr_summary$coef[index, c("lower bd", "upper bd"), drop = FALSE]
+    }
     width <- width_ratio * (bounds[2] - bounds[1])
     if (is.null(stopping_tolerance)) {
       stopping_tolerance <- round_to_magnitude(width * 0.01)
