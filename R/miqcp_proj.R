@@ -249,9 +249,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_pf) == n)
   stopifnot(length(b_pf) == n)
   stopifnot(length(sense_pf) == n)
-  if (sparse) {
-    A_pf <- as(A_pf, "sparseMatrix")
-  }
   msg <- paste("Primal Feasibility Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -270,9 +267,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_df_X) == p_X - cardinality_K)
   stopifnot(length(b_df_X) == p_X - cardinality_K)
   stopifnot(length(sense_df_X) == p_X - cardinality_K)
-  if (sparse) {
-    A_df_X <- as(A_df_X, "sparseMatrix")
-  }
   msg <- paste("Dual Feasibility for X Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -292,9 +286,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(b_cs_uk) == n)
   stopifnot(length(sense_cs_uk) == n)
   msg <- paste("Complementary Slackness for u and k Complete.")
-  if (sparse) {
-    A_cs_uk <- as(A_cs_uk, "sparseMatrix")
-  }
   send_note_if(msg, show_progress, message)
 
   A_cs_vl <- cbind(matrix(0, nrow = n, ncol = p_X),       # beta_X
@@ -311,9 +302,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_cs_vl) == n)
   stopifnot(length(b_cs_vl) == n)
   stopifnot(length(sense_cs_vl) == n)
-  if (sparse) {
-    A_cs_vl <- as(A_cs_vl, "sparseMatrix")
-  }
   msg <- paste("Complementary Slackness for v and l Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -332,9 +320,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_cs_ak) == n)
   stopifnot(length(b_cs_ak) == n)
   stopifnot(length(sense_cs_ak) == n)
-  if (sparse) {
-    A_cs_ak <- as(A_cs_ak, "sparseMatrix")
-  }
   msg <- paste("Complementary Slackness for a and k Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -352,9 +337,6 @@ miqcp_proj <- function(projection_index,
   stopifnot(nrow(A_cs_al) == n)
   stopifnot(length(b_cs_al) == n)
   stopifnot(length(sense_cs_al) == n)
-  if (sparse) {
-    A_cs_al <- as(A_cs_al, "sparseMatrix")
-  }
   msg <- paste("Complementary Slackness for a and l Complete.")
   send_note_if(msg, show_progress, message)
 
@@ -424,9 +406,6 @@ miqcp_proj <- function(projection_index,
     stopifnot(nrow(A_pp_a) == n)
     stopifnot(length(b_pp_a) == n)
     stopifnot(length(sense_pp_a) == n)
-    if (sparse) {
-      A_pp_a <- as(A_pp_a, "sparseMatrix")
-    }
     msg <- "Pre-processing for a Complete."
     send_note_if(msg, show_progress, message)
 
@@ -447,9 +426,6 @@ miqcp_proj <- function(projection_index,
     stopifnot(nrow(A_pp_k) == n)
     stopifnot(length(b_pp_k) == n)
     stopifnot(length(sense_pp_k) == n)
-    if (sparse) {
-      A_pp_k <- as(A_pp_k, "sparseMatrix")
-    }
     msg <- "Pre-processing for k Complete."
     send_note_if(msg, show_progress, message)
 
@@ -470,9 +446,6 @@ miqcp_proj <- function(projection_index,
     stopifnot(nrow(A_pp_l) == n)
     stopifnot(length(b_pp_l) == n)
     stopifnot(length(sense_pp_l) == n)
-    if (sparse) {
-      A_pp_l <- as(A_pp_l, "sparseMatrix")
-    }
     msg <- "Pre-processing for l Complete."
     send_note_if(msg, show_progress, message)
   } else {
@@ -543,10 +516,6 @@ miqcp_proj <- function(projection_index,
   qc_rhs_1 <- -1 * (1 - tau)^2 * t(ones_dv) %*% qc %*% ones_dv
   qc_rhs_2 <- tau * (1 - tau) * crit_value
   qc_rhs <- qc_rhs_1 + qc_rhs_2 # constant
-  if (sparse) {
-    qc <- as(qc, "sparseMatrix")
-    q <- as(q, "sparseVector")
-  }
 
   msg <- "Quadratic Constraints Complete."
   send_note_if(msg, show_progress, message)
@@ -574,6 +543,9 @@ miqcp_proj <- function(projection_index,
   # message(paste("A_pp_a:", nrow(A_pp_a), ncol(A_pp_a)))
   # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
   # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
+  if (sparse) {
+    proj$A <- as(proj$A, "sparseMatrix")
+  }
 
   # out$b_pf <- b_pf # DEBUG
   # out$b_df_X <- b_df_X # DEBUG
@@ -608,6 +580,10 @@ miqcp_proj <- function(projection_index,
   # message(paste("sense:", length(proj$sense)))
 
   # Quadratic Constraint
+  if (sparse) {
+    qc <- as(qc, "sparseMatrix")
+    q <- as(q, "sparseVector")
+  }
   proj$quadcon[[1]]$Qc <- qc
   proj$quadcon[[1]]$q <- q
   proj$quadcon[[1]]$rhs <- qc_rhs
