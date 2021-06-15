@@ -162,7 +162,9 @@ line_confint <- function(index,
   stopifnot(is.numeric(beta_null))
   stopifnot(is.numeric(step_size))
   stopifnot(step_size > 0)
-  # TODO: return beta_null, stopping_tolerance, initial step_size
+  out$stopping_tolerance <- stopping_tolerance
+  out$beta_null <- beta_null
+  out$initial_step_size <- step_size
 
   send_note_if(paste0("left bound: ", bounds[1]), show_progress, message)
   send_note_if(paste0("right bound: ", bounds[2]), show_progress, message)
