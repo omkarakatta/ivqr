@@ -45,7 +45,7 @@
 #'  border of the confidence interval; defaults to 0.5 (numeric, less than 1)
 #'  defaults to 1 (numeric)
 #' @param cores Number of cores to be used in parallelization process; defaults
-#'  to 2 (no more than 2 needed) # TODO: send a warning if \code{cores} > 2
+#'  to 2 (no more than 2 needed)
 #' @param log_dir Path of log directory to store parallelized results;
 #'  if NULL (default), log is not saved (string)
 #' @param log_name Name of CSV file (including extension) to store results;
@@ -103,6 +103,10 @@ line_confint <- function(index,
 
   # Ensure that there are some RHS variables
   stopifnot(p_D + p_X > 0)
+
+  # Send warning if more than 2 cores are being used
+  msg <- "No more than 2 cores are needed for line search."
+  send_note_if(msg, cores > 2, warning)
 
   # Check that index is an integer that is between 1 and p_D or p_X (inclusive)
   stopifnot(index > 0) # can't be negative
