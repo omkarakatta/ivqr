@@ -30,6 +30,7 @@
 #'  defaults to 300, will be appended to \code{params}
 #' @param params Gurobi parameters, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
+#' @param sparse If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp
 #' @param quietly If TRUE (default), sends messages during execution (boolean)
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean)
@@ -38,6 +39,8 @@
 #' @param LogFileExt Extension of Gurobi log file; If \code{LogFileName} is
 #'  empty, then Gurobi log won't be saved and this argument will be ignored;
 #'  defaults to "log" (string)
+#'
+#' @importFrom methods as
 #'
 #' @return A named list of
 #'  \enumerate{
@@ -71,6 +74,7 @@ iqr_milp <- function(Y,
                      O_pos = NULL,
                      M = NULL,
                      TimeLimit = 300,
+                     sparse = TRUE,
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
                      quietly = TRUE,
@@ -444,6 +448,9 @@ iqr_milp <- function(Y,
   # message(paste("A_pp_a:", nrow(A_pp_a), ncol(A_pp_a)))
   # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
   # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
+  if (sparse) {
+    iqr$A <- as(iqr$A, "sparseMatrix")
+  }
 
   iqr$rhs <- c(b_pf,    # Primal Feasibility
                b_df_X,  # Dual Feasibility - X

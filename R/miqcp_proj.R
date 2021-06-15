@@ -54,7 +54,6 @@
 #'  \code{homoskedasticity} is FALSE
 #' @param residuals Residuals from IQR MILP program; if NULL (default), use
 #'  naive residuals from quantile regression
-#' @param sparse If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp
 #' @inheritParams iqr_milp
 #'
 #' @importFrom methods as
@@ -102,7 +101,7 @@ miqcp_proj <- function(projection_index,
                        TimeLimit = 300,
                        params = list(FeasibilityTol = 1e-6,
                                      OutputFlag = 0),
-                       sparse = TRUE, # TODO: document
+                       sparse = TRUE,
                        quietly = TRUE,
                        show_progress = TRUE,
                        LogFileName = "",
