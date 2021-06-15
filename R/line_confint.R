@@ -167,10 +167,11 @@ line_confint <- function(index,
       step_size <- width / 2
     }
   }
+  # return(out) # DEBUG
   stopifnot(is.numeric(stopping_tolerance))
   stopifnot(is.numeric(beta_null))
   stopifnot(is.numeric(step_size))
-  stopifnot(step_size > 0)
+  stopifnot(step_size > 0) # TODO: If this happens, print the bounds; If this happens, should I stop or set the step size with another heuristic?
   out$stopping_tolerance <- stopping_tolerance
   out$beta_null <- beta_null
   out$initial_step_size <- step_size
