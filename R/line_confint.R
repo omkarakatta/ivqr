@@ -207,7 +207,7 @@ line_confint <- function(index,
     homoskedasticity = homoskedasticity,
     kernel = kernel,
     show_progress = show_progress,
-    FUN = FUN,
+    # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
   if (!is.null(initial_test_stat$ended_early)) {
