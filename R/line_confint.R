@@ -247,6 +247,7 @@ line_confint <- function(index,
     current_p_val <- initial_test_stat$p_val
     counter <- 0
     while (step > stopping_tolerance) {
+      # TODO: stop searching if the change in p-value is very small
       clock_start_while <- Sys.time()
       counter <- counter + 1
       old_p_val <- current_p_val # save previous p-value
