@@ -50,6 +50,8 @@
 #'  if NULL (default), log is not saved (string)
 #' @param log_name Name of CSV file (including extension) to store results;
 #'  defaults to "gridsearch_results.csv" (string)
+#' @param remove_intermediate_csvs If TRUE, intermediate csvs created during
+#'  while loop will be removed after line search is finished; defaults to FALSE
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -65,6 +67,7 @@ line_confint <- function(index,
                          cores = 2,
                          log_dir = NULL,
                          log_name = "line_search.csv",
+                         remove_intermediate_csvs = FALSE,
                          alpha = 0.1,
                          Y,
                          X,
@@ -358,9 +361,12 @@ line_confint <- function(index,
   if (create_log) {
     # save results in CSV
     utils::write.csv(results, log_path)
-    # remove files save during while loop
     # TODO: add option to concatenate these files instead of removing them
-    file.remove(list.files(log_dir, pattern = "counter", full.names = T)) # TODO: maybe let the pattern use date_time to not disturb other files
+    if (remove_intermediate_csvs) {
+      # remove files save during while loop
+      # TODO: maybe let the pattern use date_time to not disturb other files
+      file.remove(list.files(log_dir, pattern = "counter", full.names = T))
+    }
   }
 
   return(out)
