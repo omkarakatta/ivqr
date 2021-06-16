@@ -112,7 +112,7 @@ line_confint <- function(index,
   stopifnot(index > 0) # can't be negative
   stopifnot(length(index) == 1) # we project on axis of only one coefficient
   stopifnot(round(index) == index) # must be integer
-  stopifnot(index < ifelse(endogeneous, p_D, p_X))
+  stopifnot(index <= ifelse(endogeneous, p_D, p_X))
   out$index <- index
   out$endogeneous <- endogeneous
 
