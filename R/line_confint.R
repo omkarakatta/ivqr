@@ -237,7 +237,7 @@ line_confint <- function(index,
     # TODO: do a line search to find a value in the confidence interval
   }
 
-  msg <- "Computed initial test statistic"
+  msg <- paste("Computed initial test statistic:", Sys.time())
   send_note_if(msg, show_progress, message)
 
   out$homoskedasticity <- homoskedasticity
