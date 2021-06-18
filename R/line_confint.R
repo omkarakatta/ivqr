@@ -362,8 +362,8 @@ line_confint <- function(index,
       paste("p-val flattens for", type)
     }
   }
-  flattens_min <- grepl("p flattens for min", confint)
-  flattens_max <- grepl("p flattens for max", confint)
+  flattens_min <- grepl("p-val flattens for min", confint)
+  flattens_max <- grepl("p-val flattens for max", confint)
   flattens <- flattens_min + flattens_max
   if (sum(flattens) == 2) {
     # if both min and max directions have plateauing p-values,
