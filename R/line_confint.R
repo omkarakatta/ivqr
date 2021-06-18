@@ -52,6 +52,8 @@
 #'  defaults to "gridsearch_results.csv" (string)
 #' @param remove_intermediate_csvs If TRUE, intermediate csvs created during
 #'  while loop will be removed after line search is finished; defaults to FALSE
+#' @param return_setup If TRUE, return the step size and naive quantile
+#' regression summary without carrying out the line search; defaults to FALSE
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -68,6 +70,7 @@ line_confint <- function(index,
                          log_dir = NULL,
                          log_name = "line_search.csv",
                          remove_intermediate_csvs = FALSE,
+                         return_setup = FALSE,
                          alpha = 0.1,
                          Y,
                          X,
@@ -185,6 +188,10 @@ line_confint <- function(index,
   send_note_if(paste0("stopping tolerance: ", stopping_tolerance),
                show_progress, message)
   send_note_if(paste0("step size: ", step_size), show_progress, message)
+
+  if (return_setup) {
+    return(out)
+  }
 
   # Construct null hypothesis
   beta_D_null <- rep(NA, p_D)
