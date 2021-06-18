@@ -412,11 +412,52 @@ line_confint <- function(index,
   if (create_log) {
     # save results in CSV
     utils::write.csv(results, log_path)
-    # TODO: add option to concatenate these files instead of removing them
     if (remove_intermediate_csvs) {
-      # remove files save during while loop
-      # TODO: maybe let the pattern use date_time to not disturb other files
-      file.remove(list.files(log_dir, pattern = "counter", full.names = T))
+      # remove files saved during while loop
+      file.remove(list.files(log_dir, pattern = date_time, full.names = T))
+    } else {
+      concatenate_csvs(
+        log_dir,
+        cols = c("type",
+                 "counter",
+                 "index",
+                 "homoskedasticity",
+                 "kernel",
+                 "endogeneous",
+                 "current_beta",
+                 "current_p_val",
+                 "test_stat",
+                 "current_ts_reject",
+                 "elapsed_while",
+                 "new_step",
+                 "new_direction",
+                 "stopping_tolerance"),
+        pattern = paste0(date_time, "_", stub, "_", "min", "_counter_"),
+        merged_name = paste0(date_time, "_", stub, "_", "min", ".csv"),
+        remove_after_merge = TRUE,
+        header = FALSE
+      )
+      concatenate_csvs(
+        log_dir,
+        cols = c("type",
+                 "counter",
+                 "index",
+                 "homoskedasticity",
+                 "kernel",
+                 "endogeneous",
+                 "current_beta",
+                 "current_p_val",
+                 "test_stat",
+                 "current_ts_reject",
+                 "elapsed_while",
+                 "new_step",
+                 "new_direction",
+                 "stopping_tolerance"),
+        pattern = paste0(date_time, "_", stub, "_", "max", "_counter_"),
+        merged_name = paste0(date_time, "_", stub, "_", "max", ".csv"),
+        remove_after_merge = TRUE,
+        header = FALSE
+      )
     }
   }
 
