@@ -369,14 +369,17 @@ line_confint <- function(index,
     # if both min and max directions have plateauing p-values,
     # then return the following value of confint
     confint <- c("p-val flattens for min", "p-val flattens for max")
+    warning("p-val flattens for min and max")
   } else if (sum(flattens_min) == 1) {
     # if only the min direction has plateauing p-value,
     # then return the message first then the upper bound
     confint <- c(confint[flattens_min], confint[!flattens_min])
+    warning("p-val flattens for min")
   } else if (sum(flattens_max) == 1) {
     # if only the min direction has plateauing p-value,
     # then return the lower bound first then the message
     confint <- c(confint[!flattens_max], confint[flattens_max])
+    warning("p-val flattens for max")
   } else if (sum(flattens) == 0) {
     # if none of the directions has plateauing p-value,
     # then return the lower bound first then the upper bound
