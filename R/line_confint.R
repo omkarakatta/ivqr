@@ -54,6 +54,9 @@
 #'  while loop will be removed after line search is finished; defaults to FALSE
 #' @param return_setup If TRUE, return the step size and naive quantile
 #' regression summary without carrying out the line search; defaults to FALSE
+#' @param p_val_tol,small_change_count_tol If the change in p-value is less
+#'  than \code{p_val_tol} for \code{small_change_count_tol} consecutive
+#'  iterations, we stop the while loop; defaults to 1e-6 and 10
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -71,6 +74,8 @@ line_confint <- function(index,
                          log_name = "line_search.csv",
                          remove_intermediate_csvs = FALSE,
                          return_setup = FALSE,
+                         p_val_tol = 1e-6,
+                         small_change_count_tol = 10,
                          alpha = 0.1,
                          Y,
                          X,
@@ -235,6 +240,12 @@ line_confint <- function(index,
   msg <- "Computed initial test statistic"
   send_note_if(msg, show_progress, message)
 
+  out$homoskedasticity <- homoskedasticity
+  kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
+  out$kernel <- kernel
+  out$alpha <- alpha
+  out$cores <- cores
+
   # Line Search
   # set up cluster
   cl <- parallel::makeCluster(cores)
@@ -253,7 +264,9 @@ line_confint <- function(index,
     current_ts_reject <- FALSE # if not FALSE, then we wouldn't do line search
     current_p_val <- initial_test_stat$p_val
     counter <- 0
-    while (step > stopping_tolerance) {
+    small_change_in_p_val <- 0
+    while (step > stopping_tolerance &
+           small_change_in_p_val < small_change_count_tol) {
       # TODO: stop searching if the change in p-value is very small
       clock_start_while <- Sys.time()
       counter <- counter + 1
@@ -289,6 +302,12 @@ line_confint <- function(index,
       # determine test status
       current_p_val <- ts$p_val
       current_ts_reject <- ts$p_val < alpha
+      # check if change in p-value is small
+      if (abs(current_p_val - old_p_val) < p_val_tol) {
+        small_change_in_p_val <- small_change_in_p_val + 1
+      } else {
+        small_change_in_p_val <- 0
+      }
       # update direction and step size
       if (old_ts_reject != current_ts_reject) {
         direction <- -1 * direction
@@ -326,28 +345,49 @@ line_confint <- function(index,
             append = TRUE) # add newline at EOF
       }
     }
-    out$counter <- counter
+    out$counter <- counter # TODO: this is not being saved; save min_counter and max_counter
 
-    # Linearly interpolate between previous two values of beta
-    # One of these values of beta will be inside the confidence interval, while
-    # the other value is outside the confidence interval.
-    pair_p_val <- c(old_p_val, current_p_val)
-    ordered <- order(pair_p_val) # ordered[1] = index of smaller p-value
-    pi <- (alpha - pair_p_val[ordered[1]]) /
-      (pair_p_val[ordered[2]] - pair_p_val[ordered[1]])
-    pair_beta <- c(old_beta, current_beta)
-    beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
-    beta_border
+    if (small_change_in_p_val < small_change_count_tol) {
+      # Linearly interpolate between previous two values of beta
+      # One of these values of beta will be inside the confidence interval, while
+      # the other value is outside the confidence interval.
+      pair_p_val <- c(old_p_val, current_p_val)
+      ordered <- order(pair_p_val) # ordered[1] = index of smaller p-value
+      pi <- (alpha - pair_p_val[ordered[1]]) /
+        (pair_p_val[ordered[2]] - pair_p_val[ordered[1]])
+      pair_beta <- c(old_beta, current_beta)
+      beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
+      beta_border # this is what we return at end of foreach loop
+    } else {
+      paste("p-val flattens for", type)
+    }
   }
-  confint <- sort(confint)
+  flattens_min <- grepl("p flattens for min", confint)
+  flattens_max <- grepl("p flattens for max", confint)
+  flattens <- flattens_min + flattens_max
+  if (sum(flattens) == 2) {
+    # if both min and max directions have plateauing p-values,
+    # then return the following value of confint
+    confint <- c("p-val flattens for min", "p-val flattens for max")
+  } else if (sum(flattens_min) == 1) {
+    # if only the min direction has plateauing p-value,
+    # then return the message first then the upper bound
+    confint <- c(confint[flattens_min], confint[!flattens_min])
+  } else if (sum(flattens_max) == 1) {
+    # if only the min direction has plateauing p-value,
+    # then return the lower bound first then the message
+    confint <- c(confint[!flattens_max], confint[flattens_max])
+  } else if (sum(flattens) == 0) {
+    # if none of the directions has plateauing p-value,
+    # then return the lower bound first then the upper bound
+    confint <- sort(confint)
+  } else {
+    warning("unexpected output of foreach loop")
+    out$confint <- confint
+    return(out)
+  }
   out$lower <- confint[1] # lower bound
   out$upper <- confint[2] # upper bound
-
-  out$homoskedasticity <- homoskedasticity
-  kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
-  out$kernel <- kernel
-  out$alpha <- alpha
-  out$cores <- cores
 
   # Stop the clock
   clock_end <- Sys.time()
