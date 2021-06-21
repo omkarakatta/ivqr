@@ -33,9 +33,15 @@
 #' The error in the true model for the outcome variable is defined in terms
 #' of the endogeneous variables.
 #'
+#' The original Chen and Lee simulation design used 3 endogeneous variables.
+#' This design allows for an arbitrary number of endogeneous variables.
+#' To allow fewer endogeneous variables, say 2 endogeneous variables, we simply
+#' omit the third endogeneous variable from the original Chen and Lee
+#' simulation before constructing our outcome variable.
+#'
 #' @param n Number of observations; defaults to 500 (numeric)
 #' @param p_D Number of endogeneous variables; defaults to 3
-#'  (numeric, must be greater than 3)
+#'  (numeric)
 #'
 #' @return A named list:
 #'  \enumerate{
@@ -49,8 +55,14 @@
 #'  }
 chen_lee <- function(n = 500, p_D = 3) {
 
-  msg <- "p_D must be at least 3."
-  send_note_if(msg, p_D < 3, stop, call. = FALSE)
+  # If p_D is less than 3, we will first create a Chen and Lee simulation with
+  # p_D = 3 and then remove the extra endogeneous variables and extra errors in
+  # Steps 3, 4, and 5.
+  actual_p <- p_D
+  if (p_D < 3) {
+    p_D <- 3 # actual_p != p_D iff p_D < 3
+    warning("p_D is less than 3")
+  }
 
   msg <- "n must be a positive integer."
   send_note_if(msg, round(n) != n || n <= 0, stop, call. = FALSE)
@@ -78,16 +90,20 @@ chen_lee <- function(n = 500, p_D = 3) {
 
   # Step 3: Define Z (instruments).
   Z <- matrix(stats::rnorm(n * p_D), ncol = p_D) # n by p_D matrix of instruments
+  # note: I remove extra instruments in Step 4 after I define D
 
   # Step 4: Define D (endogeneous variables).
   # D is the product of some coefficient and the CDF of shocked instrument.
   coef_D <- c(1, 2.5, 1.5, seq(1, 2, length.out = p_D - 3))
   scale_D <- matrix(rep(coef_D, n), ncol = p_D, byrow = T)
   D <- stats::pnorm(Z + nu) * scale_D # element-wise product, not matrix multiplication
+  D <- D[, seq_len(actual_p)] # remove extra if p_D < 3
+  Z <- Z[, seq_len(actual_p)] # remove extra if p_D < 3
 
-  # Define Y (outcome variable)
-  beta_D <- rep(1, p_D) # coefficients on endogeneous variables!
+  # Step 5: Define Y (outcome variable)
+  beta_D <- rep(1, actual_p) # coefficients on endogeneous variables!
   beta_D_errors <- c(1, 0.25, 0.15, seq(0.1, 1, length.out = p_D - 3))
+  beta_D_errors <- beta_D_errors[seq_len(actual_p)] # remove extra if p_D < 3
   X <- matrix(rep(1, n), ncol = 1)
   Y <- X + D %*% beta_D + (0.5 + D %*% beta_D_errors) * eps
 

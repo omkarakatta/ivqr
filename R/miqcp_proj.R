@@ -56,6 +56,8 @@
 #'  naive residuals from quantile regression
 #' @inheritParams iqr_milp
 #'
+#' @importFrom methods as
+#'
 #' @return A named list of # TODO: update
 #'  \enumerate{
 #'    \item proj: Gurobi model that was solved
@@ -72,8 +74,10 @@
 #'    \item resid: residuals (u - v)
 #'    \item objval: value of objective function (beta_D,j)
 #'    \item M: big M constant used for complementary slackness conditions
-#'    \item Phi_J,Phi_J_minus,X_K,X_K_minus,B,B_tilde,Psi: matrices used in program
-#'    \item projection_index,endogeneous: coefficient onto which the multivariate confidence region was projected
+#'    \item Phi_J,Phi_J_minus,X_K,X_K_minus,B,B_tilde,Psi: matrices used in
+#'      program
+#'    \item projection_index,endogeneous: coefficient onto which the
+#'      multivariate confidence region was projected
 #'    \item homoskedasticity,kernel: indicates estimator of residual density
 #'  }
 miqcp_proj <- function(projection_index,
@@ -97,6 +101,7 @@ miqcp_proj <- function(projection_index,
                        TimeLimit = 300,
                        params = list(FeasibilityTol = 1e-6,
                                      OutputFlag = 0),
+                       sparse = TRUE,
                        quietly = TRUE,
                        show_progress = TRUE,
                        LogFileName = "",
@@ -219,7 +224,7 @@ miqcp_proj <- function(projection_index,
   } else {
     beta_X_obj[projection_index] <- 1
   }
-  obj <- c(beta_X_obj,   # beta_X
+  obj <- c(beta_X_obj,    # beta_X
            beta_D_obj,    # beta_D
            rep(0, n),     # u
            rep(0, n),     # v
@@ -537,6 +542,19 @@ miqcp_proj <- function(projection_index,
   # message(paste("A_pp_a:", nrow(A_pp_a), ncol(A_pp_a)))
   # message(paste("A_pp_k:", nrow(A_pp_k), ncol(A_pp_k)))
   # message(paste("A_pp_l:", nrow(A_pp_l), ncol(A_pp_l)))
+  if (sparse) {
+    proj$A <- as(proj$A, "sparseMatrix")
+  }
+
+  # out$b_pf <- b_pf # DEBUG
+  # out$b_df_X <- b_df_X # DEBUG
+  # out$b_cs_uk <- b_cs_uk # DEBUG
+  # out$b_cs_vl <- b_cs_vl # DEBUG
+  # out$b_cs_ak <- b_cs_ak # DEBUG
+  # out$b_cs_al <- b_cs_al # DEBUG
+  # out$b_pp_a <- b_pp_a # DEBUG
+  # out$b_pp_k <- b_pp_k # DEBUG
+  # out$b_pp_l <- b_pp_l # DEBUG
 
   proj$rhs <- c(b_pf,    # Primal Feasibility
                 b_df_X,  # Dual Feasibility - X
@@ -561,6 +579,10 @@ miqcp_proj <- function(projection_index,
   # message(paste("sense:", length(proj$sense)))
 
   # Quadratic Constraint
+  if (sparse) {
+    qc <- as(qc, "sparseMatrix")
+    q <- as(q, "sparseVector")
+  }
   proj$quadcon[[1]]$Qc <- qc
   proj$quadcon[[1]]$q <- q
   proj$quadcon[[1]]$rhs <- qc_rhs
@@ -574,6 +596,7 @@ miqcp_proj <- function(projection_index,
     params$LogFile <- paste0(LogFileName, LogFileExt)
   }
 
+  # out$proj <- proj # DEBUG
   # return(out) # DEBUG
 
   result <- gurobi::gurobi(proj, params)
