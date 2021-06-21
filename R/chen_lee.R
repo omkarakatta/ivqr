@@ -57,7 +57,7 @@ chen_lee <- function(n = 500, p_D = 3) {
 
   # If p_D is less than 3, we will first create a Chen and Lee simulation with
   # p_D = 3 and then remove the extra endogeneous variables and extra errors in
-  # Step 4 and Step 5.
+  # Steps 3, 4, and 5.
   actual_p <- p_D
   if (p_D < 3) {
     p_D <- 3 # actual_p != p_D iff p_D < 3
@@ -90,6 +90,7 @@ chen_lee <- function(n = 500, p_D = 3) {
 
   # Step 3: Define Z (instruments).
   Z <- matrix(stats::rnorm(n * p_D), ncol = p_D) # n by p_D matrix of instruments
+  # note: I remove extra instruments in Step 4 after I define D
 
   # Step 4: Define D (endogeneous variables).
   # D is the product of some coefficient and the CDF of shocked instrument.
@@ -97,6 +98,7 @@ chen_lee <- function(n = 500, p_D = 3) {
   scale_D <- matrix(rep(coef_D, n), ncol = p_D, byrow = T)
   D <- stats::pnorm(Z + nu) * scale_D # element-wise product, not matrix multiplication
   D <- D[, seq_len(actual_p)] # remove extra if p_D < 3
+  Z <- Z[, seq_len(actual_p)] # remove extra if p_D < 3
 
   # Step 5: Define Y (outcome variable)
   beta_D <- rep(1, actual_p) # coefficients on endogeneous variables!
