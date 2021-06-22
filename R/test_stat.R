@@ -75,6 +75,8 @@
 #'  naive residuals from quantile regression
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean); also passed to \code{FUN}
+#' @param print_results If TRUE (default), print the test-statistic, p-value,
+#'  and alpha level (boolean)
 #' @param FUN Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}
 #' @param ... Arguments passed to \code{FUN}
 test_stat <- function(beta_D_null,
@@ -92,12 +94,14 @@ test_stat <- function(beta_D_null,
                       residuals = NULL,
                       kernel = "Powell",
                       show_progress = TRUE,
+                      print_results = TRUE,
                       FUN = preprocess_iqr_milp,
                       ...) {
 
   # Start clock
   clock_start <- Sys.time()
-  message(paste("Clock started:", clock_start))
+  msg <- paste("Clock started:", clock_start)
+  send_note_if(msg, show_progress, message)
 
   out <- list() # Initialize list of results to return
 
@@ -297,9 +301,11 @@ test_stat <- function(beta_D_null,
 
   send_note_if("Computed test statistic and p-value", show_progress, message)
 
-  print(paste("Alpha:", alpha))
-  print(paste("Test Statistic:", test_stat))
-  print(paste("p-value:", p_val))
+  if (print_results) {
+    print(paste("Alpha:", alpha))
+    print(paste("Test Statistic:", test_stat))
+    print(paste("p-value:", p_val))
+  }
 
   out$test_stat <- test_stat
   out$p_val <- p_val
