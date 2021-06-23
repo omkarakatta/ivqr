@@ -291,10 +291,13 @@ test_stat <- function(beta_D_null,
   # Construct L_n or Q_n depending on |J| + |K| == or != 1
   # Compute p-value
   if (cardinality_J + cardinality_K == 1) {
-    test_stat <- S_n / sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde / n)
+    denom <- sqrt(tau * (1 - tau) * t(B_tilde) %*% B_tilde / n)
+    out$denom <- denom
+    test_stat <- S_n / denom
     p_val <- 2 * (1 - stats::pnorm(abs(test_stat)))
   } else {
     M_n <- (1 / n) * t(B_tilde) %*% B_tilde
+    out$M_n <- M_n
     test_stat <- t(S_n) %*% solve(M_n) %*% S_n / (tau * (1 - tau))
     p_val <- 1 - stats::pchisq(test_stat, df = cardinality_J + cardinality_K)
   }
