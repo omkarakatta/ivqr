@@ -135,8 +135,9 @@ preprocess_iqr_milp <- function(Y,
   # if the program is infeasible, i.e., the objective was NULL, we also
   # continue the while loop (we mechanically set the objective to be nonzero
   # later in the code).
-  counter <- 1
+  counter <- 0
   while (status == "TIME_LIMIT" || obj != 0) {
+    counter <- counter + 1
     # Fix the most negative and most positive residuals
     O_neg <- which(resid < -1 * alpha)
     O_pos <- which(resid > alpha)
@@ -180,7 +181,6 @@ preprocess_iqr_milp <- function(Y,
       warning("Nonzero Coefficients on Instruments")
       break
     }
-    counter <- counter + 1
   }
 
   # Stop the clock
