@@ -93,9 +93,8 @@ collect_note_if <- function(msg_list, new_msg, condition, newline = TRUE) {
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param O_neg,O_pos Indices for residuals whose sign is fixed to be negative
 #'  and positive, respectively (vectors)
-#' @param projection If TRUE (default), project D on the space spanned by X and
-#'  Z to construct the vector of functions of transformed instruments; else,
-#'  let Z be the instruments for endogenous variables (boolean)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #'
 #' @return A vector whose length is the same as the number of constraints;
 #'  \enumerate{
@@ -116,7 +115,7 @@ decompose_A <- function(Y,
                         Z,
                         O_neg = NULL,
                         O_pos = NULL,
-                        projection = TRUE) {
+                        Phi = linear_projection(D, X, Z)) {
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)
@@ -126,15 +125,11 @@ decompose_A <- function(Y,
   p_X <- ncol(X)
   p_Z <- ncol(Z)
 
-  if (projection) {
-    # Obtain fitted values from projecting D on space spanned by X and Z
-    XZ <- cbind(X, Z)
-    proj_matrix <- solve(t(XZ) %*% XZ) %*% t(XZ) %*% D
-    Phi <- XZ %*% proj_matrix
+  if (is.null(Phi)) {
+    p_Phi <- 0
   } else {
-    Phi <- Z
+    p_Phi <- ncol(Phi)
   }
-  p_Phi <- ncol(Phi)
 
   # Primal Feasibility
   pf <- rep("pf", n)
