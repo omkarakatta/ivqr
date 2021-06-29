@@ -41,7 +41,7 @@
 #'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #' @param tau Quantile (number strictly between 0 and 1)
 #' @param M A large number that bounds the absolute value of the residuals
-#'  (a positive number); defaults to 10 * standard deviation of residuals from
+#'  (a positive number); defaults to 5 times the largest absolute residual from
 #'  quantile regression of Y on X and D
 #' @param prop_alpha_initial Initial value of the bandwidth \eqn{alpha};
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
@@ -122,8 +122,11 @@ preprocess_iqr_milp <- function(Y,
 
   # Determine M before iqr_milp to avoid rerunning quantreg::rq
   if (is.null(M)) {
-    sd_qr <- stats::sd(resid)
-    M <- 10 * sd_qr
+    # by default, M = 5 * max(resid from QR of Y on X and D)
+    # TODO: update heuristic for choosing M
+    # TODO: update documentation with default M
+    max_qr <- max(abs(resid))
+    M <- 5 * max_qr
   }
 
   # Start the while loop
@@ -164,7 +167,7 @@ preprocess_iqr_milp <- function(Y,
                     O_neg = O_neg,
                     O_pos = O_pos,
                     TimeLimit = TT,
-                    M = M, # by default, M = 10 * sd(resid from QR of Y on X and D)
+                    M = M, # by default, M = 5 * max(resid from QR of Y on X and D)
                     LogFileExt = paste0("_", counter, LogFileExt),
                     ...)
     if (is.null(fit$objval)) {

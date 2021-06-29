@@ -24,7 +24,7 @@
 #' @param O_neg,O_pos Indices for residuals whose sign is fixed to be negative
 #'  and positive, respectively (vectors)
 #' @param M A large number that bounds the absolute value of the residuals
-#'  (a positive number); defaults to 10 * standard deviation of residuals from
+#'  (a positive number); defaults to 5 times the largest absolute residual from
 #'  quantile regression of Y on X and D
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
 #'  defaults to 300, will be appended to \code{params}
@@ -116,15 +116,17 @@ iqr_milp <- function(Y,
   out$Phi <- Phi # by default, Phi = projection of D on X and Z
 
   if (is.null(M)) {
-    # by default, M = 10 * sd(resid from QR of Y on X and D)
+    # by default, M = 5 * max(resid from QR of Y on X and D)
+    # TODO: update heuristic for choosing M
+    # TODO: update documentation with default M
     if (p_X == 0) {
-      sd_qr <- stats::sd(quantreg::rq(Y ~ D - 1, tau = tau)$residuals)
+      max_qr <- max(abs(quantreg::rq(Y ~ D - 1, tau = tau)$residuals))
     } else if (p_D == 0) {
-      sd_qr <- stats::sd(quantreg::rq(Y ~ X - 1, tau = tau)$residuals)
+      max_qr <- max(abs(quantreg::rq(Y ~ X - 1, tau = tau)$residuals))
     } else {
-      sd_qr <- stats::sd(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals)
+      max_qr <- max(abs(quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals))
     }
-    M <- 10 * sd_qr
+    M <- 5 * max_qr
   }
   out$M <- M
 
