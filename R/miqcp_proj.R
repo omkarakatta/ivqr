@@ -196,11 +196,11 @@ miqcp_proj <- function(projection_index,
   stopifnot(length(residuals) == n)
 
   if (is.null(M)) {
-    # by default, M = 5 * max(resid from QR of Y on X and D)
+    # by default, M = 2 * max(resid from QR of Y on X and D)
     # TODO: fix documentation to reflect the change in default M
     # TODO: choose a more efficient way to pick M that depends on the distance
     # between largest residual and second-largest residual.
-    M <- 5 * max(abs(residuals))
+    M <- 2 * max(abs(residuals))
   }
   out$M <- M
 
