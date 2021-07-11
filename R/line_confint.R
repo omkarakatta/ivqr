@@ -162,7 +162,7 @@ line_confint <- function(index,
     if (ncol(qr_summary$coef) == 4) {
       center <- c(qr_summary$coef[index, "Value"])
       se <- c(qr_summary$coef[index, "Std. Error"])
-      crit_val <- qnorm(1 - alpha / 2)
+      crit_val <- stats::qnorm(1 - alpha / 2)
       bounds <- c(center - crit_val * se, center + crit_val * se)
     } else if (ncol(qr_summary$coef) == 3) {
       bounds <- qr_summary$coef[index, c("lower bd", "upper bd"), drop = FALSE]
