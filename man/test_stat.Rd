@@ -20,6 +20,7 @@ test_stat(
   residuals = NULL,
   kernel = "Powell",
   show_progress = TRUE,
+  print_results = TRUE,
   FUN = preprocess_iqr_milp,
   ...
 )
@@ -71,6 +72,9 @@ naive residuals from quantile regression}
 
 \item{show_progress}{If TRUE (default), sends progress messages during
 execution (boolean); also passed to \code{FUN}}
+
+\item{print_results}{If TRUE (default), print the test-statistic, p-value,
+and alpha level (boolean)}
 
 \item{FUN}{Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}}
 

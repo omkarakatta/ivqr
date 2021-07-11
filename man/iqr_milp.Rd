@@ -15,6 +15,7 @@ iqr_milp(
   O_pos = NULL,
   M = NULL,
   TimeLimit = 300,
+  sparse = TRUE,
   params = list(FeasibilityTol = 1e-06, LogToConsole = 0),
   quietly = TRUE,
   show_progress = TRUE,
@@ -40,11 +41,13 @@ defaults to the linear projection of D on X and Z (matrix with n rows)}
 and positive, respectively (vectors)}
 
 \item{M}{A large number that bounds the absolute value of the residuals
-(a positive number); defaults to 10 * standard deviation of residuals from
+(a positive number); defaults to 2 times the largest absolute residual from
 quantile regression of Y on X and D}
 
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
 defaults to 300, will be appended to \code{params}}
+
+\item{sparse}{If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp}
 
 \item{params}{Gurobi parameters, see
 \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}

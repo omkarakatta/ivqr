@@ -84,7 +84,7 @@ and positive, respectively (vectors)}
 and positive, respectively (vectors)}
 
 \item{M}{A large number that bounds the absolute value of the residuals
-(a positive number); defaults to 10 * standard deviation of residuals from
+(a positive number); defaults to 2 times the largest absolute residual from
 quantile regression of Y on X and D}
 
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
@@ -124,8 +124,10 @@ A named list of # TODO: update
 \item resid: residuals (u - v)
 \item objval: value of objective function (beta_D,j)
 \item M: big M constant used for complementary slackness conditions
-\item Phi_J,Phi_J_minus,X_K,X_K_minus,B,B_tilde,Psi: matrices used in program
-\item projection_index,endogeneous: coefficient onto which the multivariate confidence region was projected
+\item Phi_J,Phi_J_minus,X_K,X_K_minus,B,B_tilde,Psi: matrices used in
+program
+\item projection_index,endogeneous: coefficient onto which the
+multivariate confidence region was projected
 \item homoskedasticity,kernel: indicates estimator of residual density
 }
 }

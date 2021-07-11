@@ -15,6 +15,10 @@ line_confint(
   cores = 2,
   log_dir = NULL,
   log_name = "line_search.csv",
+  remove_intermediate_csvs = FALSE,
+  return_setup = FALSE,
+  p_val_tol = 1e-06,
+  small_change_count_tol = 10,
   alpha = 0.1,
   Y,
   X,
@@ -59,13 +63,23 @@ border of the confidence interval; defaults to 0.5 (numeric, less than 1)
 defaults to 1 (numeric)}
 
 \item{cores}{Number of cores to be used in parallelization process; defaults
-to 2 (no more than 2 needed) # TODO: send a warning if \code{cores} > 2}
+to 2 (no more than 2 needed)}
 
 \item{log_dir}{Path of log directory to store parallelized results;
 if NULL (default), log is not saved (string)}
 
 \item{log_name}{Name of CSV file (including extension) to store results;
 defaults to "gridsearch_results.csv" (string)}
+
+\item{remove_intermediate_csvs}{If TRUE, intermediate csvs created during
+while loop will be removed after line search is finished; defaults to FALSE}
+
+\item{return_setup}{If TRUE, return the step size and naive quantile
+regression summary without carrying out the line search; defaults to FALSE}
+
+\item{p_val_tol, small_change_count_tol}{If the change in p-value is less
+than \code{p_val_tol} for \code{small_change_count_tol} consecutive
+iterations, we stop the while loop; defaults to 1e-6 and 10}
 
 \item{alpha}{Alpha level of the test; defaults to 0.1; only used when
 \code{homoskedasticity} is FALSE (numeric between 0 and 1)}

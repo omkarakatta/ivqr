@@ -10,7 +10,7 @@ chen_lee(n = 500, p_D = 3)
 \item{n}{Number of observations; defaults to 500 (numeric)}
 
 \item{p_D}{Number of endogeneous variables; defaults to 3
-(numeric, must be greater than 3)}
+(numeric)}
 }
 \value{
 A named list:
@@ -45,4 +45,10 @@ normal distribution. The endogeneous variables are multiples of the
 cumulative distribution function of the shocked instruments.
 The error in the true model for the outcome variable is defined in terms
 of the endogeneous variables.
+
+The original Chen and Lee simulation design used 3 endogeneous variables.
+This design allows for an arbitrary number of endogeneous variables.
+To allow fewer endogeneous variables, say 2 endogeneous variables, we simply
+omit the third endogeneous variable from the original Chen and Lee
+simulation before constructing our outcome variable.
 }

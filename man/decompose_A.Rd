@@ -4,7 +4,15 @@
 \alias{decompose_A}
 \title{Decompose constraint matrix}
 \usage{
-decompose_A(Y, X, D, Z, O_neg = NULL, O_pos = NULL, projection = TRUE)
+decompose_A(
+  Y,
+  X,
+  D,
+  Z,
+  O_neg = NULL,
+  O_pos = NULL,
+  Phi = linear_projection(D, X, Z)
+)
 }
 \arguments{
 \item{Y}{Dependent variable (vector of length n)}
@@ -18,9 +26,8 @@ decompose_A(Y, X, D, Z, O_neg = NULL, O_pos = NULL, projection = TRUE)
 \item{O_neg, O_pos}{Indices for residuals whose sign is fixed to be negative
 and positive, respectively (vectors)}
 
-\item{projection}{If TRUE (default), project D on the space spanned by X and
-Z to construct the vector of functions of transformed instruments; else,
-let Z be the instruments for endogenous variables (boolean)}
+\item{Phi}{Transformation of X and Z to be used in the program;
+defaults to the linear projection of D on X and Z (matrix with n rows)}
 }
 \value{
 A vector whose length is the same as the number of constraints;

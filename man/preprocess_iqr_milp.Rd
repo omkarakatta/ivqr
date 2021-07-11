@@ -35,7 +35,7 @@ defaults to the linear projection of D on X and Z (matrix with n rows)}
 \item{tau}{Quantile (number strictly between 0 and 1)}
 
 \item{M}{A large number that bounds the absolute value of the residuals
-(a positive number); defaults to 10 * standard deviation of residuals from
+(a positive number); defaults to 2 times the largest absolute residual from
 quantile regression of Y on X and D}
 
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
