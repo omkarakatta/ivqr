@@ -1,7 +1,7 @@
 test_that("Ensure that p_D >= 3", {
   expect_error(
     chen_lee(p_D = 2),
-    "p_D must be at least 3."
+    NA
   )
   expect_error(
     chen_lee(p_D = 3),
