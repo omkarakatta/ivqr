@@ -97,8 +97,8 @@ chen_lee <- function(n = 500, p_D = 3) {
   coef_D <- c(1, 2.5, 1.5, seq(1, 2, length.out = p_D - 3))
   scale_D <- matrix(rep(coef_D, n), ncol = p_D, byrow = T)
   D <- stats::pnorm(Z + nu) * scale_D # element-wise product, not matrix multiplication
-  D <- D[, seq_len(actual_p)] # remove extra if p_D < 3
-  Z <- Z[, seq_len(actual_p)] # remove extra if p_D < 3
+  D <- D[, seq_len(actual_p), drop = FALSE] # remove extra if p_D < 3
+  Z <- Z[, seq_len(actual_p), drop = FALSE] # remove extra if p_D < 3
 
   # Step 5: Define Y (outcome variable)
   beta_D <- rep(1, actual_p) # coefficients on endogeneous variables!
