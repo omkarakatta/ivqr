@@ -87,6 +87,7 @@ line_confint <- function(index,
                          orthogonalize_statistic = FALSE,
                          homoskedasticity = FALSE,
                          kernel = "Powell",
+                         residuals = NULL,
                          show_progress = TRUE,
                          FUN = preprocess_iqr_milp,
                          ...) {
@@ -223,6 +224,7 @@ line_confint <- function(index,
     homoskedasticity = homoskedasticity,
     kernel = kernel,
     show_progress = show_progress,
+    residuals = residuals,
     # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
@@ -296,6 +298,7 @@ line_confint <- function(index,
         homoskedasticity = homoskedasticity,
         kernel = kernel,
         show_progress = show_progress,
+        residuals = residuals,
         # FUN = preprocess_iqr_milp, # TODO: let user decide what this is
         ...
       )
@@ -362,6 +365,7 @@ line_confint <- function(index,
       paste("p-val flattens for", type)
     }
   }
+
   flattens_min <- grepl("p-val flattens for min", confint)
   flattens_max <- grepl("p-val flattens for max", confint)
   flattens <- flattens_min + flattens_max
