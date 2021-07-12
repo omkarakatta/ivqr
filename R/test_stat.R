@@ -168,22 +168,33 @@ test_stat <- function(beta_D_null,
   send_note_if("Concentrated out Y", show_progress, message)
 
   # Obtain \hat{a} and residuals
-  short_iqr <- FUN(
-    Y = Y_tilde,
-    X = X_K_minus,
-    D = D_J_minus,
-    Z = Z_J_minus, # not really important since we specify Phi
-    Phi = Phi_J_minus,
-    tau = tau,
-    show_progress = show_progress,
-    ...
-  )
+  if (ncol(D_J_minus) == 0) {
+    # If there are no endogeneous variables, return quantile regression results:
+    msg <- paste("p_D is 0 -- running QR instead of IQR MILP...")
+    send_note_if(msg, TRUE, warning)
+    qr <- quantreg::rq(Y_tilde ~ X_K_minus - 1, tau = tau)
+    short_iqr <- qr
+    FUN <- "qr"
+  } else {
+    short_iqr <- FUN(
+      Y = Y_tilde,
+      X = X_K_minus,
+      D = D_J_minus,
+      Z = Z_J_minus, # not really important since we specify Phi
+      Phi = Phi_J_minus,
+      tau = tau,
+      show_progress = show_progress,
+      ...
+    )
+  }
 
   send_note_if("Computed short-IQR solution", show_progress, message)
 
   if (identical(FUN, preprocess_iqr_milp)) {
     short_iqr_result <- short_iqr$final_fit
   } else if (identical(FUN, iqr_milp)) {
+    short_iqr_result <- short_iqr
+  } else if (identical(FUN, "qr")) {
     short_iqr_result <- short_iqr
   } else {
     # TODO: this is a redundant error because we already check if FUN is valid.
