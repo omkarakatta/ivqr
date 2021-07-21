@@ -280,6 +280,7 @@ line_confint <- function(index,
     small_change_in_p_val <- 0
     # set the time limit to be 2 * time limit of initial test-stat computation
     time_limit <- initial_time * 2
+    ts <- list(); ts$ended_early <- NULL # initialize ts$ended_early to be NULL
     while (step > stopping_tolerance &
            small_change_in_p_val < small_change_count_tol) {
       clock_start_while <- Sys.time() # start the clock for current step
@@ -287,13 +288,12 @@ line_confint <- function(index,
       old_p_val <- current_p_val # save previous p-value
       old_ts_reject <- current_ts_reject # save previous status of test
       old_beta <- current_beta # save previous beta
-      if (counter > 1 && ts$ended_early) {
+      if (!is.null(ts$ended_early)) {
         # If the previous test-stat computation ended early, then we'll take a
         # tiny step in the same direction with a small perturbation and then
         # continue the line search.
         # This only applies *after* we try one iteration of the while loop
-        # (else, ts$ended_early is undefined), so the condition is that
-        # `counter` must be greater than 1
+        # (else, ts$ended_early is undefined)
         perturb <- rnorm(1, mean = 0, sd = step / 5)
         current_beta <- current_beta + step * direction * 0.5 + rnorm(1, mean = 0, var = step / 5)
       } else {
@@ -335,7 +335,7 @@ line_confint <- function(index,
       # the next step).
       # Otherwise, we record the results, check if the p-value flattens, and
       # change the direction if need be.
-      if (ts$ended_early) {
+      if (!is.null(ts$ended_early)) {
         time_limit <- time_limit * 2 # double the time limit temporarily
         current_p_val <- "skipped"
         current_ts_reject <- "skipped"
