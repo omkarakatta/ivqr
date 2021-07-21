@@ -273,8 +273,8 @@ line_confint <- function(index,
   confint <- foreach (direction = c(-1, 1),
                       .combine = c,
                       .export = c("test_stat",
-                                  "preprocess_iqr_milp",
-                                  "iqr_milp")) %dopar% {
+                                  "send_note_if",
+                                  "preprocess_iqr_milp")) %dopar% {
     type <- ifelse(direction == 1, "max", "min")
     step <- step_size
     current_beta <- beta_null
