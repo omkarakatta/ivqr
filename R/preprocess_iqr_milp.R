@@ -45,7 +45,9 @@
 #'  quantile regression of Y on X and D
 #' @param prop_alpha_initial Initial value of the bandwidth \eqn{alpha};
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
-#'  defaults to heuristic
+#'  defaults to heuristic (numeric)
+#' @param globalTimeLimit Maximum time (in seconds) spent on the entire
+#' preprocessing function; defaults to Inf (i.e., no time limit) (numeric)
 #'  thus, 1 - \code{prop_alpha_initial} is the proportion of observations whose
 #'  dual variables (i.e., sign of the residuals) are fixed at the start
 #'  (number between 0 and 1)
@@ -79,6 +81,7 @@ preprocess_iqr_milp <- function(Y,
                                 tau,
                                 M = NULL,
                                 TimeLimit = NULL,
+                                globalTimeLimit = Inf,
                                 prop_alpha_initial = 0.7,
                                 r = 1.25,
                                 show_iterations = FALSE,
@@ -182,7 +185,13 @@ preprocess_iqr_milp <- function(Y,
     }
     if (TT == Inf & obj != 0) {
       warning("Nonzero Coefficients on Instruments")
-      break
+      break # exit while loop
+    }
+    current <- Sys.time()
+    elapsed_time <- difftime(current, clock_start, units = "secs")
+    if (as.numeric(elapsed_time) > globalTimeLimit) {
+      warning(paste("Global Time Limit of", globalTimeLimit, "reached."))
+      break # exit while loop
     }
   }
 

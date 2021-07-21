@@ -63,8 +63,11 @@
 #' @param p_val_tol,small_change_count_tol If the change in p-value is less
 #'  than \code{p_val_tol} for \code{small_change_count_tol} consecutive
 #'  iterations, we stop the while loop; defaults to 1e-6 and 10
-#' @param initial_TimeLimit Time limit (in sec) for computation of initial
-#'  test-statistic; defaults to heuristic (scalar)
+#' @param initial_TimeLimit Time limit (in sec) for each iteration of
+#'  preprocessing in the computation of initial test-statistic; defaults to
+#'  heuristic (scalar)
+#' @param initial_globalTimeLimit Time limit (in sec) for computation of
+#'  initial test-statistic; defaults to Inf (scalar)
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -100,6 +103,7 @@ line_confint <- function(index,
                          show_progress = TRUE,
                          # FUN = preprocess_iqr_milp,
                          initial_TimeLimit = NULL,
+                         initial_globalTimeLimit = Inf,
                          ...) {
 
   # Start clock
@@ -237,6 +241,7 @@ line_confint <- function(index,
     show_progress = show_progress,
     residuals = residuals,
     TimeLimit = initial_TimeLimit,
+    globalTimeLimit = initial_globalTimeLimit,
     # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
@@ -333,6 +338,7 @@ line_confint <- function(index,
         show_progress = show_progress,
         residuals = residuals,
         TimeLimit = time_limit,
+        globalTimeLimit = time_limit,
         # FUN = preprocess_iqr_milp, # TODO: let user decide what this is
         ...
       )
