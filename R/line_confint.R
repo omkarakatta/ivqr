@@ -24,6 +24,12 @@
 #' stored in \code{iqr}, then \code{iqr$beta_D[2]} should be the value of
 #' \code{beta_null}.
 #'
+#' The time limit for computing the test-statistic at each step of the line
+#' search code is twice as long as the time it takes to compute the initial
+#' test statistic. If the time limit is too restrictive thereby ending the
+#' computation of the test-statistic too early, we skip the step and move a bit
+#' forward in the line search code and temporarily increase the time limit for
+#' this new step.
 #'
 #' @param index Index of the coefficient of interest
 #'  (numeric between 1 and p_D if \code{endogeneous} is TRUE;
@@ -57,6 +63,8 @@
 #' @param p_val_tol,small_change_count_tol If the change in p-value is less
 #'  than \code{p_val_tol} for \code{small_change_count_tol} consecutive
 #'  iterations, we stop the while loop; defaults to 1e-6 and 10
+#' @param initial_TimeLimit Time limit (in sec) for computation of initial
+#'  test-statistic; defaults to 300 seconds (scalar)
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -90,6 +98,7 @@ line_confint <- function(index,
                          residuals = NULL,
                          show_progress = TRUE,
                          FUN = preprocess_iqr_milp,
+                         initial_TimeLimit = 300,
                          ...) {
 
   # Start clock
@@ -229,10 +238,11 @@ line_confint <- function(index,
     ...
   )
   if (!is.null(initial_test_stat$ended_early)) {
-    return(out)
+    return(out) # diagnostic messages printed by test_stat()
   }
   out$initial_test_stat <- initial_test_stat
   initial_rejected <- initial_test_stat$p_val < alpha
+  initial_time <- initial_test_stat$time_elapsed * 60 # time in seconds
   if (initial_rejected) {
     warning("Initial value of beta_null was rejected.")
     return(out)
@@ -267,15 +277,30 @@ line_confint <- function(index,
     current_p_val <- initial_test_stat$p_val
     counter <- 0
     small_change_in_p_val <- 0
+    # set the time limit to be 2 * time limit of initial test-stat computation
+    time_limit <- initial_time * 2
     while (step > stopping_tolerance &
            small_change_in_p_val < small_change_count_tol) {
-      # TODO: stop searching if the change in p-value is very small
-      clock_start_while <- Sys.time()
-      counter <- counter + 1
+      clock_start_while <- Sys.time() # start the clock for current step
+      counter <- counter + 1 # update counter
       old_p_val <- current_p_val # save previous p-value
       old_ts_reject <- current_ts_reject # save previous status of test
       old_beta <- current_beta # save previous beta
-      current_beta <- current_beta + step * direction # update beta
+      if (counter > 1 && ts$ended_early) {
+        # If the previous test-stat computation ended early, then we'll take a
+        # tiny step in the same direction with a small perturbation and then
+        # continue the line search.
+        # This only applies *after* we try one iteration of the while loop
+        # (else, ts$ended_early is undefined), so the condition is that
+        # `counter` must be greater than 1
+        perturb <- rnorm(1, mean = 0, sd = step / 5)
+        current_beta <- current_beta + step * direction * 0.5 + rnorm(1, mean = 0, var = step / 5)
+      } else {
+        # If the previous test-stat computation successfully ran, then we'll
+        # take a step in the specified direction and then continue the line
+        # search.
+        current_beta <- current_beta + step * direction # update beta
+      }
       # construct null
       if (endogeneous) {
         beta_D_null[index] <- current_beta
@@ -299,22 +324,36 @@ line_confint <- function(index,
         kernel = kernel,
         show_progress = show_progress,
         residuals = residuals,
+        TimeLimit = time_limit,
         # FUN = preprocess_iqr_milp, # TODO: let user decide what this is
         ...
       )
-      # determine test status
-      current_p_val <- ts$p_val
-      current_ts_reject <- ts$p_val < alpha
-      # check if change in p-value is small
-      if (abs(current_p_val - old_p_val) < p_val_tol) {
-        small_change_in_p_val <- small_change_in_p_val + 1
+      # If the test-stat takes too long, we end it early and skip the step.
+      # We then move forward in the line search by taking a smaller step in the
+      # same direction with a slight perturbation (see above where we define
+      # the next step).
+      # Otherwise, we record the results, check if the p-value flattens, and
+      # change the direction if need be.
+      if (ts$ended_early) {
+        time_limit <- time_limit * 2 # increase time limit
+        current_p_val <- "skipped"
+        current_ts_reject <- "skipped"
       } else {
-        small_change_in_p_val <- 0
-      }
-      # update direction and step size
-      if (old_ts_reject != current_ts_reject) {
-        direction <- -1 * direction
-        step <- step * step_rate
+        time_limit <- initial_time * 2 # reset time limit
+        # determine test status
+        current_p_val <- ts$p_val
+        current_ts_reject <- ts$p_val < alpha
+        # check if change in p-value is small
+        if (abs(current_p_val - old_p_val) < p_val_tol) {
+          small_change_in_p_val <- small_change_in_p_val + 1
+        } else {
+          small_change_in_p_val <- 0
+        }
+        # update direction and step size
+        if (old_ts_reject != current_ts_reject) {
+          direction <- -1 * direction
+          step <- step * step_rate
+        }
       }
 
       clock_end_while <- Sys.time()
@@ -347,7 +386,7 @@ line_confint <- function(index,
             file = file_path,
             append = TRUE) # add newline at EOF
       }
-    }
+    } # end of while loop
     out$counter <- counter # TODO: this is not being saved; save min_counter and max_counter
 
     if (small_change_in_p_val < small_change_count_tol) {
@@ -364,7 +403,7 @@ line_confint <- function(index,
     } else {
       paste("p-val flattens for", type)
     }
-  }
+  } # end of for loop
 
   flattens_min <- grepl("p-val flattens for min", confint)
   flattens_max <- grepl("p-val flattens for max", confint)
