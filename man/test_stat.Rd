@@ -21,7 +21,6 @@ test_stat(
   kernel = "Powell",
   show_progress = TRUE,
   print_results = TRUE,
-  FUN = preprocess_iqr_milp,
   ...
 )
 }
@@ -71,14 +70,12 @@ naive residuals from quantile regression}
 \code{homoskedasticity} is FALSE}
 
 \item{show_progress}{If TRUE (default), sends progress messages during
-execution (boolean); also passed to \code{FUN}}
+execution (boolean); also passed to \code{preprocess_iqr_milp}}
 
 \item{print_results}{If TRUE (default), print the test-statistic, p-value,
 and alpha level (boolean)}
 
-\item{FUN}{Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}}
-
-\item{...}{Arguments passed to \code{FUN}}
+\item{...}{Arguments passed to \code{preprocess_iqr_milp}}
 }
 \description{
 Under user-specified null hypotheses (multivariate or univariate) on the

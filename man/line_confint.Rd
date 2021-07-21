@@ -30,8 +30,9 @@ line_confint(
   orthogonalize_statistic = FALSE,
   homoskedasticity = FALSE,
   kernel = "Powell",
+  residuals = NULL,
   show_progress = TRUE,
-  FUN = preprocess_iqr_milp,
+  initial_TimeLimit = NULL,
   ...
 )
 }
@@ -112,12 +113,16 @@ defaults to FALSE (boolean)}
 "Gaussian" to use a Gaussian kernel; only used when
 \code{homoskedasticity} is FALSE}
 
+\item{residuals}{Residuals from IQR MILP program; if NULL (default), use
+naive residuals from quantile regression}
+
 \item{show_progress}{If TRUE (default), sends progress messages during
-execution (boolean); also passed to \code{FUN}}
+execution (boolean); also passed to \code{preprocess_iqr_milp}}
 
-\item{FUN}{Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}}
+\item{initial_TimeLimit}{Time limit (in sec) for computation of initial
+test-statistic; defaults to heuristic (scalar)}
 
-\item{...}{Arguments passed to \code{FUN}}
+\item{...}{Arguments passed to \code{preprocess_iqr_milp}}
 }
 \description{
 Search for the smallest/largest value of a particular coefficient where the
@@ -130,4 +135,11 @@ The suggested value of \code{beta_null} is given by the output of
 is 2, \code{endogeneous} is TRUE, and the \code{iqr_milp} estimates are
 stored in \code{iqr}, then \code{iqr$beta_D[2]} should be the value of
 \code{beta_null}.
+
+The time limit for computing the test-statistic at each step of the line
+search code is twice as long as the time it takes to compute the initial
+test statistic. If the time limit is too restrictive thereby ending the
+computation of the test-statistic too early, we skip the step and move a bit
+forward in the line search code and temporarily increase the time limit for
+this new step.
 }
