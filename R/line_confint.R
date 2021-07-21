@@ -68,6 +68,7 @@
 #' @inheritParams test_stat
 #'
 #' @import foreach
+#' @importFrom stats rnorm
 #'
 #' @export
 line_confint <- function(index,
@@ -299,7 +300,7 @@ line_confint <- function(index,
         # continue the line search.
         # This only applies *after* we try one iteration of the while loop
         # (else, ts$ended_early is undefined)
-        perturb <- rnorm(1, mean = 0, sd = step / 5)
+        perturb <- stats::rnorm(1, mean = 0, sd = step / 5)
         current_beta <- current_beta + step * direction * 0.5 + rnorm(1, mean = 0, var = step / 5)
       } else {
         # If the previous test-stat computation successfully ran, then we'll
