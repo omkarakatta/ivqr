@@ -98,7 +98,7 @@ line_confint <- function(index,
                          kernel = "Powell",
                          residuals = NULL,
                          show_progress = TRUE,
-                         FUN = preprocess_iqr_milp,
+                         # FUN = preprocess_iqr_milp,
                          initial_TimeLimit = NULL,
                          ...) {
 

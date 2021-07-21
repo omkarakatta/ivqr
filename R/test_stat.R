@@ -74,11 +74,10 @@
 #' @param residuals Residuals from IQR MILP program; if NULL (default), use
 #'  naive residuals from quantile regression
 #' @param show_progress If TRUE (default), sends progress messages during
-#'  execution (boolean); also passed to \code{FUN}
+#'  execution (boolean); also passed to \code{preprocess_iqr_milp}
 #' @param print_results If TRUE (default), print the test-statistic, p-value,
 #'  and alpha level (boolean)
-#' @param FUN Either \code{preprocess_iqr_milp} (default) or \code{iqr_milp}
-#' @param ... Arguments passed to \code{FUN}
+#' @param ... Arguments passed to \code{preprocess_iqr_milp}
 test_stat <- function(beta_D_null,
                       beta_X_null,
                       alpha = 0.1,
@@ -95,7 +94,7 @@ test_stat <- function(beta_D_null,
                       kernel = "Powell",
                       show_progress = TRUE,
                       print_results = TRUE,
-                      FUN = preprocess_iqr_milp,
+                      # FUN = preprocess_iqr_milp,
                       ...) {
 
   # Start clock
@@ -106,9 +105,9 @@ test_stat <- function(beta_D_null,
   out <- list() # Initialize list of results to return
 
   # Check arguments
-  if (!identical(FUN, preprocess_iqr_milp) & !identical(FUN, iqr_milp)) {
-    stop("`FUN` should either be `preprocess_iqr_milp` or `iqr_milp`.")
-  }
+  # if (!identical(FUN, preprocess_iqr_milp) & !identical(FUN, iqr_milp)) {
+  #   stop("`FUN` should either be `preprocess_iqr_milp` or `iqr_milp`.")
+  # }
   kernel <- tolower(kernel)
   if (kernel != "powell" & kernel != "gaussian" & !homoskedasticity) {
     stop(paste0("`kernel` should either be 'Powell' or 'Gaussian', not ",
@@ -176,7 +175,7 @@ test_stat <- function(beta_D_null,
     short_iqr <- qr
     FUN <- "qr"
   } else {
-    short_iqr <- FUN(
+    short_iqr <- preprocess_iqr_milp(
       Y = Y_tilde,
       X = X_K_minus,
       D = D_J_minus,
@@ -186,20 +185,15 @@ test_stat <- function(beta_D_null,
       show_progress = show_progress,
       ...
     )
+    FUN <- "preprocess_iqr_milp"
   }
 
   send_note_if("Computed short-IQR solution", show_progress, message)
 
-  if (identical(FUN, preprocess_iqr_milp)) {
+  if (FUN == "preprocess_iqr_milp") {
     short_iqr_result <- short_iqr$final_fit
-  } else if (identical(FUN, iqr_milp)) {
+  } else if (FUN == "qr") {
     short_iqr_result <- short_iqr
-  } else if (identical(FUN, "qr")) {
-    short_iqr_result <- short_iqr
-  } else {
-    # TODO: this is a redundant error because we already check if FUN is valid.
-    # Should we keep this check here anyway?
-    stop("Incorrect specification of `FUN`")
   }
   out$short_iqr <- short_iqr_result
 
