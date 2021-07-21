@@ -329,5 +329,9 @@ test_stat <- function(beta_D_null,
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
   out$time_elapsed <- elapsed_time
 
+  if (print_results) {
+    print(paste("Time Elapsed (mins):", elapsed_time))
+  }
+
   return(out)
 }
