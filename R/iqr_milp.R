@@ -84,6 +84,8 @@ iqr_milp <- function(Y,
 
   out <- list() # Initialize list of results to return
 
+  send_note_if(paste("TimeLimit:", TimeLimit), TRUE, message) # DEBUG: remove after confirming TimeLimit is being honored in line_confint
+
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)

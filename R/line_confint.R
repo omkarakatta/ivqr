@@ -266,7 +266,7 @@ line_confint <- function(index,
 
   # Line Search
   # set up cluster
-  cl <- parallel::makeCluster(cores)
+  cl <- parallel::makeCluster(cores, outfile = paste0(log_dir, "/", date_time, "_outfile.txt")) # TODO: let user decide where and when to save the outfile
   doParallel::registerDoParallel(cl)
   on.exit(parallel::stopCluster(cl))
   confint <- foreach (direction = c(-1, 1),
