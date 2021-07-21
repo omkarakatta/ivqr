@@ -64,7 +64,7 @@
 #'  than \code{p_val_tol} for \code{small_change_count_tol} consecutive
 #'  iterations, we stop the while loop; defaults to 1e-6 and 10
 #' @param initial_TimeLimit Time limit (in sec) for computation of initial
-#'  test-statistic; defaults to 300 seconds (scalar)
+#'  test-statistic; defaults to heuristic (scalar)
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -98,7 +98,7 @@ line_confint <- function(index,
                          residuals = NULL,
                          show_progress = TRUE,
                          FUN = preprocess_iqr_milp,
-                         initial_TimeLimit = 300,
+                         initial_TimeLimit = NULL,
                          ...) {
 
   # Start clock
@@ -234,6 +234,7 @@ line_confint <- function(index,
     kernel = kernel,
     show_progress = show_progress,
     residuals = residuals,
+    TimeLimit = initial_TimeLimit,
     # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
@@ -335,7 +336,7 @@ line_confint <- function(index,
       # Otherwise, we record the results, check if the p-value flattens, and
       # change the direction if need be.
       if (ts$ended_early) {
-        time_limit <- time_limit * 2 # increase time limit
+        time_limit <- time_limit * 2 # double the time limit temporarily
         current_p_val <- "skipped"
         current_ts_reject <- "skipped"
       } else {
