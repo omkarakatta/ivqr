@@ -302,7 +302,7 @@ line_confint <- function(index,
         # This only applies *after* we try one iteration of the while loop
         # (else, ts$ended_early is undefined)
         perturb <- stats::rnorm(1, mean = 0, sd = step / 5)
-        current_beta <- current_beta + step * direction * 0.5 + rnorm(1, mean = 0, sd = step / 5)
+        current_beta <- current_beta + step * direction * 0.5 + perturb
       } else {
         # If the previous test-stat computation successfully ran, then we'll
         # take a step in the specified direction and then continue the line

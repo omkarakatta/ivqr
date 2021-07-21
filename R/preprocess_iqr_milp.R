@@ -191,6 +191,7 @@ preprocess_iqr_milp <- function(Y,
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
 
   # Return results
+  out$status <- fit$status
   out$final_fit <- fit
   out$time <- elapsed_time
   out$O_neg <- O_neg
