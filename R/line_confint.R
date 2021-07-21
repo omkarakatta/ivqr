@@ -244,7 +244,7 @@ line_confint <- function(index,
   }
   out$initial_test_stat <- initial_test_stat
   initial_rejected <- initial_test_stat$p_val < alpha
-  initial_time <- initial_test_stat$time_elapsed * 60 # time in seconds
+  initial_time <- as.numeric(initial_test_stat$time_elapsed * 60) # time in seconds
   if (initial_rejected) {
     warning("Initial value of beta_null was rejected.")
     return(out)
