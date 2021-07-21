@@ -217,6 +217,7 @@ line_confint <- function(index,
     beta_X_null[index] <- beta_null
   }
 
+  # TODO: save initial test-stat info in CSV with suffix counter = 0
   # Is initial value in confidence interval?
   initial_test_stat <- test_stat(
     beta_D_null = beta_D_null,
@@ -258,6 +259,10 @@ line_confint <- function(index,
   out$kernel <- kernel
   out$alpha <- alpha
   out$cores <- cores
+
+
+  msg <- paste("Starting Line Search", Sys.time())
+  send_note_if(msg, show_progress, message)
 
   # Line Search
   # set up cluster
