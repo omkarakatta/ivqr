@@ -291,6 +291,7 @@ line_confint <- function(index,
            small_change_in_p_val < small_change_count_tol) {
       clock_start_while <- Sys.time() # start the clock for current step
       counter <- counter + 1 # update counter
+      send_note_if(paste("Type & Counter:", type, counter), show_progress, message) # DEBUG: consider removing this
       old_p_val <- current_p_val # save previous p-value
       old_ts_reject <- current_ts_reject # save previous status of test
       old_beta <- current_beta # save previous beta
