@@ -68,6 +68,8 @@
 #'  heuristic (scalar)
 #' @param initial_globalTimeLimit Time limit (in sec) for computation of
 #'  initial test-statistic; defaults to Inf (scalar)
+#' @param save_log If TRUE, save log files from Gurobi programs in
+#' \code{log_dir}; defaults to FALSE (boolean)
 #' @inheritParams test_stat
 #'
 #' @import foreach
@@ -104,6 +106,7 @@ line_confint <- function(index,
                          # FUN = preprocess_iqr_milp,
                          initial_TimeLimit = NULL,
                          initial_globalTimeLimit = Inf,
+                         save_log = FALSE,
                          ...) {
 
   # Start clock
@@ -242,6 +245,9 @@ line_confint <- function(index,
     residuals = residuals,
     TimeLimit = initial_TimeLimit,
     globalTimeLimit = initial_globalTimeLimit,
+    LogFileName = ifelse(save_log,
+                         paste0(log_dir, "/", date_time, "_initialTestStat"),
+                         ""),
     # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
@@ -340,6 +346,9 @@ line_confint <- function(index,
         residuals = residuals,
         TimeLimit = time_limit,
         globalTimeLimit = time_limit,
+        LogFileName = ifelse(save_log,
+                             paste0(log_dir, "/", date_time, "_", type, "_step", counter),
+                             ""),
         # FUN = preprocess_iqr_milp, # TODO: let user decide what this is
         ...
       )
