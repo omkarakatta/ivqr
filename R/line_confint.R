@@ -353,11 +353,13 @@ line_confint <- function(index,
         time_limit <- time_limit * 2 # double the time limit temporarily
         current_p_val <- "skipped"
         current_ts_reject <- "skipped"
+        current_ts <- "skipped"
       } else {
         time_limit <- initial_time * 2 # reset time limit
         # determine test status
         current_p_val <- ts$p_val
         current_ts_reject <- ts$p_val < alpha
+        current_ts <- ts$test_stat
         # check if change in p-value is small
         if (abs(current_p_val - old_p_val) < p_val_tol) {
           small_change_in_p_val <- small_change_in_p_val + 1
@@ -385,7 +387,7 @@ line_confint <- function(index,
                    endogeneous,         # coefficient of interest
                    current_beta,        # current value of null
                    current_p_val,       # current p-value
-                   ts$test_stat,        # current test-stat
+                   current_ts,          # current test-stat
                    current_ts_reject,   # p-val < alpha => reject null?
                    elapsed_while,       # time for current iteration
                    step,                # new step
