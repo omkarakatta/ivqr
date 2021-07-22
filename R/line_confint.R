@@ -292,6 +292,7 @@ line_confint <- function(index,
     # set the time limit to be 2 * time limit of initial test-stat computation
     time_limit <- initial_time * 2
     ts <- list(); ts$ended_early <- NULL # initialize ts$ended_early to be NULL
+    # TODO: stop the while loop if the width of the confidence interval is very large (think about how to present the results)
     while (step > stopping_tolerance &
            small_change_in_p_val < small_change_count_tol) {
       clock_start_while <- Sys.time() # start the clock for current step
