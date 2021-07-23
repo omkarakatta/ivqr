@@ -308,6 +308,7 @@ line_confint <- function(index,
       old_ts_reject <- current_ts_reject # save previous status of test
       old_beta <- current_beta # save previous beta
       if (!is.null(ts$ended_early)) {
+        message(paste(type, counter, "PREVIOUSLY ENDED EARLY")) # DEBUG: remove later
         # If the previous test-stat computation ended early, then we'll take a
         # tiny step in the same direction with a small perturbation and then
         # continue the line search.
@@ -316,6 +317,7 @@ line_confint <- function(index,
         perturb <- stats::rnorm(1, mean = 0, sd = step / 5)
         current_beta <- current_beta + step * direction * 0.5 + perturb
       } else {
+        message(paste(type, counter, "PREVIOUSLY DID NOT END EARLY")) # DEBUG: remove later
         # If the previous test-stat computation successfully ran, then we'll
         # take a step in the specified direction and then continue the line
         # search.
@@ -358,12 +360,15 @@ line_confint <- function(index,
       # the next step).
       # Otherwise, we record the results, check if the p-value flattens, and
       # change the direction if need be.
+      # message(paste(type, counter, "did not end early:", is.null(ts$ended_early))) # DEBUG: remove later
       if (!is.null(ts$ended_early)) {
+        message(paste(type, counter, "ENDED EARLY")) # DEBUG: remove later
         time_limit <- time_limit * 2 # double the time limit temporarily
         current_p_val <- "skipped"
         current_ts_reject <- "skipped"
         current_ts <- "skipped"
       } else {
+        message(paste(type, counter, "DID NOT END EARLY")) # DEBUG: remove later
         time_limit <- initial_time * 2 # reset time limit
         # determine test status
         current_p_val <- ts$p_val
@@ -375,11 +380,13 @@ line_confint <- function(index,
         } else {
           small_change_in_p_val <- 0
         }
+        message(paste(type, counter, "Update p-val count")) # DEBUG: remove later
         # update direction and step size
         if (old_ts_reject != current_ts_reject) {
           direction <- -1 * direction
           step <- step * step_rate
         }
+        message(paste(type, counter, "Update direction (if necessary)")) # DEBUG: remove later
       }
 
       clock_end_while <- Sys.time()
@@ -411,8 +418,11 @@ line_confint <- function(index,
         cat("\n", sep = ",",
             file = file_path,
             append = TRUE) # add newline at EOF
+        message(paste(type, counter, "SAVE RESULTS")) # DEBUG: remove later
       }
     } # end of while loop
+
+    message(paste(type, "leave while loop:", TRUE)) # DEBUG: remove later
     out$counter <- counter # TODO: this is not being saved; save min_counter and max_counter
 
     if (small_change_in_p_val < small_change_count_tol) {
@@ -431,6 +441,7 @@ line_confint <- function(index,
     }
   } # end of for loop
 
+  message(paste("leave foreach loop:", TRUE)) # DEBUG: remove later
   flattens_min <- grepl("p-val flattens for min", confint)
   flattens_max <- grepl("p-val flattens for max", confint)
   flattens <- flattens_min + flattens_max
