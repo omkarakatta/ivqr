@@ -304,8 +304,6 @@ line_confint <- function(index,
       clock_start_while <- Sys.time() # start the clock for current step
       counter <- counter + 1 # update counter
       send_note_if(paste("Type & Counter:", type, counter), show_progress, message) # DEBUG: consider removing this
-      old_p_val <- current_p_val # save previous p-value
-      old_ts_reject <- current_ts_reject # save previous status of test
       old_beta <- current_beta # save previous beta
       if (!is.null(ts$ended_early)) {
         message(paste(type, counter, "PREVIOUSLY ENDED EARLY")) # DEBUG: remove later
@@ -321,6 +319,8 @@ line_confint <- function(index,
         # If the previous test-stat computation successfully ran, then we'll
         # take a step in the specified direction and then continue the line
         # search.
+        old_p_val <- current_p_val # save previous p-value if previous step wasn't skipped
+        old_ts_reject <- current_ts_reject # save previous status of test if previous step wasn't skipped
         current_beta <- current_beta + step * direction # update beta
       }
       # construct null
