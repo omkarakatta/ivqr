@@ -13,6 +13,7 @@ preprocess_iqr_milp(
   tau,
   M = NULL,
   TimeLimit = NULL,
+  globalTimeLimit = Inf,
   prop_alpha_initial = 0.7,
   r = 1.25,
   show_iterations = FALSE,
@@ -39,7 +40,10 @@ defaults to the linear projection of D on X and Z (matrix with n rows)}
 quantile regression of Y on X and D}
 
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
-defaults to heuristic
+defaults to heuristic (numeric)}
+
+\item{globalTimeLimit}{Maximum time (in seconds) spent on the entire
+preprocessing function; defaults to Inf (i.e., no time limit) (numeric)
 thus, 1 - \code{prop_alpha_initial} is the proportion of observations whose
 dual variables (i.e., sign of the residuals) are fixed at the start
 (number between 0 and 1)}

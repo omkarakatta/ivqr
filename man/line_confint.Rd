@@ -33,6 +33,8 @@ line_confint(
   residuals = NULL,
   show_progress = TRUE,
   initial_TimeLimit = NULL,
+  initial_globalTimeLimit = Inf,
+  save_log = FALSE,
   ...
 )
 }
@@ -119,8 +121,15 @@ naive residuals from quantile regression}
 \item{show_progress}{If TRUE (default), sends progress messages during
 execution (boolean); also passed to \code{preprocess_iqr_milp}}
 
-\item{initial_TimeLimit}{Time limit (in sec) for computation of initial
-test-statistic; defaults to heuristic (scalar)}
+\item{initial_TimeLimit}{Time limit (in sec) for each iteration of
+preprocessing in the computation of initial test-statistic; defaults to
+heuristic (scalar)}
+
+\item{initial_globalTimeLimit}{Time limit (in sec) for computation of
+initial test-statistic; defaults to Inf (scalar)}
+
+\item{save_log}{If TRUE, save log files from Gurobi programs in
+\code{log_dir}; defaults to FALSE (boolean)}
 
 \item{...}{Arguments passed to \code{preprocess_iqr_milp}}
 }

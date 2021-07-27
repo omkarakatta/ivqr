@@ -47,12 +47,12 @@ quantile regression of Y on X and D}
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
 defaults to 300, will be appended to \code{params}}
 
-\item{sparse}{If TRUE (default), use sparse matrices # TODO: incorporate into iqr_milp}
+\item{sparse}{If TRUE (default), use sparse matrices}
 
 \item{params}{Gurobi parameters, see
 \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}
 
-\item{quietly}{If TRUE (default), sends messages during execution (boolean)}
+\item{quietly}{If TRUE (default), supress messages during execution (boolean)}
 
 \item{show_progress}{If TRUE (default), sends progress messages during
 execution (boolean)}
