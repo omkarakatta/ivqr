@@ -72,7 +72,7 @@
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
 #' @param residuals Residuals from IQR MILP program; if NULL (default), use
-#'  naive residuals from quantile regression
+#'  naive residuals from short-iqr regression
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean); also passed to \code{preprocess_iqr_milp}
 #' @param print_results If TRUE (default), print the test-statistic, p-value,
@@ -217,6 +217,9 @@ test_stat <- function(beta_D_null,
     # regression to define a_hat.
     a_hat <- short_iqr_result$dual
   }
+  # short-iqr residuals are used to construct a_hat (and consequently b_hat)
+  # `residuals` argument is used to construct Psi matrix (aka variance of residuals)
+  # If the `residuals` argument is not provided, we use the short-iqr residuals.
   if (is.null(residuals)) {
     resid <- short_iqr_result$resid
     out$resid <- resid
