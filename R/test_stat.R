@@ -221,6 +221,8 @@ test_stat <- function(beta_D_null,
   # `residuals` argument is used to construct Psi matrix (aka variance of residuals)
   # If the `residuals` argument is not provided, we use the short-iqr residuals.
   if (is.null(residuals)) {
+    msg <- "`residuals` not provided for variance estimation; using short-iqr residuals instead"
+    warning(msg)
     resid <- short_iqr_result$resid
     out$resid <- resid
   } else {
