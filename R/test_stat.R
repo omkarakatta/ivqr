@@ -71,6 +71,8 @@
 #'  "Powell" (default) to use the Powell estimator or
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
+#' @param a_hat Vector (n by 1) of dual variables; if NULL (default), use
+#'  dual-variables from short-iqr regression
 #' @param residuals Residuals from IQR MILP program; if NULL (default), use
 #'  residuals from short-iqr regression
 #' @param show_progress If TRUE (default), sends progress messages during
@@ -90,6 +92,7 @@ test_stat <- function(beta_D_null,
                       B = NULL,
                       orthogonalize_statistic = FALSE,
                       homoskedasticity = FALSE,
+                      a_hat = NULL,
                       residuals = NULL,
                       kernel = "Powell",
                       show_progress = TRUE,
@@ -166,57 +169,40 @@ test_stat <- function(beta_D_null,
 
   send_note_if("Concentrated out Y", show_progress, message)
 
-  # Obtain \hat{a} and residuals
-  if (ncol(D_J_minus) == 0) {
-    # If there are no endogeneous variables, return quantile regression results:
-    msg <- paste("p_D is 0 -- running QR instead of IQR MILP...")
-    send_note_if(msg, TRUE, warning)
-    qr <- quantreg::rq(Y_tilde ~ X_K_minus - 1, tau = tau)
-    short_iqr <- qr
-    FUN <- "qr"
-  } else {
-    short_iqr <- preprocess_iqr_milp(
-      Y = Y_tilde,
-      X = X_K_minus,
-      D = D_J_minus,
-      Z = Z_J_minus, # not really important since we specify Phi
-      Phi = Phi_J_minus,
-      tau = tau,
-      show_progress = show_progress,
-      ...
-    )
-    FUN <- "preprocess_iqr_milp"
-  }
-
-  send_note_if("Computed short-IQR solution", show_progress, message)
-
-  if (FUN == "preprocess_iqr_milp") {
-    short_iqr_result <- short_iqr$final_fit
-  } else if (FUN == "qr") {
-    short_iqr_result <- short_iqr
-  }
-  out$short_iqr <- short_iqr_result
-
-  # To get a_hat under full-vector inference (i.e., cardinality_J == p_D),
-  # we run a quantile regression, not the usual IQR MILP procedure.
-  # Hence, we don't need to print "status" or "objval" if we are in
-  # the full-vector setting because quantile regression doesn't return such
-  # results.
-  if (cardinality_J != p_D) {
-    if (short_iqr_result$status != "OPTIMAL") {
-      warning(paste("Short IQR Status:", short_iqr_result$status))
+  # Obtain \hat{a} and residuals via short-iqr regression
+  if (is.null(a_hat) | is.null(residuals)) {
+    if (ncol(D_J_minus) == 0) {
+      # If there are no endogeneous variables, return quantile regression results:
+      msg <- paste("p_D is 0 -- running QR instead of IQR MILP...")
+      send_note_if(msg, TRUE, warning)
+      qr <- quantreg::rq(Y_tilde ~ X_K_minus - 1, tau = tau)
+      short_iqr <- qr
+      FUN <- "qr"
+    } else {
+      short_iqr <- preprocess_iqr_milp(
+        Y = Y_tilde,
+        X = X_K_minus,
+        D = D_J_minus,
+        Z = Z_J_minus, # not really important since we specify Phi
+        Phi = Phi_J_minus,
+        tau = tau,
+        show_progress = show_progress,
+        ...
+      )
+      FUN <- "preprocess_iqr_milp"
     }
-    if (short_iqr_result$status == "TIME_LIMIT" || short_iqr_result$objval != 0) {
-      message(paste("Short IQR Objective Value:", short_iqr_result$objval))
-      out$ended_early <- TRUE
-      return(out)
+
+    send_note_if("Computed short-IQR solution", show_progress, message)
+
+    if (FUN == "preprocess_iqr_milp") {
+      short_iqr_result <- short_iqr$final_fit
+    } else if (FUN == "qr") {
+      short_iqr_result <- short_iqr
     }
-    a_hat <- short_iqr_result$a
-  } else {
-    # In full-vector inference, we use the dual variables of quantile
-    # regression to define a_hat.
-    a_hat <- short_iqr_result$dual
+    out$short_iqr <- short_iqr_result
   }
+
+  # residuals for estimating variance matrix aka Psi
   # short-iqr residuals are used to construct a_hat (and consequently b_hat)
   # `residuals` argument is used to construct Psi matrix (aka variance of residuals)
   # If the `residuals` argument is not provided, we use the short-iqr residuals.
@@ -228,6 +214,35 @@ test_stat <- function(beta_D_null,
   } else {
     resid <- residuals
     out$resid <- resid
+  }
+
+  # dual variables for computing test-stat
+  if (is.null(a_hat)) {
+    # use dual variables from short-iqr regression
+    # To get a_hat under full-vector inference (i.e., cardinality_J == p_D),
+    # we run a quantile regression, not the usual IQR MILP procedure.
+    # Hence, we don't need to print "status" or "objval" if we are in
+    # the full-vector setting because quantile regression doesn't return such
+    # results.
+    if (cardinality_J != p_D) {
+      if (short_iqr_result$status != "OPTIMAL") {
+        warning(paste("Short IQR Status:", short_iqr_result$status))
+      }
+      if (short_iqr_result$status == "TIME_LIMIT" || short_iqr_result$objval != 0) {
+        message(paste("Short IQR Objective Value:", short_iqr_result$objval))
+        out$ended_early <- TRUE
+        return(out)
+      }
+      a_hat <- short_iqr_result$a
+    } else {
+      # In full-vector inference, we use the dual variables of quantile
+      # regression to define a_hat.
+      a_hat <- short_iqr_result$dual
+    }
+    out$a_hat <- a_hat
+  } else {
+    # user-specified a_hat vector
+    out$a_hat <- a_hat
   }
 
   # Obtain \hat{b}
