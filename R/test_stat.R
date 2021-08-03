@@ -72,7 +72,7 @@
 #'  "Gaussian" to use a Gaussian kernel; only used when
 #'  \code{homoskedasticity} is FALSE
 #' @param residuals Residuals from IQR MILP program; if NULL (default), use
-#'  naive residuals from short-iqr regression
+#'  residuals from short-iqr regression
 #' @param show_progress If TRUE (default), sends progress messages during
 #'  execution (boolean); also passed to \code{preprocess_iqr_milp}
 #' @param print_results If TRUE (default), print the test-statistic, p-value,
