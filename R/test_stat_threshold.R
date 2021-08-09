@@ -16,7 +16,8 @@
 ### Author: Omkar A. Katta
 
 ### test_stat_threshold -------------------------
-#' Compute the test statistic and p-value under strong identification by thresholding the residuals
+#' Compute the test statistic and p-value under strong identification by
+#' thresholding the residuals
 #'
 #' Under user-specified null hypotheses (multivariate or univariate) on the
 #' endogeneous and exogeneous variables' coefficients, compute the test

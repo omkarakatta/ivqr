@@ -2,7 +2,8 @@
 % Please edit documentation in R/test_stat_threshold.R
 \name{test_stat_threshold}
 \alias{test_stat_threshold}
-\title{Compute the test statistic and p-value under strong identification by thresholding the residuals}
+\title{Compute the test statistic and p-value under strong identification by
+thresholding the residuals}
 \usage{
 test_stat_threshold(
   beta_D_null,
