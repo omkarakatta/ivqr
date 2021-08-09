@@ -116,7 +116,7 @@ defaults to FALSE (boolean)}
 \code{homoskedasticity} is FALSE}
 
 \item{residuals}{Residuals from IQR MILP program; if NULL (default), use
-naive residuals from quantile regression}
+residuals from short-iqr regression}
 
 \item{show_progress}{If TRUE (default), sends progress messages during
 execution (boolean); also passed to \code{preprocess_iqr_milp}}
