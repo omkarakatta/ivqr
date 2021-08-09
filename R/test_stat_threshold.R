@@ -237,7 +237,7 @@ test_stat_threshold <- function(beta_D_null,
         return(out)
       }
     }
-    a_hat <- as.numeric(resid > 0)
+    a_hat <- as.numeric(short_iqr_result$resid > 0)
     out$a_hat <- a_hat
   } else {
     # user-specified a_hat vector
