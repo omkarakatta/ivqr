@@ -114,6 +114,10 @@ line_confint <- function(index,
   message(paste("Clock started:", clock_start))
 
   out <- list() # Initialize list of results to return
+  out$homoskedasticity <- homoskedasticity
+  kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
+  out$kernel <- kernel
+  out$alpha <- alpha
 
   # Get dimensions of data
   n <- length(Y)
@@ -266,10 +270,6 @@ line_confint <- function(index,
   msg <- paste("Computed initial test statistic:", Sys.time())
   send_note_if(msg, show_progress, message)
 
-  out$homoskedasticity <- homoskedasticity
-  kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
-  out$kernel <- kernel
-  out$alpha <- alpha
   out$cores <- cores
 
 
