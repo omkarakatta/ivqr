@@ -119,6 +119,9 @@ line_confint <- function(index,
   out$kernel <- kernel
   out$alpha <- alpha
 
+  crit_val <- stats::qnorm(1 - alpha / 2)
+  out$crit_val <- crit_val
+
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)
