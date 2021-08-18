@@ -334,7 +334,9 @@ test_stat_threshold <- function(beta_D_null,
     print(paste("p-value:", p_val))
   }
 
-  out$test_stat <- test_stat
+  stopifnot(nrow(test_stat) == 1)
+  stopifnot(ncol(test_stat) == 1)
+  out$test_stat <- as.numeric(test_stat)
   out$p_val <- p_val
 
   # Stop the clock
