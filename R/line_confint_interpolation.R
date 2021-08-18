@@ -555,7 +555,7 @@ line_confint_interpolation <- function(index,
     beta_D_null <- rep(NA, p_D)
     beta_X_null <- rep(NA, p_X)
     current_ts_reject <- NA
-    current_p_val <- NA
+    current_p_val <- -Inf # spps first iteration is skipped and second iteration did not end early; then, old_p_val will be given by this line (which is -Inf) so arithmetic with new p-val will be valid
     counter <- 0
     small_change_in_p_val <- 0
     # set the time limit to be 2 * time limit of initial test-stat computation
