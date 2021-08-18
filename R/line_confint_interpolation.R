@@ -134,6 +134,7 @@ line_confint_interpolation <- function(index,
   kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
   out$kernel <- kernel
   out$alpha <- alpha
+  out$beta_null <- beta_null
 
   crit_val <- stats::qnorm(1 - alpha / 2)
   out$crit_val <- crit_val
@@ -301,6 +302,9 @@ line_confint_interpolation <- function(index,
   right_beta <- wald$upper
   out$wald <- wald
 
+  msg <- paste("Computed Wald boundaries:", Sys.time())
+  send_note_if(msg, show_progress, message)
+
   ### Interpolation Exercise -------------------------
 
   # TODO: parallelize computation of left_test_stat and right_test_stat?
@@ -339,6 +343,9 @@ line_confint_interpolation <- function(index,
   )
   out$left <- left_test_stat
 
+  msg <- paste("Computed Wald-left test-statistic:", Sys.time())
+  send_note_if(msg, show_progress, message)
+
   # evaluate right boundary
   beta_D_null <- rep(NA, p_D)
   beta_X_null <- rep(NA, p_X)
@@ -373,6 +380,9 @@ line_confint_interpolation <- function(index,
   )
   out$right <- right_test_stat
 
+  msg <- paste("Computed Wald-right test-statistic:", Sys.time())
+  send_note_if(msg, show_progress, message)
+
   # interpolation of left_test_stat, right_test_stat, and initial_test_stat
   interpolation_data <- data.frame(
     x = c(beta_null, left_beta, right_beta),
@@ -395,6 +405,9 @@ line_confint_interpolation <- function(index,
   min_crit_val <- ifelse(min_beta_candidate == beta_1, -crit_val, crit_val)
   max_crit_val <- ifelse(max_beta_candidate == beta_1, -crit_val, crit_val)
   stopifnot(min_crit_val == -max_crit_val)
+
+  msg <- paste("Finished initial interpolation:", Sys.time())
+  send_note_if(msg, show_progress, message)
 
   ### Find step size and direction for *_beta_candidate -------------------------
 
@@ -456,6 +469,9 @@ line_confint_interpolation <- function(index,
   min_delta_y <- min_test_stat$test_stat - min_crit_val
   min_step_size <- abs(min_delta_y / min_slope) # TODO: what does the sign of this quantity mean?
 
+  msg <- paste("Finished finding min_step_size and min_direction:", Sys.time())
+  send_note_if(msg, show_progress, message)
+
   # evaluate max_beta_candidate
   beta_D_null <- rep(NA, p_D)
   beta_X_null <- rep(NA, p_X)
@@ -514,6 +530,8 @@ line_confint_interpolation <- function(index,
   max_delta_y <- max_test_stat$test_stat - max_crit_val
   max_step_size <- abs(max_delta_y / max_slope) # TODO: what does the sign of this quantity mean?
 
+  msg <- paste("Finished finding max_step_size and max_direction:", Sys.time())
+  send_note_if(msg, show_progress, message)
 
   ### Line Search -------------------------
 
