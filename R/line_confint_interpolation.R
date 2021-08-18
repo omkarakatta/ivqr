@@ -287,7 +287,7 @@ line_confint_interpolation <- function(index,
   ### figure out left and right boundaries for interpolation -------------------------
   wald <- wald_univariate(
     center = beta_null,
-    endogeneous = endogenous,
+    endogeneous = endogeneous,
     index = index,
     resid = residuals,
     alpha = alpha,
