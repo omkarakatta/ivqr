@@ -337,7 +337,7 @@ line_confint_interpolation <- function(index,
     # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
-  out$left <- left
+  out$left <- left_test_stat
 
   # evaluate right boundary
   beta_D_null <- rep(NA, p_D)
@@ -371,7 +371,7 @@ line_confint_interpolation <- function(index,
     # FUN = FUN, # TODO: allow user to choose between preprocess_iqr_milp and iqr_milp
     ...
   )
-  out$right <- right
+  out$right <- right_test_stat
 
   # interpolation of left_test_stat, right_test_stat, and initial_test_stat
   interpolation_data <- data.frame(
@@ -451,7 +451,7 @@ line_confint_interpolation <- function(index,
       y = c(min_test_stat$test_stat, left_test_stat$test_stat)
     )
   }
-  min_reg <- lm(y ~ x, data = tmp)
+  min_reg <- lm(y ~ x, data = min_interpolation_data)
   min_slope <- coef(min_reg)['x']
   min_delta_y <- min_test_stat$test_stat - min_crit_val
   min_step_size <- abs(min_delta_y / min_slope) # TODO: what does the sign of this quantity mean?
@@ -509,7 +509,7 @@ line_confint_interpolation <- function(index,
       y = c(max_test_stat$test_stat, right_test_stat$test_stat)
     )
   }
-  max_reg <- lm(y ~ x, data = tmp)
+  max_reg <- lm(y ~ x, data = max_interpolation_data)
   max_slope <- coef(max_reg)['x']
   max_delta_y <- max_test_stat$test_stat - max_crit_val
   max_step_size <- abs(max_delta_y / max_slope) # TODO: what does the sign of this quantity mean?
