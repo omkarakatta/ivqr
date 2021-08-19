@@ -408,6 +408,8 @@ line_confint_interpolation <- function(index,
   max_beta_candidate <- max(beta_1, beta_2)
   print(paste("min_beta_candidate:", min_beta_candidate))
   print(paste("max_beta_candidate:", max_beta_candidate))
+  min_dist_to_null <- beta_null - min_beta_candidate # used to inform step size
+  max_dist_to_null <- max_beta_candidate - beta_null # used to inform step size
   # determine whether *_beta_candidate is associated with positive or negative crit_val
   # i.e., is the test-stat incr. or decr. with respect to beta_D
   # this is useful when computing the "error" from our interpolation (see min_delta_y and max_delta_y)
@@ -477,9 +479,16 @@ line_confint_interpolation <- function(index,
   min_slope <- coef(min_reg)['x']
   min_delta_y <- min_test_stat$test_stat - min_crit_val
   min_step_size <- abs(min_delta_y / min_slope) # TODO: what does the sign of this quantity mean?
+  min_step_size <- min(min_dist_to_null / 2, min_step_size) # ensure step size doesn't completely miss the interval altogether
+  if (min_step_size == min_dist_to_null) {
+    print("Using slope for `min` is meaningless")
+  }
 
   msg <- paste("Finished finding min_step_size and min_direction:", Sys.time())
   send_note_if(msg, show_progress, message)
+
+  print(paste("Min step size:", min_step_size))
+  print(paste("Min direction:", min_direction))
 
   # evaluate max_beta_candidate
   beta_D_null <- rep(NA, p_D)
@@ -538,9 +547,16 @@ line_confint_interpolation <- function(index,
   max_slope <- coef(max_reg)['x']
   max_delta_y <- max_test_stat$test_stat - max_crit_val
   max_step_size <- abs(max_delta_y / max_slope) # TODO: what does the sign of this quantity mean?
+  max_step_size <- min(max_dist_to_null / 2, max_step_size) # ensure that the step size doesn't completely skip the interval altogether
+  if (max_step_size == max_dist_to_null) {
+    print("Using slope for `max` is meaningless")
+  }
 
   msg <- paste("Finished finding max_step_size and max_direction:", Sys.time())
   send_note_if(msg, show_progress, message)
+
+  print(paste("Max step size:", max_step_size))
+  print(paste("Max direction:", max_direction))
 
   ### Line Search -------------------------
 
