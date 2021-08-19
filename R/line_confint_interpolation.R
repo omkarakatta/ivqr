@@ -801,6 +801,7 @@ line_confint_interpolation <- function(index,
       # remove files saved during while loop
       file.remove(list.files(log_dir, pattern = date_time, full.names = T))
     } else {
+      # TODO: order by counter
       concatenate_csvs(
         log_dir,
         cols = c("type",
