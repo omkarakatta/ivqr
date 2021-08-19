@@ -161,6 +161,9 @@ line_confint_interpolation <- function(index,
   msg <- "No more than 2 cores are needed for line search."
   send_note_if(msg, cores > 2, warning)
 
+  # Send error if step rate is at least 1
+  stopifnot(step_rate < 1)
+
   # Check that index is an integer that is between 1 and p_D or p_X (inclusive)
   stopifnot(index > 0) # can't be negative
   stopifnot(length(index) == 1) # we project on axis of only one coefficient
@@ -657,23 +660,23 @@ line_confint_interpolation <- function(index,
         }
         message(paste(type, counter, "Update p-val count")) # DEBUG: remove later
         # update direction and step size
-        if (current_ts_reject) {
-          # if we reject, then we want to move to the right if we're searching
-          # for the lower bound or move to the left if we're searching for the
-          # upper bound.
-          direction <- ifelse(type == "min", 1, -1)
-        } else {
-          # if we fail to reject, then we want to move the left if we're
-          # searching for the lower bound or move to the right if we're
-          # searching for the upper bound.
-          direction <- ifelse(type == "min", -1, 1)
-        }
-        step <- step * step_rate # TODO: determine step rate!!!
-        ### OLD CODE, TODO: remove
-        ### if (old_ts_reject != current_ts_reject) {
-        ###   direction <- -1 * direction
-        ###   step <- step * step_rate
+        ### TODO: remove; I don't think this is necessary. We just need to flip the direction if we cross the boundary
+        ### if (current_ts_reject) {
+        ###   # if we reject, then we want to move to the right if we're searching
+        ###   # for the lower bound or move to the left if we're searching for the
+        ###   # upper bound.
+        ###   direction <- ifelse(type == "min", 1, -1)
+        ### } else {
+        ###   # if we fail to reject, then we want to move the left if we're
+        ###   # searching for the lower bound or move to the right if we're
+        ###   # searching for the upper bound.
+        ###   direction <- ifelse(type == "min", -1, 1)
         ### }
+        if (old_ts_reject != current_ts_reject) {
+          # cross boundary of CI => change direction
+          direction <- direction * -1
+          step <- step * step_rate
+        }
         message(paste(type, counter, "Update direction (if necessary)")) # DEBUG: remove later
       }
 
