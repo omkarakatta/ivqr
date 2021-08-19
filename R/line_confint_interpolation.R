@@ -304,6 +304,8 @@ line_confint_interpolation <- function(index,
 
   msg <- paste("Computed Wald boundaries:", Sys.time())
   send_note_if(msg, show_progress, message)
+  print(paste("Left Wald:", left_beta)) # DEBUG: remove later?
+  print(paste("Right Wald:", right_beta)) # DEBUG: remove later?
 
   ### Interpolation Exercise -------------------------
 
@@ -345,6 +347,7 @@ line_confint_interpolation <- function(index,
 
   msg <- paste("Computed Wald-left test-statistic:", Sys.time())
   send_note_if(msg, show_progress, message)
+  print(paste("Wald left ts:", left_test_stat$test_stat)) # DEBUG: remove later?
 
   # evaluate right boundary
   beta_D_null <- rep(NA, p_D)
@@ -382,6 +385,7 @@ line_confint_interpolation <- function(index,
 
   msg <- paste("Computed Wald-right test-statistic:", Sys.time())
   send_note_if(msg, show_progress, message)
+  print(paste("Wald right ts:", left_test_stat$test_stat)) # DEBUG: remove later?
 
   # interpolation of left_test_stat, right_test_stat, and initial_test_stat
   interpolation_data <- data.frame(
@@ -717,6 +721,8 @@ line_confint_interpolation <- function(index,
         (pair_p_val[ordered[2]] - pair_p_val[ordered[1]])
       pair_beta <- c(old_beta, current_beta)
       beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
+      print(paste("Type:", type, "| Pair Beta:", paste(pair_beta, collapse = ", "))) # DEBUG: remove later?
+      print(paste("Type:", type, "| Beta Border:", beta_border)) # DEBUG: remove later?
       beta_border # this is what we return at end of foreach loop
     } else {
       paste("p-val flattens for", type)
