@@ -569,7 +569,7 @@ line_confint_interpolation <- function(index,
   doParallel::registerDoParallel(cl)
   on.exit(parallel::stopCluster(cl))
   confint <- foreach (type = c("min", "max"),
-                      .combine = c,
+                      .combine = list,
                       .export = c("test_stat",
                                   "send_note_if",
                                   "preprocess_iqr_milp")) %dopar% {
@@ -582,6 +582,7 @@ line_confint_interpolation <- function(index,
     current_ts_reject <- ifelse(type == "min", min_test_stat$p_val < alpha, max_test_stat$p_val < alpha)
     current_p_val <- ifelse(type == "min", min_test_stat$p_val, max_test_stat$p_val)
     counter <- 0
+    num_skips <- 0
     small_change_in_p_val <- 0
     # set the time limit to be 2 * time limit of initial test-stat computation
     time_limit <- initial_time * 2
@@ -656,6 +657,7 @@ line_confint_interpolation <- function(index,
         current_p_val <- "skipped"
         current_ts_reject <- "skipped"
         current_ts <- "skipped"
+        num_skips <- num_skips + 1
       } else {
         message(paste(type, counter, "DID NOT END EARLY")) # DEBUG: remove later
         time_limit <- initial_time * 2 # reset time limit
@@ -725,7 +727,6 @@ line_confint_interpolation <- function(index,
     } # end of while loop
 
     message(paste(type, "leave while loop:", TRUE)) # DEBUG: remove later
-    out$counter <- counter # TODO: this is not being saved; save min_counter and max_counter
 
     if (small_change_in_p_val < small_change_count_tol) {
       # Linearly interpolate between previous two values of beta
@@ -740,13 +741,34 @@ line_confint_interpolation <- function(index,
       print(paste("Type:", type, "| Pair Beta:", paste(pair_beta, collapse = ", "))) # DEBUG: remove later?
       print(paste("Type:", type, "| pi:", pi)) # DEBUG: remove later?
       print(paste("Type:", type, "| Beta Border:", beta_border)) # DEBUG: remove later?
-      beta_border # this is what we return at end of foreach loop
+      c(beta_border, counter, num_skips) # this is what we return at end of foreach loop
     } else {
       paste("p-val flattens for", type)
     }
   } # end of for loop
 
   message(paste("leave foreach loop:", TRUE)) # DEBUG: remove later
+
+  # get counter (i.e., number of skipped steps)
+  confint_skips <- sapply(confint, function(i) i[[3]]) # get num_skips
+  min_skips <- confint_skips[[1]]
+  max_skips <- confint_skips[[2]]
+  out$min_skips <- min_skips
+  out$max_skips <- max_skips
+
+  # get counter (i.e., number of steps)
+  confint_counter <- sapply(confint, function(i) i[[2]]) # get counter
+  min_counter <- confint_counter[[1]]
+  max_counter <- confint_counter[[2]]
+  out$min_counter <- min_counter
+  out$max_counter <- max_counter
+
+  # save counter and skips information as a string for recording information
+  out$counter <- paste("min:", min_counter, " (skipped:", min_skips, ")",
+                       "| max:", max_counter, "(skipped:", max_skips, ")")
+
+  # get beta's
+  confint <- sapply(confint, function(i) i[[1]]) # get beta 
   flattens_min <- grepl("p-val flattens for min", confint)
   flattens_max <- grepl("p-val flattens for max", confint)
   flattens <- flattens_min + flattens_max
