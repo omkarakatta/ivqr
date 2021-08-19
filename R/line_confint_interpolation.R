@@ -563,13 +563,12 @@ line_confint_interpolation <- function(index,
     current_beta <- ifelse(type == "min", min_beta_candidate, max_beta_candidate)
     beta_D_null <- rep(NA, p_D)
     beta_X_null <- rep(NA, p_X)
-    current_ts_reject <- NA
-    current_p_val <- -Inf # spps first iteration is skipped and second iteration did not end early; then, old_p_val will be given by this line (which is -Inf) so arithmetic with new p-val will be valid
+    current_ts_reject <- ifelse(type == "min", min_test_stat$p_val < alpha, max_test_stat$p_val < alpha)
+    current_p_val <- ifelse(type == "min", min_test_stat$p_val, max_test_stat$p_val)
     counter <- 0
     small_change_in_p_val <- 0
     # set the time limit to be 2 * time limit of initial test-stat computation
     time_limit <- initial_time * 2
-    init <- TRUE # first iteration of while loop shouldn't move from current_beta
     ts <- list(); ts$ended_early <- NULL # initialize ts$ended_early to be NULL
     # TODO: stop the while loop if the width of the confidence interval is very large (think about how to present the results)
     while (step > stopping_tolerance &
@@ -594,12 +593,8 @@ line_confint_interpolation <- function(index,
         # search.
         old_p_val <- current_p_val # save previous p-value if previous step wasn't skipped
         old_ts_reject <- current_ts_reject # save previous status of test if previous step wasn't skipped
-        if (!init) {
-          current_beta <- current_beta + step * direction # update beta
-        } else {
-          # don't change current_beta and flip init to FALSE
-          init <- FALSE
-        }
+        current_beta <- current_beta + step * direction # update beta
+        print(paste("Type:", type, "| Counter:", counter, "| Current Beta:", current_beta))
       }
       # construct null
       if (endogeneous) {
