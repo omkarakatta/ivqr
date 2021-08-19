@@ -403,6 +403,8 @@ line_confint_interpolation <- function(index,
   # determine min_beta_candidate and max_beta_candidate
   min_beta_candidate <- min(beta_1, beta_2)
   max_beta_candidate <- max(beta_1, beta_2)
+  print(paste("min_beta_candidate:", min_beta_candidate))
+  print(paste("max_beta_candidate:", max_beta_candidate))
   # determine whether *_beta_candidate is associated with positive or negative crit_val
   # i.e., is the test-stat incr. or decr. with respect to beta_D
   # this is useful when computing the "error" from our interpolation (see min_delta_y and max_delta_y)
@@ -722,6 +724,7 @@ line_confint_interpolation <- function(index,
       pair_beta <- c(old_beta, current_beta)
       beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
       print(paste("Type:", type, "| Pair Beta:", paste(pair_beta, collapse = ", "))) # DEBUG: remove later?
+      print(paste("Type:", type, "| pi:", pi)) # DEBUG: remove later?
       print(paste("Type:", type, "| Beta Border:", beta_border)) # DEBUG: remove later?
       beta_border # this is what we return at end of foreach loop
     } else {
