@@ -135,6 +135,7 @@ line_confint_interpolation <- function(index,
   out$kernel <- kernel
   out$alpha <- alpha
   out$beta_null <- beta_null
+  out$tau <- tau
 
   crit_val <- stats::qnorm(1 - alpha / 2)
   out$crit_val <- crit_val

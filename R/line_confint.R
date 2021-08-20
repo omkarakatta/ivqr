@@ -118,6 +118,7 @@ line_confint <- function(index,
   kernel <- ifelse(homoskedasticity, "homoskedasticity", kernel)
   out$kernel <- kernel
   out$alpha <- alpha
+  out$tau <- tau
 
   crit_val <- stats::qnorm(1 - alpha / 2)
   out$crit_val <- crit_val
