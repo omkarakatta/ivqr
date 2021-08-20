@@ -398,10 +398,10 @@ line_confint_interpolation <- function(index,
   reg <- lm(y ~ x, data = interpolation_data)
   reg_coeffs <- coef(reg)
   reg_shiftdown <- reg_coeffs
-  reg_shiftdown['(Intercept)'] <- reg_coeffs['(Intercept)'] - crit_val
+  reg_shiftdown["(Intercept)"] <- reg_coeffs["(Intercept)"] - crit_val
   beta_1 <- as.numeric(polyroot(reg_shiftdown))
   reg_shiftup <- reg_coeffs
-  reg_shiftup['(Intercept)'] <- reg_coeffs['(Intercept)'] + crit_val
+  reg_shiftup["(Intercept)"] <- reg_coeffs["(Intercept)"] + crit_val
   beta_2 <- as.numeric(polyroot(reg_shiftup))
   # determine min_beta_candidate and max_beta_candidate
   min_beta_candidate <- min(beta_1, beta_2)
