@@ -53,6 +53,8 @@
 #'      column is the vector of errors on the location scale model; all other
 #'      columns are shocks to the instruments when defining D.
 #'  }
+#'
+#' @export
 chen_lee <- function(n = 500, p_D = 3) {
 
   # If p_D is less than 3, we will first create a Chen and Lee simulation with
