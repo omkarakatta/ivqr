@@ -89,6 +89,8 @@
 #'
 #' @import foreach
 #' @importFrom stats rnorm
+#' @importFrom stats lm
+#' @importFrom stats coef
 #'
 #' @export
 line_confint_interpolation <- function(index,
@@ -396,8 +398,8 @@ line_confint_interpolation <- function(index,
     x = c(beta_null, left_beta, right_beta),
     y = c(initial_test_stat$test_stat, left_test_stat$test_stat, right_test_stat$test_stat)
   )
-  reg <- lm(y ~ x, data = interpolation_data)
-  reg_coeffs <- coef(reg)
+  reg <- stats::lm(y ~ x, data = interpolation_data)
+  reg_coeffs <- stats::coef(reg)
   reg_shiftdown <- reg_coeffs
   reg_shiftdown["(Intercept)"] <- reg_coeffs["(Intercept)"] - crit_val
   beta_1 <- as.numeric(polyroot(reg_shiftdown))
@@ -476,8 +478,8 @@ line_confint_interpolation <- function(index,
       y = c(min_test_stat$test_stat, left_test_stat$test_stat)
     )
   }
-  min_reg <- lm(y ~ x, data = min_interpolation_data)
-  min_slope <- coef(min_reg)['x']
+  min_reg <- stats::lm(y ~ x, data = min_interpolation_data)
+  min_slope <- stats::coef(min_reg)['x']
   min_delta_y <- min_test_stat$test_stat - min_crit_val
   min_step_size <- abs(min_delta_y / min_slope) # TODO: what does the sign of this quantity mean?
   min_step_size <- min(min_dist_to_null / 2, min_step_size) # ensure step size doesn't completely miss the interval altogether
@@ -544,8 +546,8 @@ line_confint_interpolation <- function(index,
       y = c(max_test_stat$test_stat, right_test_stat$test_stat)
     )
   }
-  max_reg <- lm(y ~ x, data = max_interpolation_data)
-  max_slope <- coef(max_reg)['x']
+  max_reg <- stats::lm(y ~ x, data = max_interpolation_data)
+  max_slope <- stats::coef(max_reg)['x']
   max_delta_y <- max_test_stat$test_stat - max_crit_val
   max_step_size <- abs(max_delta_y / max_slope) # TODO: what does the sign of this quantity mean?
   max_step_size <- min(max_dist_to_null / 2, max_step_size) # ensure that the step size doesn't completely skip the interval altogether
