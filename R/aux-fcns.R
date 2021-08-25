@@ -76,3 +76,52 @@ linear_projection <- function(Y, ...) {
 round_to_magnitude <- function(x) {
   10 ^ (ceiling(log10(x)))
 }
+
+### p_val_interpolation -------------------------
+#' Perform P-value-weighted Linear Interpolation
+#'
+#' In line searches, we should interpolate between the two closest values that
+#' bound the true boundary of the confidence interval according to the p-value.
+#'
+#' When performing a line search in a given direction, the final two beta
+#' values will surround the true beta value that is the bound of the confidence
+#' interval. Interpolating between these two beta values will get us closer to
+#' the true beta value. The weights of this interpolation is given by the
+#' p-values of the final two beta values from the line search as well as the
+#' p-value of the true beta value, which is the alpha-level.
+#'
+#' @param old_p_val,new_p_val Values of the p-value associated with
+#'  \code{old_beta} and \code{new_beta} respectively
+#' @param old_beta,new_beta Values of the coefficient that are inside and
+#'  outside of the confidence interval (both can't be inside the CI nor can both
+#'  be outside)
+#' @param alpha Level of the hypothesis test
+#'
+#' @return Named list:
+#'  \item beta_border: New beta value that is the result of interpolation
+#'  \item pi: p-value-based weights
+p_val_interpolation <- function(old_p_val,
+                                new_p_val,
+                                old_beta,
+                                new_beta,
+                                alpha) {
+  pair_p_val <- c(old_p_val, new_p_val)
+
+  msg <- "`old_beta` and `new_beta` are on same side of the confidence interval." #nolint
+  both_reject <- old_p_val < alpha & new_p_val < alpha
+  both_accept <- old_p_val > alpha & new_p_val > alpha
+  send_note_if(msg, both_reject | both_accept, warning)
+
+  pair_beta <- c(old_beta, new_beta)
+  ordered <- order(pair_p_val) # ordered[1] = index of smaller p-value
+
+  # construct p-value-based weights
+  pi <- (alpha - pair_p_val[ordered[1]]) /
+    (pair_p_val[ordered[2]] - pair_p_val[ordered[1]])
+
+  # compute weighted sum of beta values
+  beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
+
+  # return new beta value and weight
+  list(beta_border = beta_border, pi = pi)
+}
