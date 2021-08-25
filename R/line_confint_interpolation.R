@@ -575,6 +575,7 @@ line_confint_interpolation <- function(index,
                       .combine = list,
                       .export = c("test_stat",
                                   "send_note_if",
+                                  "p_val_interpolation",
                                   "preprocess_iqr_milp")) %dopar% {
     # type <- ifelse(direction == 1, "max", "min")
     step <- ifelse(type == "min", min_step_size, max_step_size) # initial step size

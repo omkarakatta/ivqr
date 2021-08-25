@@ -289,6 +289,7 @@ line_confint <- function(index,
                       .combine = list,
                       .export = c("test_stat",
                                   "send_note_if",
+                                  "p_val_interpolation",
                                   "preprocess_iqr_milp")) %dopar% {
     type <- ifelse(direction == 1, "max", "min")
     step <- step_size
