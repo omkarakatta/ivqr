@@ -735,12 +735,21 @@ line_confint_interpolation <- function(index,
       # Linearly interpolate between previous two values of beta
       # One of these values of beta will be inside the confidence interval, while
       # the other value is outside the confidence interval.
-      pair_p_val <- c(old_p_val, current_p_val)
-      ordered <- order(pair_p_val) # ordered[1] = index of smaller p-value
-      pi <- (alpha - pair_p_val[ordered[1]]) /
-        (pair_p_val[ordered[2]] - pair_p_val[ordered[1]])
+      p_val_interpolation_result <- p_val_interpolation(
+        old_p_val = old_p_val,
+        new_p_val = new_p_val,
+        old_beta = old_beta,
+        new_beta = current_beta,
+        alpha = alpha
+      )
+      beta_border <- p_val_interpolation_result$beta_border
+      pi <- p_val_interpolation_result$pi
+      # pair_p_val <- c(old_p_val, current_p_val)
+      # ordered <- order(pair_p_val) # ordered[1] = index of smaller p-value
+      # pi <- (alpha - pair_p_val[ordered[1]]) /
+      #   (pair_p_val[ordered[2]] - pair_p_val[ordered[1]])
       pair_beta <- c(old_beta, current_beta)
-      beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
+      # beta_border <- (1 - pi) * pair_beta[ordered[1]] + pi * pair_beta[ordered[2]]
       print(paste("Type:", type, "| Pair Beta:", paste(pair_beta, collapse = ", "))) # DEBUG: remove later?
       print(paste("Type:", type, "| pi:", pi)) # DEBUG: remove later?
       print(paste("Type:", type, "| Beta Border:", beta_border)) # DEBUG: remove later?
