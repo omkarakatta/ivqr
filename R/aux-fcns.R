@@ -98,8 +98,13 @@ round_to_magnitude <- function(x) {
 #' @param alpha Level of the hypothesis test
 #'
 #' @return Named list:
-#'  \item beta_border: New beta value that is the result of interpolation
-#'  \item pi: p-value-based weights
+#'  \enumerate{
+#'    \item beta_border: New beta value that is the result of interpolation
+#'    \item pi: p-value-based weights
+#'  }
+#'
+#' @seealso \code{\link[line_confint]{line_confint}},
+#'  \code{\link[line_confint_interpolation]{line_confint_interpolation}}
 p_val_interpolation <- function(old_p_val,
                                 new_p_val,
                                 old_beta,
