@@ -36,6 +36,5 @@ p-values of the final two beta values from the line search as well as the
 p-value of the true beta value, which is the alpha-level.
 }
 \seealso{
-\code{\link[line_confint]{line_confint}},
-\code{\link[line_confint_interpolation]{line_confint_interpolation}}
+\code{\link{line_confint}}, \code{\link{line_confint_interpolation}}
 }
