@@ -438,7 +438,7 @@ line_confint <- function(index,
       # the other value is outside the confidence interval.
       p_val_interpolation_result <- p_val_interpolation(
         old_p_val = old_p_val,
-        new_p_val = new_p_val,
+        new_p_val = current_p_val,
         old_beta = old_beta,
         new_beta = current_beta,
         alpha = alpha
