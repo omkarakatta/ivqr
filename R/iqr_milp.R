@@ -30,6 +30,9 @@
 #'  defaults to 300, will be appended to \code{params}
 #' @param params Gurobi parameters, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
+#' @param start Gurobi attribute, see
+#'  \url{https://www.gurobi.com/documentation/9.1/examples/mip_starts.html}; If
+#'  NULL (default), no starting solution will be provided
 #' @param sparse If TRUE (default), use sparse matrices
 #' @param quietly If TRUE (default), supress messages during execution (boolean)
 #' @param show_progress If TRUE (default), sends progress messages during
@@ -77,6 +80,7 @@ iqr_milp <- function(Y,
                      sparse = TRUE,
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
+                     start = NULL,
                      quietly = TRUE,
                      show_progress = TRUE,
                      LogFileName = "",
@@ -479,6 +483,12 @@ iqr_milp <- function(Y,
                  sense_pp_k,  # Pre-processing - fixing k
                  sense_pp_l)  # Pre-processing - fixing l
   # message(paste("sense:", length(iqr$sense)))
+
+  if (!is.null(start)) {
+    # TODO: error-check starting solution
+    # TODO: figure out api to help people specify warmstart solutions
+    iqr$start <- start
+  }
 
   iqr$lb <- lb
   iqr$ub <- ub
