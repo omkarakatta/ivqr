@@ -105,6 +105,7 @@ iqr_milp <- function(Y,
   stopifnot(all.equal(n, n_D))
   stopifnot(all.equal(n, n_X))
   stopifnot(all.equal(n, n_Z))
+  message(c(n, n_Phi)) # DEBUG: remove
   stopifnot(all.equal(n, n_Phi))
 
   # If there are no endogeneous variables, return quantile regression results:
