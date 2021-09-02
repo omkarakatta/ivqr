@@ -90,6 +90,8 @@ iqr_milp <- function(Y,
 
   send_note_if(paste("TimeLimit:", TimeLimit, "secs"), show_progress, message)
 
+  return(Phi) # DEBUG: remove
+
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)
