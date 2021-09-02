@@ -90,9 +90,6 @@ iqr_milp <- function(Y,
 
   send_note_if(paste("TimeLimit:", TimeLimit, "secs"), show_progress, message)
 
-  print(Phi) # DEBUG: remove
-  return(Phi) # DEBUG: remove
-
   # Get dimensions of data
   n <- length(Y)
   n_D <- nrow(D)
@@ -108,8 +105,6 @@ iqr_milp <- function(Y,
   stopifnot(all.equal(n, n_D))
   stopifnot(all.equal(n, n_X))
   stopifnot(all.equal(n, n_Z))
-  message(paste(n, "n")) # DEBUG: remove
-  message(paste(n_Phi, "n_Phi")) # DEBUG: remove
   stopifnot(all.equal(n, n_Phi))
 
   # If there are no endogeneous variables, return quantile regression results:
