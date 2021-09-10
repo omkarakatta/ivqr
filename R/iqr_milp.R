@@ -33,6 +33,20 @@
 #' @param start Gurobi attribute, see
 #'  \url{https://www.gurobi.com/documentation/9.1/examples/mip_starts.html}; If
 #'  NULL (default), no starting solution will be provided
+#' @param fix Fix decision variables; If NULL (default), no starting solution will
+#'  be provided; if NA, the respective decision variable won't be fixed;
+#'  decision variables are:
+#'  \enumerate{
+#'    \item beta_X
+#'    \item beta_Phi_plus
+#'    \item beta_Phi_minus ; note: abs(beta_Phi) = beta_Phi_plus + beta_Phi_minus
+#'    \item beta_D
+#'    \item u
+#'    \item v
+#'    \item a
+#'    \item k
+#'    \item l
+#'  }
 #' @param sparse If TRUE (default), use sparse matrices
 #' @param quietly If TRUE (default), supress messages during execution (boolean)
 #' @param show_progress If TRUE (default), sends progress messages during
@@ -81,6 +95,7 @@ iqr_milp <- function(Y,
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
                      start = NULL,
+                     fix = NULL,
                      quietly = TRUE,
                      show_progress = TRUE,
                      LogFileName = "",
@@ -161,6 +176,21 @@ iqr_milp <- function(Y,
            rep(0, n),     # k
            rep(0, n))     # l
   stopifnot(length(obj) == num_decision_vars)
+
+  # Fix decision variables according to `fix`
+  if (is.null(fix)) {
+    A_fix <- c()
+    b_fix <- c()
+    sense_fix <- c()
+  } else {
+    not_na <- !is.na(fix)
+    A_fix <- diag(1, num_decision_vars)[not_na, ]
+    b_fix <- fix[not_na]
+    sense_fix <- rep('=', length(not_na))
+    stopifnot(ncol(A_fix) == num_decision_vars)
+    stopifnot(nrow(A_fix) == length(not_na))
+    stopifnot(length(b_fix) == length(not_na))
+  }
 
   # Primal Feasibility Constraint (11)
   A_pf <- cbind(X,                  # beta_X
@@ -435,7 +465,8 @@ iqr_milp <- function(Y,
   # Putting it all together
   iqr <- list()
   iqr$obj <- obj
-  iqr$A <- rbind(A_pf,    # Primal Feasibility
+  iqr$A <- rbind(A_fix,   # `fix`
+                 A_pf,    # Primal Feasibility
                  A_df_X,  # Dual Feasibility - X
                  A_df_Phi,  # Dual Feasibility - Phi
                  A_cs_uk, # Complementary Slackness - u and k
@@ -460,7 +491,8 @@ iqr_milp <- function(Y,
     iqr$A <- as(iqr$A, "sparseMatrix")
   }
 
-  iqr$rhs <- c(b_pf,    # Primal Feasibility
+  iqr$rhs <- c(b_fix,   # `fix`
+               b_pf,    # Primal Feasibility
                b_df_X,  # Dual Feasibility - X
                b_df_Phi,  # Dual Feasibility - Phi
                b_cs_uk, # Complementary Slackness - u and k
@@ -472,7 +504,8 @@ iqr_milp <- function(Y,
                b_pp_l)  # Pre-processing - fixing l
   # message(paste("b:", length(iqr$rhs)))
 
-  iqr$sense <- c(sense_pf,    # Primal Feasibility
+  iqr$sense <- c(sense_fix,   # `fix`
+                 sense_pf,    # Primal Feasibility
                  sense_df_X,  # Dual Feasibility - X
                  sense_df_Phi,  # Dual Feasibility - Phi
                  sense_cs_uk, # Complementary Slackness - u and k
