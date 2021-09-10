@@ -183,13 +183,14 @@ iqr_milp <- function(Y,
     b_fix <- c()
     sense_fix <- c()
   } else {
+    stopifnot(length(fix) - num_decision_vars == 0)
     not_na <- !is.na(fix)
     A_fix <- diag(1, num_decision_vars)[not_na, ]
     b_fix <- fix[not_na]
-    sense_fix <- rep('=', length(not_na))
+    sense_fix <- rep('=', sum(not_na))
     stopifnot(ncol(A_fix) == num_decision_vars)
-    stopifnot(nrow(A_fix) == length(not_na))
-    stopifnot(length(b_fix) == length(not_na))
+    stopifnot(nrow(A_fix) == sum(not_na))
+    stopifnot(length(b_fix) == sum(not_na))
   }
 
   # Primal Feasibility Constraint (11)
