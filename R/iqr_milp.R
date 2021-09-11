@@ -518,6 +518,20 @@ iqr_milp <- function(Y,
                  sense_pp_l)  # Pre-processing - fixing l
   # message(paste("sense:", length(iqr$sense)))
 
+  iqr$constrnames <- c(
+    rep("fix", length(sense_fix)),        # sum(not_na)
+    rep("pf", length(sense_pf)),          # n
+    rep("df_X", length(sense_df_X)),      # p_X
+    rep("df_Phi", length(sense_df_Phi)),  # p_Phi
+    rep("cs_uk", length(sense_cs_uk)),    # n
+    rep("cs_vl", length(sense_cs_vl)),    # n
+    rep("cs_ak", length(sense_cs_ak)),   # n
+    rep("cs_al", length(sense_cs_al)),   # n
+    rep("pp_a", length(sense_pp_a)),      # n if !is.null(O)
+    rep("pp_k", length(sense_pp_k)),      # n if !is.null(O)
+    rep("pp_l", length(sense_pp_l))       # n if !is.null(O)
+  )
+
   if (!is.null(start)) {
     # TODO: error-check starting solution
     # TODO: figure out api to help people specify warmstart solutions
