@@ -519,17 +519,17 @@ iqr_milp <- function(Y,
   # message(paste("sense:", length(iqr$sense)))
 
   iqr$constrnames <- c(
-    paste0("fix", seq_along(sense_fix)),        # sum(not_na)
-    paste0("pf", seq_along(sense_pf)),          # n
-    paste0("df_X", seq_along(sense_df_X)),      # p_X
-    paste0("df_Phi", seq_along(sense_df_Phi)),  # p_Phi
-    paste0("cs_uk", seq_along(sense_cs_uk)),    # n
-    paste0("cs_vl", seq_along(sense_cs_vl)),    # n
-    paste0("cs_ak", seq_along(sense_cs_ak)),    # n
-    paste0("cs_al", seq_along(sense_cs_al)),    # n
-    paste0("pp_a", seq_along(sense_pp_a)),      # n if !is.null(O)
-    paste0("pp_k", seq_along(sense_pp_k)),      # n if !is.null(O)
-    paste0("pp_l", seq_along(sense_pp_l))       # n if !is.null(O)
+    paste0("fix", seq_along(sense_fix), recycle0 = TRUE),        # sum(not_na)
+    paste0("pf", seq_along(sense_pf), recycle0 = TRUE),          # n
+    paste0("df_X", seq_along(sense_df_X), recycle0 = TRUE),      # p_X
+    paste0("df_Phi", seq_along(sense_df_Phi), recycle0 = TRUE),  # p_Phi
+    paste0("cs_uk", seq_along(sense_cs_uk), recycle0 = TRUE),    # n
+    paste0("cs_vl", seq_along(sense_cs_vl), recycle0 = TRUE),    # n
+    paste0("cs_ak", seq_along(sense_cs_ak), recycle0 = TRUE),    # n
+    paste0("cs_al", seq_along(sense_cs_al), recycle0 = TRUE),    # n
+    paste0("pp_a", seq_along(sense_pp_a), recycle0 = TRUE),      # n if !is.null(O)
+    paste0("pp_k", seq_along(sense_pp_k), recycle0 = TRUE),      # n if !is.null(O)
+    paste0("pp_l", seq_along(sense_pp_l), recycle0 = TRUE)       # n if !is.null(O)
   )
 
   if (!is.null(start)) {
