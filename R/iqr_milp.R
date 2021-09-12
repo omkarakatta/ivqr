@@ -532,6 +532,18 @@ iqr_milp <- function(Y,
     paste0("pp_l", seq_along(sense_pp_l), recycle0 = TRUE)       # n if !is.null(O)
   )
 
+  iqr$varnames <- c(
+    paste0("beta_X", seq_len(p_X), recycle0 = TRUE),
+    paste0("beta_Phi_plus", seq_len(p_Phi), recycle0 = TRUE),
+    paste0("beta_Phi_minus", seq_len(p_Phi), recycle0 = TRUE),
+    paste0("beta_D", seq_len(p_D), recycle0 = TRUE),
+    paste0("u", seq_len(n), recycle0 = TRUE),
+    paste0("v", seq_len(n), recycle0 = TRUE),
+    paste0("a", seq_len(n), recycle0 = TRUE),
+    paste0("k", seq_len(n), recycle0 = TRUE),
+    paste0("l", seq_len(n), recycle0 = TRUE)
+  )
+
   if (!is.null(start)) {
     # TODO: error-check starting solution
     # TODO: figure out api to help people specify warmstart solutions
