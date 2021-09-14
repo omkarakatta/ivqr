@@ -522,6 +522,7 @@ iqr_milp <- function(Y,
     }
   } else {
     VarHintVal <- NULL
+    VarHintPri <- NULL
   }
   if (!VarHintVal_bool & VarHintPri_bool) {
     send_note_if("`VarHintVal_bool` is FALSE; ignoring `VarHintPri_bool`")
