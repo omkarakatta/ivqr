@@ -528,9 +528,9 @@ iqr_milp <- function(Y,
     send_note_if("`VarHintVal_bool` is FALSE; ignoring `VarHintPri_bool`")
   }
   if (!is.null(O) & BranchPriority_bool) {
-    BranchPriority_bool <- hints_pri
+    BranchPriority <- hints_pri
   } else {
-    BranchPriority_bool <- NULL
+    BranchPriority <- NULL
   }
 
   # Putting it all together
