@@ -159,6 +159,7 @@ preprocess_iqr_milp <- function(Y,
     O_pos <- which(resid > alphawidth)
     O <- c(O_neg, O_pos)
     send_note_if(paste("Alpha:", alphawidth), show_iterations, message)
+    # TODO: are we fixing the "dual" variables? I think we can improve the message below
     send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_iterations, message)
     # Heuristic for time limit
     if (length(O) == 0) {
