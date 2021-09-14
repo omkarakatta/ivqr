@@ -553,7 +553,7 @@ iqr_milp <- function(Y,
     # TODO: error check the attribute names?
     # TODO: send warning if attribute already exists?
     att_name <- names(attributes)[[i]]
-    att_val <- attributes[['att_name']]
+    att_val <- attributes[[att_name]]
     iqr[[att_name]] <- att_val
   }
   if (!is.null(start)) {
