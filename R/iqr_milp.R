@@ -28,6 +28,10 @@
 #'  quantile regression of Y on X and D
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
 #'  defaults to 300, will be appended to \code{params}
+#' @param attributes named list of Gurobi attributes, see
+#'  \url{https://www.gurobi.com/documentation/9.1/refman/attributes.html} and
+#'  \url{https://www.gurobi.com/documentation/9.1/refman/the_model_argument.html};
+#'  defaults to empty list
 #' @param params Gurobi parameters, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param start Gurobi attribute, see
@@ -92,6 +96,7 @@ iqr_milp <- function(Y,
                      M = NULL,
                      TimeLimit = 300,
                      sparse = TRUE,
+                     attributes = list(),
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
                      start = NULL,
@@ -544,6 +549,13 @@ iqr_milp <- function(Y,
     paste0("l", seq_len(n), recycle0 = TRUE)
   )
 
+  for (i in seq_along(attributes)) {
+    # TODO: error check the attribute names?
+    # TODO: send warning if attribute already exists?
+    att_name <- names(attributes)[[i]]
+    att_val <- attributes[['att_name']]
+    iqr[[att_name]] <- att_val
+  }
   if (!is.null(start)) {
     # TODO: error-check starting solution
     # TODO: figure out api to help people specify warmstart solutions
@@ -572,6 +584,7 @@ iqr_milp <- function(Y,
 
   out$iqr <- iqr
   out$params <- params
+  out$attributes <- attributes
   out$result <- result
   out$status <- result$status
   if (result$status %in% c("OPTIMAL", "SUBOPTIMAL")) {
