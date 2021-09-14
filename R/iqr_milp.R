@@ -516,7 +516,7 @@ iqr_milp <- function(Y,
     VarHintVal <- c(rep(NA, num_decision_vars - 3 * n), a_hints, k_hints, l_hints)
 
     if (VarHintPri_bool) {
-      VarHintPri <- rep(0, num_decision_vars - 3 * n, hints_pri, hints_pri, hints_pri)
+      VarHintPri <- c(rep(0, num_decision_vars - 3 * n), hints_pri, hints_pri, hints_pri)
     } else {
       VarHintPri <- NULL
     }
