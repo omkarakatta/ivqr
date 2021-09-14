@@ -142,7 +142,7 @@ preprocess_iqr_milp <- function(Y,
   }
 
   # Start the while loop
-  alpha <- alpha_initial
+  alphaboundary <- alpha_initial
   status <- "TIME_LIMIT"
 
   # Continue the while loop if the program took too long to solve or if
@@ -154,10 +154,10 @@ preprocess_iqr_milp <- function(Y,
   while (status == "TIME_LIMIT" || obj != 0) {
     counter <- counter + 1
     # Fix the most negative and most positive residuals
-    O_neg <- which(resid < -1 * alpha)
-    O_pos <- which(resid > alpha)
+    O_neg <- which(resid < -1 * alphaboundary)
+    O_pos <- which(resid > alphaboundary)
     O <- c(O_neg, O_pos)
-    send_note_if(paste("Alpha:", alpha), show_iterations, message)
+    send_note_if(paste("Alpha:", alphaboundary), show_iterations, message)
     send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_iterations, message)
     # Heuristic for time limit
     if (length(O) == 0) {
@@ -191,7 +191,7 @@ preprocess_iqr_milp <- function(Y,
       obj <- fit$obj
     }
     status <- fit$status
-    alpha <- alpha * r
+    alphaboundary <- alphaboundary * r
     if (show_iterations) {
       print(paste("Iteration", counter, "complete"))
     }
