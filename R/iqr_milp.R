@@ -28,6 +28,18 @@
 #'  quantile regression of Y on X and D
 #' @param TimeLimit Maximum time (in seconds) spent on a linear program;
 #'  defaults to 300, will be appended to \code{params}
+#' @param VarHintVal_bool If TRUE, instead of fixing the binary variables as
+#'  determined by \code{O_neg,O_pos}, we will "hint" these values; defaults to
+#'  FALSE; see
+#'  \url{https://www.gurobi.com/documentation/9.1/refman/varhintval.html#attr:VarHintVal};
+#'  overrides \code{attributes}
+#' @param VarHintPri_bool If TRUE, we specify the strength of the "hints"
+#'  according to the magnitude of the residual from a naive QR;
+#'  only valid if VarHintVal_bool is TRUE; overrides \code{attributes};
+#'  see \url{https://www.gurobi.com/documentation/9.1/refman/varhintpri.html#attr:VarHintPri}
+#' @param BranchPriority_bool If TRUE, we specify which variables will be
+#'  branched on first according to the magnitude of the residual from a naive QR;
+#'  see \url{https://www.gurobi.com/documentation/9.1/refman/branchpriority.html}
 #' @param attributes named list of Gurobi attributes, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/attributes.html} and
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/the_model_argument.html};
@@ -95,6 +107,9 @@ iqr_milp <- function(Y,
                      O_pos = NULL,
                      M = NULL,
                      TimeLimit = 300,
+                     VarHintVal_bool = FALSE,
+                     VarHintPri_bool = FALSE,
+                     BranchPriority_bool = NULL,
                      sparse = TRUE,
                      attributes = list(),
                      params = list(FeasibilityTol = 1e-6,
@@ -379,12 +394,12 @@ iqr_milp <- function(Y,
   O_neg <- sort(O_neg)
   O_pos <- sort(O_pos)
   O <- c(O_neg, O_pos)        # indices of fixed residuals
-  if (!is.null(O)) {
+  if (!is.null(O) & !VarHintVal_bool) {
     # If a residual is positive, then the associated k must be 1, which means
     # the dual variable, a, must also be 1. Accordingly, the associated l must
     # be 0.
     # If a residual is negative, then the associated l must be 1, which means
-    # the dual variable, a, must also be 1. Accordingly, the associated k must
+    # the dual variable, a, must also be 0. Accordingly, the associated k must
     # be 0.
     fixed <- rep(0, n)
     fixed[O] <- 1
@@ -466,6 +481,53 @@ iqr_milp <- function(Y,
     A_pp_l <- c()
     b_pp_l <- c()
     sense_pp_l <- c()
+  }
+
+  # Pre-processing alternative: "hint" or prioritize branching
+  if (VarHintPri_bool | BranchPriority_bool) {
+    # set hint priorities: larger absolute residuals get largest priorities
+    # NOTE: the `resid` is obtained from code used in `preprocess_iqr_milp`
+    # TODO: remove possible redundancy of computing QR to get residuals between `iqr_milp` and `preprocess_iqr_milp`
+    if (p_X == 0) {
+      resid <- quantreg::rq(Y ~ D - 1, tau = tau)$residuals
+    } else if (p_D == 0) {
+      resid <- quantreg::rq(Y ~ X - 1, tau = tau)$residuals
+    } else {
+      resid <- quantreg::rq(Y ~ X + D - 1, tau = tau)$residuals
+    }
+    hints_pri <- order(abs(resid))
+  }
+  if (!is.null(O) & VarHintVal_bool) {
+    # use VarHintVal
+    a_hints <- rep(NA, n)
+    a_hints[O_pos] <- 1
+    a_hints[O_neg] <- 0
+
+    k_hints <- rep(NA, n)
+    k_hints[O_pos] <- 1
+    k_hints[O_neg] <- 0
+
+    l_hints <- rep(NA, n)
+    l_hints[O_pos] <- 0
+    l_hints[O_neg] <- 1
+
+    VarHintVal <- c(rep(NA, num_decision_vars - 3 * n), a_hints, k_hints, l_hints)
+
+    if (VarHintPri_bool) {
+      VarHintPri <- rep(0, num_decision_vars - 3 * n, hints_pri, hints_pri, hints_pri)
+    } else {
+      VarHintPri <- NULL
+    }
+  } else {
+    VarHintVal <- NULL
+  }
+  if (!VarHintVal_bool & VarHintPri_bool) {
+    send_note_if("`VarHintVal_bool` is FALSE; ignoring `VarHintPri_bool`")
+  }
+  if (!is.null(O) & BranchPriority_bool) {
+    BranchPriority_bool <- hints_pri
+  } else {
+    BranchPriority_bool <- NULL
   }
 
   # Putting it all together
@@ -562,6 +624,9 @@ iqr_milp <- function(Y,
     iqr$start <- start
   }
 
+  iqr$varhintval <- VarHintVal
+  iqr$varhintpri <- VarHintPri
+  iqr$branchpriority <- BranchPriority
   iqr$lb <- lb
   iqr$ub <- ub
   iqr$vtype <- vtype
