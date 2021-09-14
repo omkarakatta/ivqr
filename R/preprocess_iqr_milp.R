@@ -153,6 +153,7 @@ preprocess_iqr_milp <- function(Y,
   counter <- 0
   while (status == "TIME_LIMIT" || obj != 0) {
     counter <- counter + 1
+    # TODO: Is it possible for two iterations of the while loop to have the same number of fixed variables?
     # Fix the most negative and most positive residuals
     O_neg <- which(resid < -1 * alphawidth)
     O_pos <- which(resid > alphawidth)
