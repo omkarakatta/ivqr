@@ -36,9 +36,11 @@
 #' @param VarHintPri_bool If TRUE, we specify the strength of the "hints"
 #'  according to the magnitude of the residual from a naive QR;
 #'  only valid if VarHintVal_bool is TRUE; overrides \code{attributes};
+#'  defaults to FALSE;
 #'  see \url{https://www.gurobi.com/documentation/9.1/refman/varhintpri.html#attr:VarHintPri}
 #' @param BranchPriority_bool If TRUE, we specify which variables will be
 #'  branched on first according to the magnitude of the residual from a naive QR;
+#'  defaults to FALSE;
 #'  see \url{https://www.gurobi.com/documentation/9.1/refman/branchpriority.html}
 #' @param attributes named list of Gurobi attributes, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/attributes.html} and
@@ -109,7 +111,7 @@ iqr_milp <- function(Y,
                      TimeLimit = 300,
                      VarHintVal_bool = FALSE,
                      VarHintPri_bool = FALSE,
-                     BranchPriority_bool = NULL,
+                     BranchPriority_bool = FALSE,
                      sparse = TRUE,
                      attributes = list(),
                      params = list(FeasibilityTol = 1e-6,
@@ -624,7 +626,7 @@ iqr_milp <- function(Y,
     iqr$start <- start
   }
 
-  iqr$varhintval <- VarHintVal
+  iqr$varhintval <- VarHintVal # TODO: send warning if attribute already exists?
   iqr$varhintpri <- VarHintPri
   iqr$branchpriority <- BranchPriority
   iqr$lb <- lb
