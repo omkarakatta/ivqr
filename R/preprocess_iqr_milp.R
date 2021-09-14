@@ -88,6 +88,7 @@ preprocess_iqr_milp <- function(Y,
                                 r = 1.25,
                                 show_iterations = FALSE,
                                 LogFileExt = ".log",
+                                start = NULL,
                                 ...) {
 
   out <- list() # Initialize list of results to return
