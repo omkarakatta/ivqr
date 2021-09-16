@@ -190,7 +190,7 @@ preprocess_iqr_milp <- function(Y,
     if (is.null(fit$objval)) {
       obj <- 0.5
     } else {
-      obj <- fit$obj
+      obj <- fit$objval
     }
     status <- fit$status
     alphaboundary <- alphawidth * r
