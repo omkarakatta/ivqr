@@ -204,7 +204,7 @@ preprocess_iqr_milp <- function(Y,
       obj <- fit$objval
     }
     status <- fit$status
-    alphawidth <- alphawidth * r
+    alphawidth <- alphawidth * r # TODO: add check to make sure alphawidth is not 0; otherwise, infeasibility will repeat ad infinitum and we won't leave while loop
     if (show_iterations) {
       print(paste("Iteration", counter, "complete"))
     }
