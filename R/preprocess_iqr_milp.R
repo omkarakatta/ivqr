@@ -204,7 +204,7 @@ preprocess_iqr_milp <- function(Y,
       obj <- fit$objval
     }
     status <- fit$status
-    alphaboundary <- alphawidth * r
+    alphawidth <- alphawidth * r
     if (show_iterations) {
       print(paste("Iteration", counter, "complete"))
     }
