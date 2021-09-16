@@ -173,12 +173,12 @@ preprocess_iqr_milp <- function(Y,
     } else if (is.null(TimeLimit)) {
       num_free <- n - length(O)
       TT <- exp(num_free / 200 + p_D / 5 + num_free * p_D / 1000) * 4
-      if (TT > globalTimeLimit) {
-        TT <- globalTimeLimit
-      }
     } else {
       TT <- TimeLimit
     }
+    if (TT > globalTimeLimit) {
+      TT <- globalTimeLimit
+    } # TODO: check if globalTimeLimit is less than TimeLimit
     send_note_if(paste("TT:", TT), show_iterations, message)
     time_limit_per_iteration <- c(time_limit_per_iteration, TT)
     # IQR
