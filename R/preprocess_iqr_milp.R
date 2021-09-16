@@ -230,7 +230,7 @@ preprocess_iqr_milp <- function(Y,
   # Return results
   out$status <- fit$status
   out$final_fit <- fit
-  out$time <- elapsed_time
+  out$time <- elapsed_time # mins
   out$O_neg <- O_neg
   out$O_pos <- O_pos
   out$iterations <- counter
