@@ -144,6 +144,10 @@ preprocess_iqr_milp <- function(Y,
   # Start the while loop
   alphawidth <- alpha_initial
   status <- "TIME_LIMIT"
+  num_fixed_vars_per_iteration <- c()
+  time_limit_per_iteration <- c()
+  time_elapsed_per_iteration <- c()
+  final_objective_per_iteration <- c()
 
   # Continue the while loop if the program took too long to solve or if
   # the objective (i.e., absolute value of beta_Z) is not 0. Note that
@@ -153,6 +157,7 @@ preprocess_iqr_milp <- function(Y,
   counter <- 0
   while (status == "TIME_LIMIT" || obj != 0) {
     counter <- counter + 1
+    while_start_time <- Sys.time()
     # TODO: Is it possible for two iterations of the while loop to have the same number of fixed variables?
     # Fix the most negative and most positive residuals
     O_neg <- which(resid < -1 * alphawidth)
@@ -161,6 +166,7 @@ preprocess_iqr_milp <- function(Y,
     send_note_if(paste("Alpha:", alphawidth), show_iterations, message)
     # TODO: are we fixing the "dual" variables? I think we can improve the message below
     send_note_if(paste("Number of Fixed Dual Variables:", length(O)), show_iterations, message)
+    num_fixed_vars_per_iteration <- c(num_fixed_vars_per_iteration, length(O))
     # Heuristic for time limit
     if (length(O) == 0) {
       TT <- Inf
@@ -174,6 +180,7 @@ preprocess_iqr_milp <- function(Y,
       TT <- TimeLimit
     }
     send_note_if(paste("TT:", TT), show_iterations, message)
+    time_limit_per_iteration <- c(time_limit_per_iteration, TT)
     # IQR
     fit <- iqr_milp(Y = Y,
                     X = X,
@@ -187,6 +194,10 @@ preprocess_iqr_milp <- function(Y,
                     M = M, # by default, M = 2 * max(resid from QR of Y on X and D)
                     LogFileExt = paste0("_", counter, LogFileExt),
                     ...)
+    final_objective_per_iteration <- c(final_objective_per_iteration,
+                                       ifelse(is.null(fit$objval),
+                                              "NULL",
+                                              as.character(round(fit$objval, 3))))
     if (is.null(fit$objval)) {
       obj <- 0.5
     } else {
@@ -202,6 +213,9 @@ preprocess_iqr_milp <- function(Y,
       break # exit while loop
     }
     current <- Sys.time()
+    while_elapsed <- difftime(current, while_start_time)
+    time_elapsed_per_iteration <- c(time_elapsed_per_iteration, while_elapsed)
+
     elapsed_time <- difftime(current, clock_start, units = "secs")
     if (as.numeric(elapsed_time) > globalTimeLimit) {
       warning(paste("Global Time Limit of", globalTimeLimit, "reached."))
@@ -220,6 +234,10 @@ preprocess_iqr_milp <- function(Y,
   out$O_neg <- O_neg
   out$O_pos <- O_pos
   out$iterations <- counter
+  out$num_fixed_vars_per_iteration <- num_fixed_vars_per_iteration
+  out$time_limit_per_iteration <- time_limit_per_iteration
+  out$time_elapsed_per_iteration <- time_elapsed_per_iteration
+  out$final_objective_per_iteration <- final_objective_per_iteration
 
   return(out)
 }
