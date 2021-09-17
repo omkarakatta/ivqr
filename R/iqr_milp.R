@@ -525,7 +525,7 @@ iqr_milp <- function(Y,
     VarHintPri <- NULL
   }
   if (!VarHintVal_bool & VarHintPri_bool) {
-    send_note_if("`VarHintVal_bool` is FALSE; ignoring `VarHintPri_bool`")
+    message("`VarHintVal_bool` is FALSE; ignoring `VarHintPri_bool`")
   }
   if (!is.null(O) & BranchPriority_bool) {
     BranchPriority <- hints_pri
