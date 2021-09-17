@@ -213,7 +213,7 @@ preprocess_iqr_milp <- function(Y,
       break # exit while loop
     }
     current <- Sys.time()
-    while_elapsed <- difftime(current, while_start_time)
+    while_elapsed <- difftime(current, while_start_time, units = "secs")
     time_elapsed_per_iteration <- c(time_elapsed_per_iteration, while_elapsed)
 
     elapsed_time <- difftime(current, clock_start, units = "secs")
