@@ -528,7 +528,7 @@ iqr_milp <- function(Y,
     message("`VarHintVal_bool` is FALSE; ignoring `VarHintPri_bool`")
   }
   if (!is.null(O) & BranchPriority_bool) {
-    BranchPriority <- hints_pri
+    BranchPriority <- c(rep(0, num_decision_vars - 3 * n), hints_pri, hints_pri, hints_pri)
   } else {
     BranchPriority <- NULL
   }
