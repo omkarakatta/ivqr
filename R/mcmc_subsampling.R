@@ -128,42 +128,89 @@
 
 #' Verify membership of a data set in the FOC conditions
 #'
-#' @param h Indices of the active basis [p-dimensional vector]
-#' @param X_subsample Covariates in the subsample [m by p matrix] # TODO: separate into X_subsample, D_subsample, and Phi_subsample
+#' @param h Indices of the active basis written in terms of the subsample data [p-dimensional vector]
+#' @param X_subsample Covariates in subsample [m by p_X matrix]
+#' @param D_subsample Endogeneous variables in subsample [m by p_D matrix]
+#' @param Phi_subsample Transformed instruments in subsample [m by p_Phi]
 #' @param y_subsample Outcome vector in the subsample [m by 1 matrix]
-#' @param resid_subsample Residual vector in the subsample [m-dimensional vector]
 #' @param tau Quantile [numeric]
-foc_membership <- function(h, X_subsample, y_subsample, resid_subsample, tau) {
+foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsample, tau) {
+  # check dimensions # TODO: turn into error messages
+  m <- nrow(y_subsample)
+  stopifnot(nrow(X_subsample) == m)
+  stopifnot(nrow(D_subsample) == m)
+  stopifnot(nrow(Phi_subsample) == m)
+
+  # p <- ncol(X_subsample) + ncol(D_subsample) + ncol(Phi_subsample) # BUG: delete this
+  p <- ncol(X_subsample) + ncol(Phi_subsample) # we concentrate out D_subsample
+  stopifnot(length(h) == p)
+
   # compute relevant data
-  p <- ncol(X_subsample)
+  Dh <- D_subsample[h, , drop = FALSE]
+  Phih <- Phi_subsample[h, , drop = FALSE]
   Xh <- X_subsample[h, , drop = FALSE]
   yh <- y_subsample[h]
+  design <- cbind(D_subsample, Phi_subsample, X_subsample) # design matrix
+  designh <- design[h, , drop = FALSE] # design matrix
 
   # compute b(h)
-  bh <- solve(Xh) %*% yh # bh is a p by 1 matrix
+  bh <- solve(designh) %*% yh # bh is a p by 1 matrix
+  stopifnot(nrow(bh) == p)
+  stopifnot(ncol(bh) == 1)
 
-  # TODO: compute resid_subsample within function using concentrate-out QR
-  # y_subsample - D_subsample %*% bh[beta_D] ~ X_subsample + Phi_subsample
-  # -> resid_subsample
+  # compute resid_subsample
+  beta_D <- bh[ncol(D_subsample), ]
+  y_tilde_subsample <- y_subsample - D_subsample %*% beta_D
+  reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample)
+  resid_subsample <- reg$residuals
 
-  # compute xi(h,D)
-  xi <- 0 # initialize sum
-  # iterate through all `m` observations of the subsample
-  # TODO: sum over indices that aren't in `h`
-  for (i in seq_along(resid_subsample)) {
-    if (!all.equal(resid_subsample[[i]], 0)) {
-      # compute indicator
-      ind <- y_subsample[[i]] - X_subsample[i, , drop = FALSE] %*% bh < 0 # scalar
-      # compute summand
-      summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
-      xi <- xi + summand
-    }
-  }
+  # create indices that are not in h
+  # TODO: the indices of h need to be written in terms of the subsample.
+  # e.g.:
+  # suppose the 5th observation in the full data is the smallest index in the active basis.
+  # further suppose the 5th observation is the first one present in the subsample.
+  # then, this means that `1` should be present in `h` since the first observation in the subsample corresponds to the 5th observation in full data.
+  noth <- setdiff(seq_len(m), h)
+
+  # compute xi(h, D)
+  resid_noth <- matrix(resid_subsample[noth], ncol = 1) # (m - p) by 1 matrix
+  ind_mat <- tau - resid_noth # (m - p) by 1 matrix
+  design_noth <- design[noth, , drop = FALSE] # (m - p) by p matrix
+  xi <- t(t(ind_mat) %*% resid_noth %*% design_noth %*% solve(Xh)) # p by 1 matrix
+  stopifnot(nrow(xi) = p)
+  stopifnot(ncol(xi) = 1)
+
+  # # TODO: vectorize
+  # # compute xi(h,D)
+  # xi <- 0
+  # for (i in seq_along(noth)) {
+  #   index <- noth[[i]] # if index is in h, then residual is 0; otherwise, residual is not 0 (in general position)
+  # #   ind <- y_subsample[[index]] - design[[index, , drop = FALSE]] %*% bh < 0
+  #   ind <- resid_subsample[[index]] < 0
+  #   summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
+  #   xi <- xi + summand
+  # }
+
+  # HACK: this is old code that iterated through all `m` observations; this is deprecated
+  # BUG: the `ind` should be the residuals of the QR of interest.
+  # # compute xi(h,D)
+  # xi <- 0 # initialize sum
+  # # iterate through all `m` observations of the subsample
+  # # TODO: sum over indices that aren't in `h`
+  # for (i in seq_along(resid_subsample)) {
+  #   if (!all.equal(resid_subsample[[i]], 0)) {
+  #     # compute indicator
+  #     ind <- y_subsample[[i]] - X_subsample[i, , drop = FALSE] %*% bh < 0 # scalar
+  #     # compute summand
+  #     summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
+  #     xi <- xi + summand
+  #   }
+  # }
 
   # check if xi satisfies FOC inequality
-  left <- -1 * tau %*% rep(1, p)
-  right <- (1 - tau) %*% rep(1, p)
-  (left <= xi) & (xi <= right) # returns TRUE if both are true, FALSE otherwise
+  left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
+  right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
+  all((left <= xi) & (xi <= right)) # returns TRUE if both are true, FALSE otherwise
 }
 # TODO: Sanity Check -- get subsample, solve for the beta, and then pass the corresponding h and the subsample into foc_membership
 # TODO: Sanity Check -- check for the false case
