@@ -177,8 +177,8 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   ind_mat <- tau - resid_noth # (m - p) by 1 matrix
   design_noth <- design[noth, , drop = FALSE] # (m - p) by p matrix
   xi <- t(t(ind_mat) %*% resid_noth %*% design_noth %*% solve(Xh)) # p by 1 matrix
-  stopifnot(nrow(xi) = p)
-  stopifnot(ncol(xi) = 1)
+  stopifnot(nrow(xi) == p)
+  stopifnot(ncol(xi) == 1)
 
   # # TODO: vectorize
   # # compute xi(h,D)
