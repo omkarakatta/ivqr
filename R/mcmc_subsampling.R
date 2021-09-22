@@ -134,14 +134,16 @@
 #' @param Phi_subsample Transformed instruments in subsample [m by p_Phi]
 #' @param y_subsample Outcome vector in the subsample [m by 1 matrix]
 #' @param tau Quantile [numeric]
-foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsample, tau) {
-  # check dimensions # TODO: turn into error messages
+#' @param beta_D Coefficients on the endogeneous variable; ideally obtained from \code{h} [p_D by 1 matrix]
+# TODO: create a function that figures out what beta_D from h (from GP)
+foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsample, tau, beta_D) {
+  # check dimensions
   m <- nrow(y_subsample)
-  stopifnot(nrow(X_subsample) == m)
+  # TODO: consider removing this when we are done to improve speed
   stopifnot(nrow(D_subsample) == m)
   stopifnot(nrow(Phi_subsample) == m)
+  stopifnot(nrow(X_subsample) == m)
 
-  # p <- ncol(X_subsample) + ncol(D_subsample) + ncol(Phi_subsample) # BUG: delete this
   p <- ncol(X_subsample) + ncol(Phi_subsample) # we concentrate out D_subsample
   stopifnot(length(h) == p)
 
@@ -150,7 +152,7 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   Phih <- Phi_subsample[h, , drop = FALSE]
   Xh <- X_subsample[h, , drop = FALSE]
   yh <- y_subsample[h]
-  design <- cbind(D_subsample, Phi_subsample, X_subsample) # design matrix
+  design <- cbind(Phi_subsample, X_subsample) # design matrix
   designh <- design[h, , drop = FALSE] # design matrix
 
   # compute b(h)
@@ -159,7 +161,9 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   stopifnot(ncol(bh) == 1)
 
   # compute resid_subsample
-  beta_D <- bh[ncol(D_subsample), ]
+  # TODO: figure out beta_D from h if beta_D is not specified
+  stopifnot(nrow(beta_D) == p_D)
+  stopifnot(ncol(beta_D) == 1)
   y_tilde_subsample <- y_subsample - D_subsample %*% beta_D
   reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample)
   resid_subsample <- reg$residuals
@@ -174,9 +178,11 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
 
   # compute xi(h, D)
   resid_noth <- matrix(resid_subsample[noth], ncol = 1) # (m - p) by 1 matrix
-  ind_mat <- tau - resid_noth # (m - p) by 1 matrix
+  ind_mat <- diag(tau - as.numeric(resid_noth < 0)) # (m - p) by (m - p) matrix
   design_noth <- design[noth, , drop = FALSE] # (m - p) by p matrix
-  xi <- t(t(ind_mat) %*% resid_noth %*% design_noth %*% solve(Xh)) # p by 1 matrix
+  summand <- ind_mat %*% design_noth
+  sum_summand <- matrix(1, nrow = 1, ncol = length(noth))
+  xi <- t(sum_summand %*% solve(Xh))
   stopifnot(nrow(xi) == p)
   stopifnot(ncol(xi) == 1)
 
