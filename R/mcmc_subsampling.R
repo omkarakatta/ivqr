@@ -124,22 +124,73 @@
 ###
 ### Author: Omkar A. Katta
 
-### Preliminaries -------------------------
+### h_to_beta -------------------------
 
+#' Find the coefficients given the active basis
+#'
+#' Given the active basis in terms of the full data, find the coefficients that
+#' solve the IQR problem.
+#'
+#' @param h Active basis in terms of the full data
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#'
+#' @return A named list of coefficients
+h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
+  # dimensions
+  p_Phi <- ncol(Phi)
+  p_D <- ncol(D)
+  stopifnot(p_Phi == p_D)
+  p_X <- ncol(X)
+  p <- p_Phi + p_X
+
+  design <- cbind(X, Phi)
+  designh <- design[h, ]
+  a <- solve(designh, Y[h])
+  B <- solve(designh, D[h, ])
+
+  # HACK: this is the slow way to use solve
+  # X_Phi_h_inv <- solve(cbind(X,Phi)[h,]) #N.B. this is the slow way to use solve.  Find a fast way.
+  # a <- X_Phi_h_inv%*%Y[h] # TODO: do this the "fast way"
+  # B <- - X_Phi_h_inv%*%D[h,] # TODO: do this the "fast way"; try in one system
+
+  # Solve system from the lower rows, corresponding to beta_Phi = 0
+  a_Phi <- a[(p_X + 1):p]
+  B_Phi <- B[(p_X + 1):p, ]
+
+  beta_D <- solve(-B_Phi, a_Phi)
+  beta_X_Phi <- a + B %*% beta_D
+  beta_X <- beta_X_Phi[1:p_X]
+  beta_Phi <- beta_X_Phi[(p_X + 1):p]
+
+  list("beta_D" = beta_D,
+       "beta_X" = beta_X,
+       "beta_Phi" = beta_Phi)
+}
+
+### foc_membership -------------------------
 #' Verify membership of a data set in the FOC conditions
 #'
-#' @param h Indices of the active basis written in terms of the subsample data [p-dimensional vector]
+#' @param h Indices of the active basis written in terms of the full data
+#'  [p-dimensional vector]
+#' @param Y_subsample Outcome vector in the subsample [m by 1 matrix]
 #' @param X_subsample Covariates in subsample [m by p_X matrix]
 #' @param D_subsample Endogeneous variables in subsample [m by p_D matrix]
 #' @param Phi_subsample Transformed instruments in subsample [m by p_Phi]
-#' @param y_subsample Outcome vector in the subsample [m by 1 matrix]
 #' @param tau Quantile [numeric]
-#' @param beta_D Coefficients on the endogeneous variable; ideally obtained from \code{h} [p_D by 1 matrix]
-# TODO: create a function that figures out what beta_D from h (from GP)
-foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsample, tau, beta_D) {
+#' @param beta_D Coefficients on the endogeneous variable; ideally obtained
+#'  from \code{h} [p_D by 1 matrix]
+foc_membership <- function(h, Y_subsample, X_subsample, D_subsample, Phi_subsample, tau, beta_D = h_to_beta(h)) {
+  # active basis in terms of full data -> active basis in terms of subsample
+  # NOTE: this means we construct our subsample without changing the order of the indices.
+  h <- order(h)
   # check dimensions
-  m <- nrow(y_subsample)
-  # TODO: consider removing this when we are done to improve speed
+  m <- nrow(Y_subsample)
+  # TODO: remove this when we are done to improve speed
   stopifnot(nrow(D_subsample) == m)
   stopifnot(nrow(Phi_subsample) == m)
   stopifnot(nrow(X_subsample) == m)
@@ -151,7 +202,7 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   Dh <- D_subsample[h, , drop = FALSE]
   Phih <- Phi_subsample[h, , drop = FALSE]
   Xh <- X_subsample[h, , drop = FALSE]
-  yh <- y_subsample[h]
+  yh <- Y_subsample[h]
   design <- cbind(Phi_subsample, X_subsample) # design matrix
   designh <- design[h, , drop = FALSE] # design matrix
 
@@ -161,10 +212,9 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   stopifnot(ncol(bh) == 1)
 
   # compute resid_subsample
-  # TODO: figure out beta_D from h if beta_D is not specified
   stopifnot(nrow(beta_D) == p_D)
   stopifnot(ncol(beta_D) == 1)
-  y_tilde_subsample <- y_subsample - D_subsample %*% beta_D
+  y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
   reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample)
   resid_subsample <- reg$residuals
 
@@ -191,7 +241,7 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   # xi <- 0
   # for (i in seq_along(noth)) {
   #   index <- noth[[i]] # if index is in h, then residual is 0; otherwise, residual is not 0 (in general position)
-  # #   ind <- y_subsample[[index]] - design[[index, , drop = FALSE]] %*% bh < 0
+  # #   ind <- Y_subsample[[index]] - design[[index, , drop = FALSE]] %*% bh < 0
   #   ind <- resid_subsample[[index]] < 0
   #   summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
   #   xi <- xi + summand
@@ -206,7 +256,7 @@ foc_membership <- function(h, D_subsample, Phi_subsample, X_subsample, y_subsamp
   # for (i in seq_along(resid_subsample)) {
   #   if (!all.equal(resid_subsample[[i]], 0)) {
   #     # compute indicator
-  #     ind <- y_subsample[[i]] - X_subsample[i, , drop = FALSE] %*% bh < 0 # scalar
+  #     ind <- Y_subsample[[i]] - X_subsample[i, , drop = FALSE] %*% bh < 0 # scalar
   #     # compute summand
   #     summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
   #     xi <- xi + summand
