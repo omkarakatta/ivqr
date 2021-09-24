@@ -154,16 +154,16 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
   B <- solve(designh, D[h, ])
 
   # HACK: this is the slow way to use solve
-  # X_Phi_h_inv <- solve(cbind(X,Phi)[h,]) #N.B. this is the slow way to use solve.  Find a fast way.
+  # X_Phi_h_inv <- solve(cbind(X,Phi)[h, ]) #N.B. this is the slow way to use solve.  Find a fast way.
   # a <- X_Phi_h_inv%*%Y[h] # TODO: do this the "fast way"
-  # B <- - X_Phi_h_inv%*%D[h,] # TODO: do this the "fast way"; try in one system
+  # B <- - X_Phi_h_inv%*%D[h, ] # TODO: do this the "fast way"; try in one system
 
   # Solve system from the lower rows, corresponding to beta_Phi = 0
   a_Phi <- a[(p_X + 1):p]
   B_Phi <- B[(p_X + 1):p, ]
 
-  beta_D <- solve(-B_Phi, a_Phi)
-  beta_X_Phi <- a + B %*% beta_D
+  beta_D <- solve(B_Phi, a_Phi)
+  beta_X_Phi <- a - B %*% beta_D
   beta_X <- beta_X_Phi[1:p_X]
   beta_Phi <- beta_X_Phi[(p_X + 1):p]
 
@@ -203,6 +203,8 @@ foc_membership <- function(h,
 
   p <- ncol(X_subsample) + ncol(Phi_subsample) # we concentrate out D_subsample
   stopifnot(length(h) == p)
+
+  p_D <- ncol(D_subsample)
 
   # compute relevant data
   Dh <- D_subsample[h, , drop = FALSE]
