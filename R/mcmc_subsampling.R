@@ -184,7 +184,13 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 #' @param tau Quantile [numeric]
 #' @param beta_D Coefficients on the endogeneous variable; ideally obtained
 #'  from \code{h} [p_D by 1 matrix]
-foc_membership <- function(h, Y_subsample, X_subsample, D_subsample, Phi_subsample, tau, beta_D = h_to_beta(h)) {
+foc_membership <- function(h,
+                           Y_subsample,
+                           X_subsample,
+                           D_subsample,
+                           Phi_subsample,
+                           tau,
+                           beta_D) {
   # active basis in terms of full data -> active basis in terms of subsample
   # NOTE: this means we construct our subsample without changing the order of the indices.
   h <- order(h)
