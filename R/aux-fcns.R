@@ -129,3 +129,80 @@ p_val_interpolation <- function(old_p_val,
   # return new beta value and weight
   list(beta_border = beta_border, pi = pi)
 }
+
+### parse_single_log -------------------------
+#' Parse information from a Gurobi log file
+#'
+#' Obtain information on incumbent solutions, Gurobi version, etc. from a
+#' Gurobi log file.
+#'
+#' When \code{information} is "incumbent", this function will retrieve the
+#' times at which Gurobi has found an incumbent solution either through
+#' heuristics or through solving the problem at the node.
+#'
+#' @param log_path Path to a Gurobi log file
+#' @param information Vector with values:
+#'  \enumerate{
+#'    \item "incumbent"
+#'  }
+#'
+#' @export
+parse_single_log <- function(log_path, information = "incumbent") {
+  if (!file.exists(log_path)) {
+    stop(paste("Does not exist:", log_path))
+  } else {
+    # TODO: check this is an actual log file
+    log <- readLines(log_path)
+  }
+  if ("incumbent" %in% information) {
+    incumbent_index <- grepl(pattern = "^(H|\\*)", log)
+    incumbent_log <- log[incumbent_index]
+    # remove everything before and includeing last space
+    incumbent_time <- gsub(".*? ", "", incumbent_log)
+    # remove all non-numeric characters
+    incumbent_time_numeric <- as.numeric(gsub("[^0-9]+", "", incumbent_time))
+    result <- incumbent_time_numeric
+  }
+  result
+}
+
+### parse_mult_logs -------------------------
+#' Parse multiple log files
+#'
+#' Use \code{parse_single_log} across multiple log files.
+#' Only valid for \code{information = "incumbent"}.
+#'
+#' @param log_dir Directory of log files
+#' @param expr Expression to limit files in \code{log_dir}; defaults to
+#'  searching for "log" extension
+#' @param information Set to "incumbent"
+#' @param value How should the information be returned? defaults to "list",
+#'  also can be "data.frame"
+parse_mult_logs <- function(log_dir,
+                            expr = "log$",
+                            information = "incumbent",
+                            value = "list") {
+  if (!dir.exists(log_dir)) {
+    stop(paste("Directory not found:", log_dir))
+  }
+  files <- list.files(log_dir, pattern = expr)
+  info <- lapply(paste0(log_dir, "/", files),
+                 function(f){
+                   parse_single_log(f, information = "incumbent")
+                 })
+  names(info) <- files
+  result <- info
+  if (value == "data.frame") {
+    max_soln <- max(sapply(info, length))
+    # extend each entry in list to have same number of entries
+    extended_info <- lapply(info,
+      function(i) {
+        l <- length(i)
+        new <- max_soln - l
+        c(i, rep(NA, new))
+      }
+    )
+    result <- do.call(cbind, extended_info)
+  }
+  result
+}
