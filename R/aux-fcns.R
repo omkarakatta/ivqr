@@ -178,6 +178,8 @@ parse_single_log <- function(log_path, information = "incumbent") {
 #' @param information Set to "incumbent"
 #' @param value How should the information be returned? defaults to "list",
 #'  also can be "data.frame"
+#'
+#' @export
 parse_mult_logs <- function(log_dir,
                             expr = "log$",
                             information = "incumbent",
@@ -203,6 +205,60 @@ parse_mult_logs <- function(log_dir,
       }
     )
     result <- do.call(cbind, extended_info)
+  }
+  result
+}
+
+### Parse sol files -------------------------
+#' Parse a single solution (.sol) file
+#'
+#' Obtain solution vector from a single .sol file.
+#'
+#' @param sol_path Path to .sol file
+#'
+#' @export
+parse_single_sol <- function(sol_path) {
+  if (!file.exists(sol_path)) {
+    stop(paste("Does not exist:", sol_path))
+  } else {
+    # TODO: check this is an actual sol file
+    sol <- readLines(sol_path)
+  }
+  sol <- sol[3:length(sol)] # remove first two comments
+  varnames <- gsub(" .*", "", sol) # get names of decision variables
+  values <- as.numeric(gsub(".* ", "", sol)) # get values of each variable
+  names(values) <- varnames
+  result <- values
+  result
+}
+
+### Parse multiple sol files -------------------------
+#' Parse multiple solution (.sol) files
+#'
+#' Obtain solution from multiple .sol files.
+#'
+#' @param sol_dir Path to directory with .sol files
+#' @param expr Expression to limit files in \code{sol_dir}; defaults to
+#'  searching for "sol" extension
+#' @param value How should the information be returned? defaults to "list",
+#'  accepts "data.frame" if the number of decision veariables are the same
+#'  across solution files
+#'
+#' @export
+parse_mult_sols <- function(sol_dir, expr = "sol$", value = "list") {
+  if (!dir.exists(sol_dir)) {
+    stop(paste("Directory not found:", sol_dir))
+  }
+  files <- list.files(sol_dir, pattern = expr)
+  info <- lapply(paste0(sol_dir, "/", files), parse_single_sol)
+  names(info) <- files
+  result <- info
+  if (value == "data.frame") {
+    if (length(unique(sapply(result, length))) == 1) {
+      result <- do.call(cbind, info)
+    } else {
+      warning("Number of decision variables are different; returning list")
+    }
   }
   result
 }
