@@ -33,8 +33,6 @@
 #' We repeatedly relax our preprocessing until the minimized objective is
 #' finally 0.
 #'
-#' Note: no warm-starting with \code{start} argument is allowed.
-#'
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
@@ -88,7 +86,6 @@ preprocess_iqr_milp <- function(Y,
                                 r = 1.25,
                                 show_iterations = FALSE,
                                 LogFileExt = ".log",
-                                start = NULL,
                                 ...) {
 
   out <- list() # Initialize list of results to return
@@ -105,11 +102,11 @@ preprocess_iqr_milp <- function(Y,
   p_X <- ncol(X)
   p_Z <- ncol(Z)
 
-  if (!is.null(start)) {
-    msg <- "No warm-starting allowed with preprocessing"
-    send_note_if(msg, TRUE, warning)
-    start <- NULL
-  }
+  # if (!is.null(start)) {
+  #   msg <- "No warm-starting allowed with preprocessing"
+  #   send_note_if(msg, TRUE, warning)
+  #   start <- NULL
+  # }
 
   # If there are no endogeneous variables, return quantile regression results:
   if (p_D == 0) {
