@@ -139,6 +139,13 @@
 #'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #'
 #' @return A named list of coefficients
+#' \enumerate{
+#'   \item \code{beta_D}: coefficients on the endogeneous variables
+#'   \item \code{beta_X}: coefficients on the exogenous variables
+#'   \item \code{beta_Phi}: coefficients on the transformed instruments
+#' }
+#'
+#' @family mcmc_subsampling
 h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
   # dimensions
   p_Phi <- ncol(Phi)
@@ -151,11 +158,6 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
   designh <- design[h, ]
   a <- solve(designh, Y[h])
   B <- solve(designh, D[h, ])
-
-  # HACK: this is the slow way to use solve
-  # X_Phi_h_inv <- solve(cbind(X,Phi)[h, ]) #N.B. this is the slow way to use solve.  Find a fast way.
-  # a <- X_Phi_h_inv%*%Y[h] # TODO: do this the "fast way"
-  # B <- - X_Phi_h_inv%*%D[h, ] # TODO: do this the "fast way"; try in one system
 
   # Solve system from the lower rows, corresponding to beta_Phi = 0
   a_Phi <- a[(p_X + 1):p]
@@ -174,6 +176,10 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 ### foc_membership -------------------------
 #' Verify membership of a data set in the FOC conditions
 #'
+#' From the active basis, we derive the FOC conditions. If a data set satisfies
+#' the FOC conditions, then we know that the coefficients obtained from this
+#' active basis solve the IQR problem for this data set.
+#'
 #' @param h Indices of the active basis written in terms of the subsample data
 #'  [p-dimensional vector]
 #' @param Y_subsample Outcome vector in the subsample [m by 1 matrix]
@@ -183,6 +189,10 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 #' @param tau Quantile [numeric]
 #' @param beta_D Coefficients on the endogeneous variable; ideally obtained
 #'  from \code{h} [p_D by 1 matrix]
+#'
+#' @return TRUE if the subsample satisfies FOC conditions; FALSE otherwise
+#'
+#' @family mcmc_subsampling
 foc_membership <- function(
   h,
   Y_subsample,
@@ -196,9 +206,12 @@ foc_membership <- function(
                      D = D_subsample,
                      Phi = Phi_subsample)$beta_D
 ) {
-  # active basis in terms of full data -> active basis in terms of subsample
-  # NOTE: this means we construct our subsample without changing the order of the indices.
-  # h <- order(h) TODO: need to think about h going from full to subsample and subsample to full, etc.
+  # TODO: the indices of h need to be written in terms of the subsample.
+  # e.g.:
+  # suppose the 5th observation in the full data is the smallest index in the active basis.
+  # further suppose the 5th observation is the first one present in the subsample.
+  # then, this means that `1` should be present in `h` since the first observation in the subsample corresponds to the 5th observation in full data.
+
   # check dimensions
   m <- nrow(Y_subsample)
   # TODO: remove this when we are done to improve speed
@@ -232,11 +245,6 @@ foc_membership <- function(
   resid_subsample <- reg$residuals
 
   # create indices that are not in h
-  # TODO: the indices of h need to be written in terms of the subsample.
-  # e.g.:
-  # suppose the 5th observation in the full data is the smallest index in the active basis.
-  # further suppose the 5th observation is the first one present in the subsample.
-  # then, this means that `1` should be present in `h` since the first observation in the subsample corresponds to the 5th observation in full data.
   noth <- setdiff(seq_len(m), h)
 
   # compute xi(h, D)
@@ -249,37 +257,9 @@ foc_membership <- function(
   stopifnot(nrow(xi) == p)
   stopifnot(ncol(xi) == 1)
 
-  # # TODO: vectorize
-  # # compute xi(h,D)
-  # xi <- 0
-  # for (i in seq_along(noth)) {
-  #   index <- noth[[i]] # if index is in h, then residual is 0; otherwise, residual is not 0 (in general position)
-  # #   ind <- Y_subsample[[index]] - design[[index, , drop = FALSE]] %*% bh < 0
-  #   ind <- resid_subsample[[index]] < 0
-  #   summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
-  #   xi <- xi + summand
-  # }
-
-  # HACK: this is old code that iterated through all `m` observations; this is deprecated
-  # BUG: the `ind` should be the residuals of the QR of interest.
-  # # compute xi(h,D)
-  # xi <- 0 # initialize sum
-  # # iterate through all `m` observations of the subsample
-  # # TODO: sum over indices that aren't in `h`
-  # for (i in seq_along(resid_subsample)) {
-  #   if (!all.equal(resid_subsample[[i]], 0)) {
-  #     # compute indicator
-  #     ind <- Y_subsample[[i]] - X_subsample[i, , drop = FALSE] %*% bh < 0 # scalar
-  #     # compute summand
-  #     summand <- (tau - ind) %*% X_subsample[i, , drop = FALSE] %*% solve(Xh)
-  #     xi <- xi + summand
-  #   }
-  # }
-
   # check if xi satisfies FOC inequality
   left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
   right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
   all((left <= xi) & (xi <= right)) # returns TRUE if both are true, FALSE otherwise
 }
-# TODO: Sanity Check -- get subsample, solve for the beta, and then pass the corresponding h and the subsample into foc_membership
 # TODO: Sanity Check -- check for the false case
