@@ -12,7 +12,9 @@ get_beta_h <- function(n, tau) {
     X = X,
     Z = Z,
     tau = tau,
-    M = 10
+    M = 10,
+    show_progress = FALSE,
+    quietly = FALSE
   )
   # collect answer
   beta_D <- result$beta_D
