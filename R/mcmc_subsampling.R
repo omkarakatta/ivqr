@@ -181,14 +181,14 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 #' active basis solve the IQR problem for this data set.
 #'
 #' @param h Indices of the active basis written in terms of the subsample data
-#'  [p-dimensional vector]
-#' @param Y_subsample Outcome vector in the subsample [m by 1 matrix]
-#' @param X_subsample Covariates in subsample [m by p_X matrix]
-#' @param D_subsample Endogeneous variables in subsample [m by p_D matrix]
-#' @param Phi_subsample Transformed instruments in subsample [m by p_Phi]
-#' @param tau Quantile [numeric]
+#'  (p-dimensional vector)
+#' @param Y_subsample Outcome vector in the subsample (m by 1 matrix)
+#' @param X_subsample Covariates in subsample (m by p_X matrix)
+#' @param D_subsample Endogeneous variables in subsample (m by p_D matrix)
+#' @param Phi_subsample Transformed instruments in subsample (m by p_Phi)
+#' @param tau Quantile (numeric)
 #' @param beta_D Coefficients on the endogeneous variable; ideally obtained
-#'  from \code{h} [p_D by 1 matrix]
+#'  from \code{h} (p_D by 1 matrix)
 #'
 #' @return TRUE if the subsample satisfies FOC conditions; FALSE otherwise
 #'
