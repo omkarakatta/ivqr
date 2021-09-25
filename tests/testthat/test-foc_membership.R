@@ -67,6 +67,20 @@ test_that("Autor", {
     tau = tau
   )
   expect_true(result)
+
+  # use incorrect active basis;
+  h_wrong <- h
+  h_wrong[1] <- sample(setdiff(seq_len(m), h), size = 1)
+  result <- foc_membership(
+    h = h_wrong,
+    Y_subsample = y_subsample,
+    X_subsample = x_subsample,
+    D_subsample = d_subsample,
+    Phi_subsample = phi_subsample,
+    tau = tau
+  )
+  expect_false(result)
+
 })
 
 test_that("Chen-Lee", {
