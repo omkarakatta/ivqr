@@ -1,11 +1,11 @@
 test_that("Ensure that p_D >= 3", {
-  expect_error(
+  expect_warning(
     chen_lee(p_D = 1),
-    NA
+    "p_D is less than 3"
   )
-  expect_error(
+  expect_warning(
     chen_lee(p_D = 2),
-    NA
+    "p_D is less than 3"
   )
   expect_error(
     chen_lee(p_D = 3),
