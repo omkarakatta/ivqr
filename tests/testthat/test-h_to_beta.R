@@ -20,7 +20,7 @@ get_beta_h <- function(n, tau) {
   beta_X <- result$beta_X
   # use h_to_beta
   Y_tilde <- Y - D %*% beta_D
-  qr <- quantreg::rq(Y_tilde ~ X + linear_projection(D, X, Z) - 1)
+  qr <- quantreg::rq(Y_tilde ~ X + linear_projection(D, X, Z) - 1, tau = tau)
   h <- which(qr$dual > 0 & qr$dual < 1)
   beta_h <- h_to_beta(h, Y = Y, X = X, D = D, Z = Z)
   list(
@@ -34,47 +34,47 @@ get_beta_h <- function(n, tau) {
 test_that("Chen Lee, tau = 0.5", {
   result <- get_beta_h(n = 100, tau = 0.5)
   expect_equal(
-    result$beta_h$beta_d,
-    result$beta_d
+    result$beta_h$beta_D,
+    result$beta_D
   )
   expect_equal(
-    result$beta_h$beta_phi,
-    result$beta_phi
+    result$beta_h$beta_Phi,
+    result$beta_Phi
   )
   expect_equal(
-    result$beta_h$beta_x,
-    result$beta_x
+    result$beta_h$beta_X,
+    result$beta_X
   )
 })
 
 test_that("Chen Lee, tau = 0.6", {
   result <- get_beta_h(n = 100, tau = 0.6)
   expect_equal(
-    result$beta_h$beta_d,
-    result$beta_d
+    result$beta_h$beta_D,
+    result$beta_D
   )
   expect_equal(
-    result$beta_h$beta_phi,
-    result$beta_phi
+    result$beta_h$beta_Phi,
+    result$beta_Phi
   )
   expect_equal(
-    result$beta_h$beta_x,
-    result$beta_x
+    result$beta_h$beta_X,
+    result$beta_X
   )
 })
 
 test_that("Chen Lee, tau = 0.25", {
   result <- get_beta_h(n = 100, tau = 0.25)
   expect_equal(
-    result$beta_h$beta_d,
-    result$beta_d
+    result$beta_h$beta_D,
+    result$beta_D
   )
   expect_equal(
-    result$beta_h$beta_phi,
-    result$beta_phi
+    result$beta_h$beta_Phi,
+    result$beta_Phi
   )
   expect_equal(
-    result$beta_h$beta_x,
-    result$beta_x
+    result$beta_h$beta_X,
+    result$beta_X
   )
 })
