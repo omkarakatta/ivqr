@@ -128,10 +128,9 @@
 
 #' Find the coefficients given the active basis
 #'
-#' Given the active basis in terms of the full data, find the coefficients that
-#' solve the IQR problem.
+#' Given the active basis, find the coefficients that solve the IQR problem.
 #'
-#' @param h Active basis in terms of the full data
+#' @param h Active basis in terms of the data provided
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
@@ -175,7 +174,7 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 ### foc_membership -------------------------
 #' Verify membership of a data set in the FOC conditions
 #'
-#' @param h Indices of the active basis written in terms of the full data
+#' @param h Indices of the active basis written in terms of the subsample data
 #'  [p-dimensional vector]
 #' @param Y_subsample Outcome vector in the subsample [m by 1 matrix]
 #' @param X_subsample Covariates in subsample [m by p_X matrix]
@@ -184,16 +183,22 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 #' @param tau Quantile [numeric]
 #' @param beta_D Coefficients on the endogeneous variable; ideally obtained
 #'  from \code{h} [p_D by 1 matrix]
-foc_membership <- function(h,
-                           Y_subsample,
-                           X_subsample,
-                           D_subsample,
-                           Phi_subsample,
-                           tau,
-                           beta_D) {
+foc_membership <- function(
+  h,
+  Y_subsample,
+  X_subsample,
+  D_subsample,
+  Phi_subsample,
+  tau,
+  beta_D = h_to_beta(h,
+                     Y = Y_subsample,
+                     X = X_subsample,
+                     D = D_subsample,
+                     Phi = Phi_subsample)$beta_D
+) {
   # active basis in terms of full data -> active basis in terms of subsample
   # NOTE: this means we construct our subsample without changing the order of the indices.
-  h <- order(h)
+  # h <- order(h) TODO: need to think about h going from full to subsample and subsample to full, etc.
   # check dimensions
   m <- nrow(Y_subsample)
   # TODO: remove this when we are done to improve speed
@@ -223,7 +228,7 @@ foc_membership <- function(h,
   stopifnot(nrow(beta_D) == p_D)
   stopifnot(ncol(beta_D) == 1)
   y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
-  reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample)
+  reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample - 1, tau = tau)
   resid_subsample <- reg$residuals
 
   # create indices that are not in h
@@ -239,8 +244,8 @@ foc_membership <- function(h,
   ind_mat <- diag(tau - as.numeric(resid_noth < 0)) # (m - p) by (m - p) matrix
   design_noth <- design[noth, , drop = FALSE] # (m - p) by p matrix
   summand <- ind_mat %*% design_noth
-  sum_summand <- matrix(1, nrow = 1, ncol = length(noth))
-  xi <- t(sum_summand %*% solve(Xh))
+  sum_summand <- matrix(1, nrow = 1, ncol = length(noth)) %*% summand
+  xi <- t(sum_summand %*% solve(designh))
   stopifnot(nrow(xi) == p)
   stopifnot(ncol(xi) == 1)
 
