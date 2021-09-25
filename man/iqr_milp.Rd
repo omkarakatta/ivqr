@@ -15,8 +15,14 @@ iqr_milp(
   O_pos = NULL,
   M = NULL,
   TimeLimit = 300,
+  VarHintVal_bool = FALSE,
+  VarHintPri_bool = FALSE,
+  BranchPriority_bool = FALSE,
   sparse = TRUE,
+  attributes = list(),
   params = list(FeasibilityTol = 1e-06, LogToConsole = 0),
+  start = NULL,
+  fix = NULL,
   quietly = TRUE,
   show_progress = TRUE,
   LogFileName = "",
@@ -47,10 +53,51 @@ quantile regression of Y on X and D}
 \item{TimeLimit}{Maximum time (in seconds) spent on a linear program;
 defaults to 300, will be appended to \code{params}}
 
+\item{VarHintVal_bool}{If TRUE, instead of fixing the binary variables as
+determined by \code{O_neg,O_pos}, we will "hint" these values; defaults to
+FALSE; see
+\url{https://www.gurobi.com/documentation/9.1/refman/varhintval.html#attr:VarHintVal};
+overrides \code{attributes}}
+
+\item{VarHintPri_bool}{If TRUE, we specify the strength of the "hints"
+according to the magnitude of the residual from a naive QR;
+only valid if VarHintVal_bool is TRUE; overrides \code{attributes};
+defaults to FALSE;
+see \url{https://www.gurobi.com/documentation/9.1/refman/varhintpri.html#attr:VarHintPri}}
+
+\item{BranchPriority_bool}{If TRUE, we specify which variables will be
+branched on first according to the magnitude of the residual from a naive QR;
+defaults to FALSE;
+see \url{https://www.gurobi.com/documentation/9.1/refman/branchpriority.html}}
+
 \item{sparse}{If TRUE (default), use sparse matrices}
+
+\item{attributes}{named list of Gurobi attributes, see
+\url{https://www.gurobi.com/documentation/9.1/refman/attributes.html} and
+\url{https://www.gurobi.com/documentation/9.1/refman/the_model_argument.html};
+defaults to empty list}
 
 \item{params}{Gurobi parameters, see
 \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}
+
+\item{start}{Gurobi attribute, see
+\url{https://www.gurobi.com/documentation/9.1/examples/mip_starts.html}; If
+NULL (default), no starting solution will be provided}
+
+\item{fix}{Fix decision variables; If NULL (default), no starting solution will
+be provided; if NA, the respective decision variable won't be fixed;
+decision variables are:
+\enumerate{
+\item beta_X
+\item beta_Phi_plus
+\item beta_Phi_minus ; note: abs(beta_Phi) = beta_Phi_plus + beta_Phi_minus
+\item beta_D
+\item u
+\item v
+\item a
+\item k
+\item l
+}}
 
 \item{quietly}{If TRUE (default), supress messages during execution (boolean)}
 
