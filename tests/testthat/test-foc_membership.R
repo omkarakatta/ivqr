@@ -2,7 +2,7 @@
 library(dplyr)
 library(quantreg)
 
-test_that("correct -- Autor", {
+test_that("Autor", {
 
   # filter to black females
   full_data <- as.data.frame(cbind(Y_educ, X_educ, D_educ, Z_educ,
@@ -65,13 +65,11 @@ test_that("correct -- Autor", {
     D_subsample = d_subsample,
     Phi_subsample = phi_subsample,
     tau = tau
-    # beta_D = h_to_beta(h, Y = y_subsample, X = x_subsample, D = d_subsample, Phi = phi_subsample)
   )
-
   expect_true(result)
 })
 
-test_that("correct -- Chen-Lee", {
+test_that("Chen-Lee", {
 
   # create data
   n <- 10000
