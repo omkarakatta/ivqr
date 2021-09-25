@@ -17,20 +17,20 @@ foc_membership(
 }
 \arguments{
 \item{h}{Indices of the active basis written in terms of the subsample data
-\link{p-dimensional vector}}
+(p-dimensional vector)}
 
-\item{Y_subsample}{Outcome vector in the subsample \link{m by 1 matrix}}
+\item{Y_subsample}{Outcome vector in the subsample (m by 1 matrix)}
 
-\item{X_subsample}{Covariates in subsample \link{m by p_X matrix}}
+\item{X_subsample}{Covariates in subsample (m by p_X matrix)}
 
-\item{D_subsample}{Endogeneous variables in subsample \link{m by p_D matrix}}
+\item{D_subsample}{Endogeneous variables in subsample (m by p_D matrix)}
 
-\item{Phi_subsample}{Transformed instruments in subsample \link{m by p_Phi}}
+\item{Phi_subsample}{Transformed instruments in subsample (m by p_Phi)}
 
-\item{tau}{Quantile \link{numeric}}
+\item{tau}{Quantile (numeric)}
 
 \item{beta_D}{Coefficients on the endogeneous variable; ideally obtained
-from \code{h} \link{p_D by 1 matrix}}
+from \code{h} (p_D by 1 matrix)}
 }
 \value{
 TRUE if the subsample satisfies FOC conditions; FALSE otherwise

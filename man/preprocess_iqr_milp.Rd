@@ -18,7 +18,6 @@ preprocess_iqr_milp(
   r = 1.25,
   show_iterations = FALSE,
   LogFileExt = ".log",
-  start = NULL,
   ...
 )
 }
@@ -98,6 +97,4 @@ preprocessed MILP.
 
 We repeatedly relax our preprocessing until the minimized objective is
 finally 0.
-
-Note: no warm-starting with \code{start} argument is allowed.
 }
