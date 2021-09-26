@@ -7,6 +7,68 @@
 ###
 ### Author: Omkar A. Katta
 
+### wald_varcov -------------------------
+#' Compute Wald-type asymptotic variance
+#'
+#' See (3.11) from Chernozhukov and Hansen (2006)
+#'
+#' @param resid MILP residuals associated with point estimate
+#' @param alpha Alpha level of the test; defaults to 0.1; used to compute
+#'  critical value and the Hall and Sheather bandwidth (for estimating
+#'  J_{Psi}(tau) in CH (2006))
+#' @param tau Quantile (number between 0 and 1)
+#' @param D Matrix of endogeneous variables
+#' @param X Matrix of covariates (including intercept)
+#' @param Z Matrix of instruments (only relevant for obtaining \code{Phi})
+#' @param Phi Transformed matrix of instruments; defaults to linear projection
+#'  of D on X and Z
+wald_varcov <- function(resid,
+                        alpha,
+                        tau,
+                        D,
+                        X,
+                        Z,
+                        Phi) {
+
+  out <- list() # initialize list of results to return
+
+  # Get dimensions of data
+  n <- nrow(D)
+  p_D <- ncol(D)
+  p_X <- ncol(X)
+  stopifnot(nrow(X) == n) # TODO: remove this to improve speed
+  stopifnot(nrow(Phi) == n) # TODO: remove this to improve speed
+
+  # Matrices
+  B <- cbind(Phi, X)
+  C <- cbind(D, X)
+
+  # Hall and Sheather (1988) bandwidth
+  tmp_a <- n ^ (1 / 3)
+  tmp_b <- stats::qnorm(1 - 0.5 * alpha) ^ (2 / 3)
+  tmp_c <- 1.5 * (stats::dnorm(stats::qnorm(tau)) ^ 2)
+  tmp_d <- 2 * (stats::qnorm(tau) ^ 2) + 1
+  hs <- tmp_a * tmp_b * ((tmp_c / tmp_d) ^ (1 / 3))
+  out$hs <- hs
+  # Powell
+  bw <- hs
+  # Note that the 1 / (2 * n * bw) is negated in the formula for B_tilde
+  Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n)
+  out$Psi <- Psi
+
+  # Find S and J in formula (3.11) of CH (2006)
+  S <- tau * (1 - tau) / n * t(B) %*% B # note that the 'n' will be negated
+  J <- 1 / (2 * n * bw) * t(B) %*% Psi %*% C # note that the 'n' will be negated
+  varcov <- 1 / n * solve(J) %*% S %*% t(solve(J)) # variance of estimator
+  out$S <- S
+  out$J <- J
+  out$varcov <- varcov
+  stopifnot(nrow(varcov) == p_D + p_X)
+  stopifnot(ncol(varcov) == p_D + p_X)
+
+  out
+}
+
 ### wald_univariate -------------------------
 #' Compute Wald-type univariate confidence interval
 #'
@@ -55,31 +117,16 @@ wald_univariate <- function(center,
   crit_val <- stats::qnorm(1 - alpha / 2)
   out$crit_val <- crit_val
 
-  # Matrices
-  B <- cbind(Phi, X)
-  C <- cbind(D, X)
-
-  # Hall and Sheather (1988) bandwidth
-  tmp_a <- n ^ (1 / 3)
-  tmp_b <- stats::qnorm(1 - 0.5 * alpha) ^ (2 / 3)
-  tmp_c <- 1.5 * (stats::dnorm(stats::qnorm(tau)) ^ 2)
-  tmp_d <- 2 * (stats::qnorm(tau) ^ 2) + 1
-  hs <- tmp_a * tmp_b * ((tmp_c / tmp_d) ^ (1 / 3))
-  out$hs <- hs
-  # Powell
-  bw <- hs
-  # Note that the 1 / (2 * n * bw) is negated in the formula for B_tilde
-  Psi <- diag(as.numeric(abs(resid) < bw), nrow = n, ncol = n)
-
-  # Find S and J in formula (3.11) of CH (2006)
-  S <- tau * (1 - tau) / n * t(B) %*% B # note that the 'n' will be negated
-  J <- 1 / (2 * n * bw) * t(B) %*% Psi %*% C # note that the 'n' will be negated
-  varcov <- 1 / n * solve(J) %*% S %*% t(solve(J)) # variance of estimator
-  out$S <- S
-  out$J <- J
+  varcov_result <- wald_varcov(resid = resid,
+                               alpha = alpha,
+                               tau,
+                               D = D,
+                               X = X,
+                               Z = Z,
+                               Phi = Phi)
+  out$varcov_result <- varcov_result
+  varcov <- varcov_result$varcov
   out$varcov <- varcov
-  stopifnot(nrow(varcov) == p_D + p_X)
-  stopifnot(ncol(varcov) == p_D + p_X)
 
   # Get standard error for the coefficient of interest
   if (!endogeneous) {
