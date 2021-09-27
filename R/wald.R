@@ -22,6 +22,13 @@
 #' @param Z Matrix of instruments (only relevant for obtaining \code{Phi})
 #' @param Phi Transformed matrix of instruments; defaults to linear projection
 #'  of D on X and Z
+#'
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{varcov}:
+#'    \item \code{hs}: Hall and Sheather Bandwidth
+#'    \item Other objects used to create varcov
+#'  }
 wald_varcov <- function(resid,
                         alpha,
                         tau,
