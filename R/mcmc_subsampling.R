@@ -275,6 +275,8 @@ foc_membership <- function(
 #' @param Phi Transformation of X and Z to be used in the program;
 #'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #' @param tau Quantile (numeric)
+#'
+#' @return Results of QR(Y - D %*% beta_D ~ X + Phi) for a given \code{tau}
 run_concentrated_qr <- function(beta_D, Y, X, D, Z, Phi = linear_projection(D, X, Z), tau) {
   quantreg::rq(Y - D %*% beta_D ~ X + Phi - 1, tau = tau)
 }
