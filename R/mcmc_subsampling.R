@@ -275,5 +275,5 @@ foc_membership <- function(
 #' @importFrom mvnfast dmvn
 #'
 density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
-  mvnfast::dmvn(beta_star, mu = beta_hat, sigma = varcov_mat)
+  mvnfast::dmvn(beta_proposal, mu = beta_hat, sigma = varcov_mat)
 }
