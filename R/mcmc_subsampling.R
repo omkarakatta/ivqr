@@ -341,3 +341,55 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
   BiasedUrn::dMWNCHypergeo(x = active_basis_draws, m = rep(1, n), n = p_design,
                            odds = weights, precision = 1e-7)
 }
+
+#' @param iterations Number of iterations through the MCMC algorithm
+#' @param initial_beta_hat Initial value for c(beta_D, beta_X), e.g., coefficients from IQR point estimate
+#' @param initial_draws Initial value for active basis, represented as a vector
+#'  of 0's and 1's (1 if index is in active basis, 0 otherwise) (vector of
+#'  length n) # Q: does this have to be the active basis associated with
+#'  initial_beta_hat?
+#' @param residuals Residuals from IQR point estimation (vector of length n)
+#' @param theta Hyperparameter (numeric)
+# TODO: update documentation
+mcmc_active_basis <- function(iterations,
+                              beta_hat_center, # beta_X, beta_Phi from IQR point estimates
+                              beta_D, # beta_D from IQR point estimates
+                              initial_beta_hat = beta_hat_center,
+                              initial_draws,
+                              Y, X, D, Z, Phi, tau, # TODO: maybe we don't need this; we just need concentrated-out quantile regression results, or maybe we just need IQR MILP results
+                              qr = run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau),
+                              alpha,
+                              theta) {
+  qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+  residuals <- qr$residuals
+  varcov_mat <- wald_varcov(
+    resid = residuals,
+    alpha = alpha,
+    tau = tau,
+    D = D,
+    X = X,
+    Phi = Phi
+  )$varcov
+  draws_current <- initial_draws
+  beta_current <- inital_beta_hat
+  u_vec <- runif(n = iterations) # create uniform RV for acceptance/rejection rule
+  result <- vector("list", iterations) # preallocate space to store coefficients
+  for (i in seq_len(iterations)) {
+    u <- u_vec[[i]]
+    h_proposal <- propose_active_basis(residuals, p_design = length(initial_beta_hat), theta = theta)
+    draws_proposal <- h_proposal$draws
+    beta_proposal_full <- h_to_beta(h = h_proposal$h_star, Y = Y, X = X, D = D, Phi = Phi)
+    beta_proposal <- c(beta_proposal_full$beta_D, beta_proposal$beta_X)
+    # TODO: come up with better variable names
+    density_proposal <- density_wald(beta_hat = beta_hat_center, beta_proposal = beta_proposal, varcov_mat)
+    density_current <- density_wald(beta_hat = beta_hat_center, beta_proposal = beta_current, varcov_mat) # TODO: presumably, we would have already computed this...right?
+    proposal_proposal <- density_active_basis(active_basis_draws = draws_proposal, residuals = residuals, p_design = length(beta_hat_center))
+    proposal_current <- density_active_basis(active_basis_draws = draws_current, residuals = residuals, p_design = length(beta_hat_center))
+    a <- density_proposal / density_current * proposal_current / proposal_proposal
+    if (u < a) { # accept
+      beta_current <- beta_proposal
+      draws_current <- draws_proposal
+    }
+    out[[i]] <- beta_current # accept => we save beta_proposal, otherwise we save beta_current
+  }
+}
