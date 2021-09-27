@@ -307,3 +307,19 @@ propose_active_basis <- function(residuals, p_design, theta = 1) {
     h_star = h_star
   )
 }
+
+#' @param active_basis_draws Vector of length n with 1 if index is in active
+#'  basis and 0 otherwise; see \code{propose_active_basis}
+#' @param residuals Residuals from IQR point estimation (vector of length n)
+#' @param p_design Dimension of design matrix in QR (p_X + p_Phi) (numeric)
+#' @param theta Hyperparameter (numeric)
+#'
+#' @return density of Hypergeometric distribution evaluated at
+#'  \code{density_active_basis}
+density_active_basis <- function(active_basis_draws, residuals, p_design, theta = 1) {
+  weights <- exp(-1 * theta * residuals^2)
+  n <- length(residuals)
+  # TODO: replace with product of weights
+  BiasedUrn::dMWNCHypergeo(x = active_basis_draws, m = rep(1, n), n = p_design,
+                           odds = weights, precision = 1e-7)
+}
