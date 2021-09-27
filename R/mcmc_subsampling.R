@@ -281,3 +281,29 @@ foc_membership <- function(
 density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
   mvnfast::dmvn(beta_proposal, mu = beta_hat, sigma = varcov_mat)
 }
+
+#' @param theta Hyperparameter (numeric)
+#' @param residuals Vector of residuals from IQR point estimation (vector of length n)
+#' @param p_design Dimension of design matrix in QR (p_X + p_Phi) (numeric)
+#'
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{draws}: vector of length `n` with 1 if the index is in active
+#'      basis and 0 otherwise
+#'    \item \code{h_star}: Indices of the active basis
+#'  }
+propose_active_basis <- function(theta, residuals, p_design) {
+  weights <- exp(-1 * theta * residuals^2) # pointwise-operation
+  n <- length(residuals)
+  # 1 ball of each color in n urns;
+  # probability of picking ball in urn i is equal to weights[i]
+  # returns a vector with 1 if selected and 0 otherwise 
+  # TODO: use `rmultinom`
+  draws = BiasedUrn::rMFNCHypergeo(nran = 1, m = rep(1, n), n = p_design,
+                                   odds = weights, precision = 1e-7)
+  h_star = which(draws == 1)
+  list(
+    draws = draws,
+    h_star = h_star
+  )
+}
