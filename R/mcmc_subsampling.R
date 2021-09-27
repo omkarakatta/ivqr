@@ -283,6 +283,10 @@ run_concentrated_qr <- function(beta_D, Y, X, D, Z, Phi = linear_projection(D, X
 
 ### Propose h -- "Algorithm 3" -- Algorithm A -------------------------
 
+# TODO: check email for any TODOs
+# TODO: check reference code for any TODOs
+# TODO: check how these functions work *together* to make it easy to use in terms of input/output flows
+
 #' @param beta_proposal Vector of proposed coefficients beta_D and beta_X
 #'  (vector of length p_D + p_X)
 #' @param beta_hat Vector of beta_D and beta_X coefficients from IQR point
@@ -318,7 +322,7 @@ propose_active_basis <- function(residuals, p_design, theta = 1) {
   h_star = which(draws == 1)
   list(
     draws = draws,
-    h_star = h_star
+    h_star = h_star # TODO: do we even need to store this?
   )
 }
 
