@@ -28,7 +28,7 @@ wald_varcov <- function(resid,
                         D,
                         X,
                         Z,
-                        Phi) {
+                        Phi = linear_projection(D, X, Z)) {
 
   out <- list() # initialize list of results to return
 
