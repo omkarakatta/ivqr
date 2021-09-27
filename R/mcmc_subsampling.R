@@ -276,8 +276,6 @@ foc_membership <- function(
 #' @param varcov_mat Asymptotic variance-covariance matrix; see
 #'  \code{wald_varcov}
 #'
-#' @importFrom mvnfast dmvn
-#'
 density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
   mvnfast::dmvn(beta_proposal, mu = beta_hat, sigma = varcov_mat)
 }
