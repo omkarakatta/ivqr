@@ -263,3 +263,17 @@ foc_membership <- function(
   all((left <= xi) & (xi <= right)) # returns TRUE if both are true, FALSE otherwise
 }
 # TODO: Sanity Check -- check for the false case
+
+### Propose h -- "Algorithm 3" -- Algorithm A -------------------------
+
+#' @param beta_proposal Vector of proposed coefficients beta_D and beta_X
+#'  (vector of length p_D + p_X)
+#' @param beta_hat Vector of beta_D and beta_X coefficients from IQR point
+#'  estimate (vector of length p_D + p_X)
+#' @param varcov_mat Asymptotic variance-covariance matrix; see \code{wald_varcov}
+#'
+#' @importFrom mvnfast dmvn
+#'
+density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
+  mvnfast::dmvn(beta_star, mu = beta_hat, sigma = varcov_mat)
+}
