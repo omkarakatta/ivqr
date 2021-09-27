@@ -282,9 +282,9 @@ density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
   mvnfast::dmvn(beta_proposal, mu = beta_hat, sigma = varcov_mat)
 }
 
-#' @param theta Hyperparameter (numeric)
 #' @param residuals Vector of residuals from IQR point estimation (vector of length n)
 #' @param p_design Dimension of design matrix in QR (p_X + p_Phi) (numeric)
+#' @param theta Hyperparameter (numeric)
 #'
 #' @return Named list
 #'  \enumerate{
@@ -292,7 +292,7 @@ density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
 #'      basis and 0 otherwise
 #'    \item \code{h_star}: Indices of the active basis
 #'  }
-propose_active_basis <- function(theta, residuals, p_design) {
+propose_active_basis <- function(residuals, p_design, theta = 1) {
   weights <- exp(-1 * theta * residuals^2) # pointwise-operation
   n <- length(residuals)
   # 1 ball of each color in n urns;
