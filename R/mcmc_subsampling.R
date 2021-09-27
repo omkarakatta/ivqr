@@ -208,9 +208,11 @@ foc_membership <- function(
 ) {
   # TODO: the indices of h need to be written in terms of the subsample.
   # e.g.:
-  # suppose the 5th observation in the full data is the smallest index in the active basis.
-  # further suppose the 5th observation is the first one present in the subsample.
-  # then, this means that `1` should be present in `h` since the first observation in the subsample corresponds to the 5th observation in full data.
+  # suppose the 5th observation in the full data is the smallest index in the
+  # active basis. further suppose the 5th observation is the first one present
+  # in the subsample. then, this means that `1` should be present in `h` since
+  # the first observation in the subsample corresponds to the 5th observation
+  # in full data.
 
   # check dimensions
   m <- nrow(Y_subsample)
@@ -225,11 +227,11 @@ foc_membership <- function(
   p_D <- ncol(D_subsample)
 
   # compute relevant data
-  Dh <- D_subsample[h, , drop = FALSE]
-  Phih <- Phi_subsample[h, , drop = FALSE]
-  Xh <- X_subsample[h, , drop = FALSE]
+  # Dh <- D_subsample[h, , drop = FALSE]
+  # Phih <- Phi_subsample[h, , drop = FALSE]
+  # Xh <- X_subsample[h, , drop = FALSE]
   yh <- Y_subsample[h]
-  design <- cbind(Phi_subsample, X_subsample) # design matrix
+  design <- cbind(X_subsample, Phi_subsample) # design matrix
   designh <- design[h, , drop = FALSE] # design matrix
 
   # compute b(h)
@@ -241,7 +243,8 @@ foc_membership <- function(
   stopifnot(nrow(beta_D) == p_D)
   stopifnot(ncol(beta_D) == 1)
   y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
-  reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample - 1, tau = tau)
+  reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample - 1,
+                      tau = tau)
   resid_subsample <- reg$residuals
 
   # create indices that are not in h
@@ -260,7 +263,7 @@ foc_membership <- function(
   # check if xi satisfies FOC inequality
   left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
   right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
-  all((left <= xi) & (xi <= right)) # returns TRUE if both are true, FALSE otherwise
+  all((left <= xi) & (xi <= right)) # returns TRUE if both are true, else FALSE
 }
 # TODO: Sanity Check -- check for the false case
 
@@ -270,7 +273,8 @@ foc_membership <- function(
 #'  (vector of length p_D + p_X)
 #' @param beta_hat Vector of beta_D and beta_X coefficients from IQR point
 #'  estimate (vector of length p_D + p_X)
-#' @param varcov_mat Asymptotic variance-covariance matrix; see \code{wald_varcov}
+#' @param varcov_mat Asymptotic variance-covariance matrix; see
+#'  \code{wald_varcov}
 #'
 #' @importFrom mvnfast dmvn
 #'
