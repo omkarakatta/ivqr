@@ -267,6 +267,18 @@ foc_membership <- function(
 }
 # TODO: Sanity Check -- check for the false case
 
+#' @param beta_D Endogenous coefficients (vector of length p_D)
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param tau Quantile (numeric)
+run_concentrated_qr <- function(beta_D, Y, X, D, Z, Phi = linear_projection(D, X, Z), tau) {
+  quantreg::rq(Y - D %*% beta_D ~ X + Phi - 1, tau = tau)
+}
+
 ### Propose h -- "Algorithm 3" -- Algorithm A -------------------------
 
 #' @param beta_proposal Vector of proposed coefficients beta_D and beta_X
