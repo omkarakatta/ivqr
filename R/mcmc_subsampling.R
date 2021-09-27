@@ -282,7 +282,7 @@ density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
   mvnfast::dmvn(beta_proposal, mu = beta_hat, sigma = varcov_mat)
 }
 
-#' @param residuals Vector of residuals from IQR point estimation (vector of length n)
+#' @param residuals Residuals from IQR point estimation (vector of length n)
 #' @param p_design Dimension of design matrix in QR (p_X + p_Phi) (numeric)
 #' @param theta Hyperparameter (numeric)
 #'
