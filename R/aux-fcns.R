@@ -156,6 +156,13 @@ parse_single_log <- function(log_path, information = "incumbent") {
   }
   if ("incumbent" %in% information) {
     incumbent_index <- grepl(pattern = "^(H|\\*)", log)
+    incumbent_warmstart_bool <- sum(grepl(pattern = "Loaded user MIP start with objective", log)) > 0
+    if (incumbent_warmstart_bool) {
+      # find start of table, then add three rows
+      # first row below start is subheader; second row is empty; third row is warm-start!
+      start_index <- grep(pattern = "Unexpl", log) + 3
+      incumbent_index[start_index] <- TRUE
+    }
     incumbent_log <- log[incumbent_index]
     # remove everything before and includeing last space
     incumbent_time <- gsub(".*? ", "", incumbent_log)
@@ -251,14 +258,25 @@ parse_mult_sols <- function(sol_dir, expr = "sol$", value = "list") {
   }
   files <- list.files(sol_dir, pattern = expr)
   info <- lapply(paste0(sol_dir, "/", files), parse_single_sol)
-  names(info) <- files
+  numbers_and_extension <- gsub(".*_[^0-9]*", "", files)
+  numbers <- as.numeric(gsub(".sol$", "", numbers_and_extension))
+  names(info) <- numbers
   result <- info
   if (value == "data.frame") {
     if (length(unique(sapply(result, length))) == 1) {
-      result <- do.call(cbind, info)
+      result <- do.call(cbind, info)[, as.character(sort(numbers))]
     } else {
       warning("Number of decision variables are different; returning list")
     }
   }
   result
+}
+
+### Connect sol and log files -------------------------
+parse_logsol <- function(log_path, sol_dir, expr = "sol$") {
+  print("Parsing log for times to incumbent solutions...")
+  time <- parse_single_log(log_path)
+  print("Parsing sol for incumbent solutions...")
+  sols <- parse_mult_sols(sol_dir, expr = expr, value = "data.frame")
+  list(time = time, sols = sols, result = rbind(sols, time))
 }
