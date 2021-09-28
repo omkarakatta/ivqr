@@ -365,7 +365,7 @@ mcmc_active_basis <- function(iterations,
   initial_basis <- which(dual > 0 & dual < 1)
   initial_draws <- seq_len(nrow(Y))
   initial_draws[initial_basis] <- 1
-  beta_hat <- c(beta_D, beta_X),
+  beta_hat <- c(beta_D, beta_X)
   draws_current <- initial_draws
   beta_current <- beta_hat
   p_design <- ncol(X) + ncol(Phi)
