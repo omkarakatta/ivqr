@@ -372,6 +372,7 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 #'
 #' @return data frame where the rows are beta_D and beta_X while the columns
 #'  are each iteration in the MCMC (excluding the burn-in period)
+# TODO: right now, I feed in beta_D to figure out h; maybe I should feed in h to figure out beta_D and beta_X? Also, maybe I should create beta_to_h(beta_D, ...) function
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
                               beta_D, # beta_D from IQR point estimates
