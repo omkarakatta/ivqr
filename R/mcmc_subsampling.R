@@ -354,15 +354,22 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
                               beta_D, # beta_D from IQR point estimates
-                              beta_hat_center = c(beta_D, beta_X),
                               initial_draws,
-                              Y, X, D, Z, Phi, tau, # TODO: maybe we don't need this; we just need concentrated-out quantile regression results, or maybe we just need IQR MILP results
-                              qr = run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau),
+                              Y, X, D, Z, Phi, tau,
                               alpha,
                               theta,
                               discard_burnin = TRUE) {
   qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
   residuals <- qr$residuals
+  dual <- qr$dual
+  initial_basis <- which(dual > 0 & dual < 1)
+  initial_draws <- seq_len(nrow(Y))
+  initial_draws[initial_basis] <- 1
+  beta_hat <- c(beta_D, beta_X),
+  draws_current <- initial_draws
+  beta_current <- beta_hat
+  p_design <- ncol(X) + ncol(Phi)
+  u_vec <- runif(n = iterations) # create uniform RV for acceptance/rejection rule
   varcov_mat <- wald_varcov(
     resid = residuals,
     alpha = alpha,
@@ -371,11 +378,7 @@ mcmc_active_basis <- function(iterations,
     X = X,
     Phi = Phi
   )$varcov
-  p_design <- ncol(X) + ncol(D)
-  initial_beta_hat <- beta_hat_center
-  draws_current <- initial_draws
-  beta_current <- initial_beta_hat
-  u_vec <- runif(n = iterations) # create uniform RV for acceptance/rejection rule
+
   result <- vector("list", iterations) # preallocate space to store coefficients
   for (i in seq_len(iterations)) {
     u <- u_vec[[i]]
@@ -384,11 +387,21 @@ mcmc_active_basis <- function(iterations,
     beta_proposal_full <- h_to_beta(h = h_proposal$h_star, Y = Y, X = X, D = D, Phi = Phi)
     beta_proposal <- c(beta_proposal_full$beta_D, beta_proposal_full$beta_X)
     # TODO: come up with better variable names
-    density_proposal <- density_wald(beta_hat = beta_hat_center, beta_proposal = beta_proposal, varcov_mat)
-    density_current <- density_wald(beta_hat = beta_hat_center, beta_proposal = beta_current, varcov_mat) # TODO: presumably, we would have already computed this...right?
-    proposal_proposal <- density_active_basis(active_basis_draws = draws_proposal, residuals = residuals, p_design = p_design, theta = theta)
-    proposal_current <- density_active_basis(active_basis_draws = draws_current, residuals = residuals, p_design = p_design, theta = theta)
-    a <- density_proposal / density_current * proposal_current / proposal_proposal
+    wald_proposal <- density_wald(beta_hat = beta_hat,
+                                  beta_proposal = beta_proposal,
+                                  varcov_mat)
+    wald_current <- density_wald(beta_hat = beta_hat,
+                                 beta_proposal = beta_current,
+                                 varcov_mat) # TODO: presumably, we would have already computed this...right?
+    geom_proposal <- density_active_basis(active_basis_draws = draws_proposal,
+                                          residuals = residuals,
+                                          p_design = p_design,
+                                          theta = theta)
+    geom_current <- density_active_basis(active_basis_draws = draws_current,
+                                         residuals = residuals,
+                                         p_design = p_design,
+                                         theta = theta)
+    a <- wald_proposal / wald_current * geom_current / geom_proposal
     if (u < a) { # accept
       beta_current <- beta_proposal
       draws_current <- draws_proposal
@@ -399,7 +412,7 @@ mcmc_active_basis <- function(iterations,
   result_df <- do.call(cbind, result)
   if (discard_burnin) {
     # find where stationary distribution begins
-    stationary_begin <- min(which(result_df[1, ] != initial_beta_hat[1]))
+    stationary_begin <- min(which(result_df[1, ] != beta_hat[1]))
     # remove burn-in period
     result_df <- result_df[, stationary_begin:ncol(result_df)]
   }
