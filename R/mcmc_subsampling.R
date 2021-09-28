@@ -371,6 +371,7 @@ mcmc_active_basis <- function(iterations,
     X = X,
     Phi = Phi
   )$varcov
+  p_design <- ncol(X) + ncol(D)
   initial_beta_hat <- beta_hat_center
   draws_current <- initial_draws
   beta_current <- initial_beta_hat
@@ -378,15 +379,15 @@ mcmc_active_basis <- function(iterations,
   result <- vector("list", iterations) # preallocate space to store coefficients
   for (i in seq_len(iterations)) {
     u <- u_vec[[i]]
-    h_proposal <- propose_active_basis(residuals, p_design = length(initial_beta_hat), theta = theta)
+    h_proposal <- propose_active_basis(residuals, p_design = p_design, theta = theta)
     draws_proposal <- h_proposal$draws
     beta_proposal_full <- h_to_beta(h = h_proposal$h_star, Y = Y, X = X, D = D, Phi = Phi)
     beta_proposal <- c(beta_proposal_full$beta_D, beta_proposal_full$beta_X)
     # TODO: come up with better variable names
     density_proposal <- density_wald(beta_hat = beta_hat_center, beta_proposal = beta_proposal, varcov_mat)
     density_current <- density_wald(beta_hat = beta_hat_center, beta_proposal = beta_current, varcov_mat) # TODO: presumably, we would have already computed this...right?
-    proposal_proposal <- density_active_basis(active_basis_draws = draws_proposal, residuals = residuals, p_design = length(beta_hat_center))
-    proposal_current <- density_active_basis(active_basis_draws = draws_current, residuals = residuals, p_design = length(beta_hat_center))
+    proposal_proposal <- density_active_basis(active_basis_draws = draws_proposal, residuals = residuals, p_design = p_design, theta = theta)
+    proposal_current <- density_active_basis(active_basis_draws = draws_current, residuals = residuals, p_design = p_design, theta = theta)
     a <- density_proposal / density_current * proposal_current / proposal_proposal
     if (u < a) { # accept
       beta_current <- beta_proposal
