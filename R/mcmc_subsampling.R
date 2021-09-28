@@ -445,3 +445,65 @@ mcmc_active_basis <- function(iterations,
   }
   result_df
 }
+
+### Propose first subsample -- "First Approach" -------------------------
+
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param tau Quantile (numeric)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of length p_D)
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of length p_D)
+#' @param h Indices of active basis (vector of length p_X + p_Phi)
+#'
+#' @return Return set of indices in subsample
+# Q: Should the beta_*_proposal correspond to the same coefficients as h_to_beta(h)? If so, I don't even need the beta_*_proposal in the arguments. I can just use the h_to_beta(h) to get these coefficients...right?
+first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
+                           beta_D_proposal, beta_X_proposal, h, subsample_size,
+                           gamma = 1, l = 2) {
+  n <- length(Y)
+  p_design <- length(h)
+  subsample_set <- h # store indices of subsample
+  # qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+  Y_tilde <- Y - D %*% beta_D_proposal
+  design <- cbind(X, Phi)
+  designh_inv <- solve(design[h, , drop = FALSE])
+
+  s_i <- vector("list", length = n)
+  for (i in seq_len(n)) {
+    if (is.element(i, h)) {
+      s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
+    } else {
+      # NOTE: beta_Phi should be 0
+      const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
+      s_i[[i]] <- const * design[i, ] %*% designh_inv
+    }
+  }
+  s <- do.call(rbind, s_i)
+
+  ones <- matrix(1, nrow = 1, ncol = length(subsample_set))
+  sum_across_subsample_set <- ones %*% s[subsample_set, , drop = FALSE]
+  # we have length(h) observations in subsample; we need subsample_size - length(h) more
+  for (j in seq_len(subsample_size - length(h))) {
+    choices <- setdiff(seq_len(nrow(Y)), subsample_set)
+    n_choices <- length(choices)
+    s_remaining <- s[choices, , drop = FALSE]
+
+    # each row is one observation that we can choose from; the value is the weight in the exponent
+    ones <- matrix(1, nrow = n_choices, ncol = 1)
+    sum_remaining <- kronecker(ones, sum_across_subsample_set) + s_remaining
+
+    # for each row, apply e^(-gamma * (l-norm^l))
+    weights <- apply(sum_remaining, 1, function(x){
+      exp(-gamma * sum(abs(x)^l))
+    })
+
+    # choose 1 element in a single vector of size `length(weights)` to be 1
+    winner <- which(rmultinom(n = 1, size = 1, prob = weights) == 1)
+    new_observation <- choices[winner]
+    subsample_set <- c(subsample_set, new_observation)
+    sum_across_subsample_set <- sum_across_subsample_set + s[new_observation, , drop = FALSE]
+  }
+  subsample_set # return set of indices to create subsample!
+}
