@@ -414,6 +414,7 @@ mcmc_active_basis <- function(iterations,
   }
   # each row is a coefficient, each column is one iteration of MCMC
   result_df <- do.call(cbind, result)
+  rownames(result_df) <- c(paste0("beta_D", seq_len(ncol(D))), paste0("beta_X", seq_len(ncol(X))))
   if (discard_burnin) {
     # find where stationary distribution begins
     stationary_begin <- min(which(result_df[1, ] != beta_hat[1]))
