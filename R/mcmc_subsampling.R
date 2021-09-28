@@ -316,10 +316,21 @@ propose_active_basis <- function(residuals, p_design, theta = 1) {
   # 1 ball of each color in n urns;
   # probability of picking ball in urn i is equal to weights[i]
   # returns a vector with 1 if selected and 0 otherwise 
-  # TODO: use `rmultinom`
-  draws = BiasedUrn::rMFNCHypergeo(nran = 1, m = rep(1, n), n = p_design,
-                                   odds = weights, precision = 1e-7)
-  h_star = which(draws == 1)
+  # DONE: use `rmultinom`
+  # draws <- BiasedUrn::rMFNCHypergeo(nran = 1, m = rep(1, n), n = p_design,
+  #                                   odds = weights, precision = 1e-7)
+  # Q: is using the while loop okay?
+  while_bool <- TRUE
+  while (while_bool) {
+    # we pick p_design balls from length(weights) bins
+    draws <- as.numeric(rmultinom(n = 1, size = p_design, prob = weights))
+    # NOTE: possible to pick two balls from the same bin, hence the while loop will ensure all balls are from different bins
+    # break out of while loop if we pick at most 1 ball from each bin
+    if (identical(unique(draws), c(0, 1))) {
+      while_bool <- FALSE
+    }
+  }
+  h_star <- which(draws == 1)
   list(
     draws = draws,
     h_star = h_star # TODO: do we even need to store this?
@@ -336,10 +347,11 @@ propose_active_basis <- function(residuals, p_design, theta = 1) {
 #'  \code{density_active_basis}
 density_active_basis <- function(active_basis_draws, residuals, p_design, theta = 1) {
   weights <- exp(-1 * theta * residuals^2)
-  n <- length(residuals)
-  # TODO: replace with product of weights
-  BiasedUrn::dMWNCHypergeo(x = active_basis_draws, m = rep(1, n), n = p_design,
-                           odds = weights, precision = 1e-7)
+  # n <- length(residuals)
+  # # DONE: replace with product of weights
+  # BiasedUrn::dMWNCHypergeo(x = active_basis_draws, m = rep(1, n), n = p_design,
+  #                          odds = weights, precision = 1e-7)
+  prod(weights[active_basis_draws == 1])
 }
 
 #' @param iterations Number of iterations through the MCMC algorithm
