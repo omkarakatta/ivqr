@@ -343,14 +343,23 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 }
 
 #' @param iterations Number of iterations through the MCMC algorithm
-#' @param initial_beta_hat Initial value for c(beta_D, beta_X), e.g., coefficients from IQR point estimate
-#' @param initial_draws Initial value for active basis, represented as a vector
-#'  of 0's and 1's (1 if index is in active basis, 0 otherwise) (vector of
-#'  length n) # Q: does this have to be the active basis associated with
-#'  initial_beta_hat?
-#' @param residuals Residuals from IQR point estimation (vector of length n)
+#' @param beta_X Coefficients on the exogenous variables (vector of length
+#'  p_X); obtained from IQR point estimate
+#' @param beta_D Coefficients on the endogeneous variables (vector of length
+#'  p_D); obtained from IQR point estimate
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param tau Quantile (numeric)
+#' @param alpha Used for Hall and Sheather bandwidth; defaults to 0,1
 #' @param theta Hyperparameter (numeric)
-# TODO: update documentation
+#' @param discard_burnin If TRUE (default), discard the first set of draws that are equivalent to the IQR MILP estimate
+#'
+#' @return data frame where the rows are beta_D and beta_X while the columns
+#'  are each iteration in the MCMC (excluding the burn-in period)
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
                               beta_D, # beta_D from IQR point estimates
