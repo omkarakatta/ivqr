@@ -354,10 +354,10 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
                               beta_D, # beta_D from IQR point estimates
-                              Y, X, D, Z, Phi,
+                              Y, X, D, Z, Phi = linear_projection(D, X, Z),
                               tau,
                               alpha = 0.1,
-                              theta,
+                              theta = 1,
                               discard_burnin = TRUE) {
   qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
   residuals <- qr$residuals
