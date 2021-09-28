@@ -453,19 +453,34 @@ mcmc_active_basis <- function(iterations,
 #' @param D Endogenous variable (n by p_D matrix)
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param tau Quantile (numeric)
-#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of length p_D)
-#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of length p_D)
 #' @param h Indices of active basis (vector of length p_X + p_Phi)
+#' @param subsample_size Size of subsample (numeric at most n)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  arugment to determine \code{beta_X_proposal}
+#' @param gamma,l Hyperparameters
 #'
 #' @return Return set of indices in subsample
 # Q: Should the beta_*_proposal correspond to the same coefficients as h_to_beta(h)? If so, I don't even need the beta_*_proposal in the arguments. I can just use the h_to_beta(h) to get these coefficients...right?
 first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
-                           beta_D_proposal, beta_X_proposal, h, subsample_size,
+                           h, subsample_size,
+                           beta_D_proposal = NULL, beta_X_proposal = NULL, 
                            gamma = 1, l = 2) {
   n <- length(Y)
   p_design <- length(h)
   subsample_set <- h # store indices of subsample
-  # qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+  if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
+    coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
+    if (is.null(beta_D_proposal)) {
+      beta_D_proposal <- coef$beta_D
+    }
+    if (is.null(beta_X_proposal)) {
+      beta_X_proposal <- coef$beta_X
+    }
+  }
   Y_tilde <- Y - D %*% beta_D_proposal
   design <- cbind(X, Phi)
   designh_inv <- solve(design[h, , drop = FALSE])
