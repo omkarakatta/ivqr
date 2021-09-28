@@ -363,7 +363,7 @@ mcmc_active_basis <- function(iterations,
   residuals <- qr$residuals
   dual <- qr$dual
   initial_basis <- which(dual > 0 & dual < 1)
-  initial_draws <- seq_len(nrow(Y))
+  initial_draws <- vector("double", length = nrow(Y))
   initial_draws[initial_basis] <- 1
   beta_hat <- c(beta_D, beta_X)
   draws_current <- initial_draws
