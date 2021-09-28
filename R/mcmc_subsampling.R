@@ -390,21 +390,25 @@ mcmc_active_basis <- function(iterations,
     wald_proposal <- density_wald(beta_hat = beta_hat,
                                   beta_proposal = beta_proposal,
                                   varcov_mat)
-    wald_current <- density_wald(beta_hat = beta_hat,
-                                 beta_proposal = beta_current,
-                                 varcov_mat) # TODO: presumably, we would have already computed this...right?
     geom_proposal <- density_active_basis(active_basis_draws = draws_proposal,
                                           residuals = residuals,
                                           p_design = p_design,
                                           theta = theta)
-    geom_current <- density_active_basis(active_basis_draws = draws_current,
-                                         residuals = residuals,
-                                         p_design = p_design,
-                                         theta = theta)
+    if (i == 1) {
+      wald_current <- density_wald(beta_hat = beta_hat,
+                                   beta_proposal = beta_current,
+                                   varcov_mat) # TODO: presumably, we would have already computed this...right?
+      geom_current <- density_active_basis(active_basis_draws = draws_current,
+                                           residuals = residuals,
+                                           p_design = p_design,
+                                           theta = theta)
+    }
     a <- wald_proposal / wald_current * geom_current / geom_proposal
     if (u < a) { # accept
       beta_current <- beta_proposal
       draws_current <- draws_proposal
+      wald_current <- wald_proposal
+      geom_current <- geom_proposal
     }
     result[[i]] <- beta_current # accept => we save beta_proposal, otherwise we save beta_current
   }
