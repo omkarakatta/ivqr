@@ -39,9 +39,21 @@
 #' omit the third endogeneous variable from the original Chen and Lee
 #' simulation before constructing our outcome variable.
 #'
+#' The strength of identification is determined in two ways.
+#' First: the covariance between the errors on the location scale model and the
+#' shocks to the instruments when defining D. This is given by the off-diagonal
+#' entries of \code{V}.
+#' Second: the coefficients on the interaction between each endogeneous
+#' variable and the errors on the location scale model. The closer these
+#' coefficients are to 0, the less endogeneity we have and the stronger our
+#' identification is. See \code{error_coefs} argument.
+#'
 #' @param n Number of observations; defaults to 500 (numeric)
 #' @param p_D Number of endogeneous variables; defaults to 3
 #'  (numeric)
+#' @param beta_D_errors Coefficients on the error terms, one for each
+#'  endogeneous variable (vector of length p_D); If NULL, defaults to the
+#'  values in Chen and Lee (2018)
 #'
 #' @return A named list:
 #'  \enumerate{
@@ -52,10 +64,15 @@
 #'    \item errors: matrix of errors and shocks (n by (p_D + 1) matrix); first
 #'      column is the vector of errors on the location scale model; all other
 #'      columns are shocks to the instruments when defining D.
+#'    \item V: variance-covariance matrix of the errors/shocks
+#'    \item beta_D_errors: coefficients on the interaction between each
+#'      endogeneous variable and the erros on the location scale model
 #'  }
 #'
 #' @export
-chen_lee <- function(n = 500, p_D = 3) {
+chen_lee <- function(n = 500,
+                     p_D = 3,
+                     beta_D_errors = NULL) {
 
   # If p_D is less than 3, we will first create a Chen and Lee simulation with
   # p_D = 3 and then remove the extra endogeneous variables and extra errors in
@@ -104,10 +121,20 @@ chen_lee <- function(n = 500, p_D = 3) {
 
   # Step 5: Define Y (outcome variable)
   beta_D <- rep(1, actual_p) # coefficients on endogeneous variables!
-  beta_D_errors <- c(1, 0.25, 0.15, seq(0.1, 1, length.out = p_D - 3))
+  if (is.null(beta_D_errors)) {
+    beta_D_errors <- c(1, 0.25, 0.15, seq(0.1, 1, length.out = p_D - 3))
+  }
   beta_D_errors <- beta_D_errors[seq_len(actual_p)] # remove extra if p_D < 3
   X <- matrix(rep(1, n), ncol = 1)
   Y <- X + D %*% beta_D + (0.5 + D %*% beta_D_errors) * eps
 
-  list("Y" = Y, "D" = D, "Z" = Z, "X" = X, "errors" = errors)
+  list(
+   "Y" = Y,
+   "D" = D,
+   "Z" = Z,
+   "X" = X,
+   "errors" = errors,
+   "beta_D_errors" = beta_D_errors,
+   "V" = V
+  )
 }
