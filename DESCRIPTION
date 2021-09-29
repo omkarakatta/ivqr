@@ -33,7 +33,8 @@ Imports:
     magrittr,
     dplyr,
     Matrix,
-    methods
+    methods,
+    mvnfast
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
