@@ -50,7 +50,7 @@
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param start Gurobi attribute, see
 #'  \url{https://www.gurobi.com/documentation/9.1/examples/mip_starts.html}; If
-#'  NULL (default), no starting solution will be provided
+#'  NULL (default), no starting solution will be provided; see \code{compute_warmstart}
 #' @param fix Fix decision variables; If NULL (default), no starting solution will
 #'  be provided; if NA, the respective decision variable won't be fixed;
 #'  decision variables are:
@@ -116,7 +116,13 @@ iqr_milp <- function(Y,
                      attributes = list(),
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
-                     start = NULL,
+                     start = compute_warmstart(Y = Y,
+                                               X = X,
+                                               D = D,
+                                               Z = Z,
+                                               Phi = Phi,
+                                               tau = tau,
+                                               method = NULL),
                      fix = NULL,
                      quietly = TRUE,
                      show_progress = TRUE,
