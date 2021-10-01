@@ -631,6 +631,11 @@ iqr_milp <- function(Y,
     # TODO: error-check starting solution
     # TODO: figure out api to help people specify warmstart solutions
     iqr$start <- start
+    if (ncol(iqr$A) != length(iqr$start)) {
+      warning(paste("ncol of A:", ncol(iqr$A)))
+      warning(paste("length of start:", length(iqr$start)))
+      stop("ncol of A doesn't match length of start.")
+    }
   }
 
   iqr$varhintval <- VarHintVal # TODO: send warning if attribute already exists?
