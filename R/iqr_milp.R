@@ -49,7 +49,7 @@
 #' @param params Gurobi parameters, see
 #'  \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}
 #' @param start_method Feed into \code{compute_warmstart} in the default value
-#'  of \code{start}; defaults to NULL
+#'  of \code{start}; defaults to NULL, ignored if \code{start} is not NULL
 #' @param start Gurobi attribute, see
 #'  \url{https://www.gurobi.com/documentation/9.1/examples/mip_starts.html}; If
 #'  NULL (default), no starting solution will be provided; see \code{compute_warmstart}
@@ -119,13 +119,7 @@ iqr_milp <- function(Y,
                      params = list(FeasibilityTol = 1e-6,
                                    LogToConsole = 0),
                      start_method = NULL,
-                     start = compute_warmstart(Y = Y,
-                                               X = X,
-                                               D = D,
-                                               Z = Z,
-                                               Phi = Phi,
-                                               tau = tau,
-                                               method = start_method),
+                     start = NULL,
                      fix = NULL,
                      quietly = TRUE,
                      show_progress = TRUE,
@@ -639,6 +633,14 @@ iqr_milp <- function(Y,
       warning(paste("length of start:", length(iqr$start)))
       stop("ncol of A doesn't match length of start.")
     }
+  } else if (!is.null(start_method)) {
+    iqr$start <- compute_warmstart(Y = Y,
+                                   X = X,
+                                   D = D,
+                                   Z = Z,
+                                   Phi = Phi,
+                                   tau = tau,
+                                   method = start_method)
   }
 
   iqr$varhintval <- VarHintVal # TODO: send warning if attribute already exists?
