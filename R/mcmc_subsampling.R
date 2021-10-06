@@ -457,7 +457,7 @@ mcmc_active_basis <- function(iterations,
     result_h_df <- result_h_df[, stationary_begin:ncol(result_h_df)]
     result_prob <- result_prob[stationary_begin:length(result_prob)]
   }
-  list("beta" = result_df, "h" = result_h_df, "prob", result_prob)
+  list("beta" = result_df, "h" = result_h_df, "prob" = result_prob)
 }
 
 ### Propose first subsample -- "First Approach" -------------------------
