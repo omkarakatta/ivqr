@@ -523,6 +523,10 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     # for each row, apply e^(-gamma * (l-norm^l))
     weights <- apply(sum_remaining, 1, function(x){
       exp(-gamma * sum(abs(x)^l))
+
+      # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
+      # => max{...} = 0 => we satisfy FOC
+      # exp(-gamma * sum(max(c(x - (1 - tau), - tau - x, 0)))^l)
     })
 
     # choose 1 element in a single vector of size `length(weights)` to be 1
