@@ -474,7 +474,12 @@ mcmc_active_basis <- function(iterations,
 #'  arugment to determine \code{beta_X_proposal}
 #' @param gamma,l Hyperparameters
 #'
-#' @return Return set of indices in subsample
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{subsample_set}: set of indices in subsample
+#'    \item \code{prob}: probability of proposing \code{subsample_set} (except
+#'      for observations already in active basis)
+#'  }
 # Q: Should the beta_*_proposal correspond to the same coefficients as h_to_beta(h)? If so, I don't even need the beta_*_proposal in the arguments. I can just use the h_to_beta(h) to get these coefficients...right?
 first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
                            h, subsample_size,
@@ -510,6 +515,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 
   ones <- matrix(1, nrow = 1, ncol = length(subsample_set))
   sum_across_subsample_set <- ones %*% s[subsample_set, , drop = FALSE]
+  subsample_weights <- vector("double", subsample_size - h)
   # we have length(h) observations in subsample; we need subsample_size - length(h) more
   for (j in seq_len(subsample_size - length(h))) {
     choices <- setdiff(seq_len(nrow(Y)), subsample_set)
@@ -531,9 +537,15 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 
     # choose 1 element in a single vector of size `length(weights)` to be 1
     winner <- which(rmultinom(n = 1, size = 1, prob = weights) == 1)
+    subsample_weights[[j]] <- weights[winner]
     new_observation <- choices[winner]
+    # TODO: store new_observation in new vector; then append to subsample_set after for loop
     subsample_set <- c(subsample_set, new_observation)
     sum_across_subsample_set <- sum_across_subsample_set + s[new_observation, , drop = FALSE]
   }
-  subsample_set # return set of indices to create subsample!
+  prob <- prod(subsample_weights)
+  list(
+    "prob" = prob, # return unnormalized probability of creating subsample
+    "subsample_set" = subsample_set # return set of indices to create subsample!
+  )
 }
