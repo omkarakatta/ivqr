@@ -518,7 +518,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 
   ones <- matrix(1, nrow = 1, ncol = length(subsample_set))
   sum_across_subsample_set <- ones %*% s[subsample_set, , drop = FALSE]
-  subsample_weights <- vector("double", subsample_size - h)
+  subsample_weights <- vector("double", subsample_size - length(h))
   # we have length(h) observations in subsample; we need subsample_size - length(h) more
   for (j in seq_len(subsample_size - length(h))) {
     choices <- setdiff(seq_len(nrow(Y)), subsample_set)
