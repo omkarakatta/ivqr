@@ -558,6 +558,8 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   prob <- prod(subsample_weights)
   list(
     "prob" = prob, # return unnormalized probability of creating subsample
-    "subsample_set" = subsample_set # return set of indices to create subsample!
+    "subsample_set" = subsample_set, # return set of indices to create subsample!
+    subsample_weights = subsample_weights # return weights for each observation in subsample
+    # TODO: return sum_across_subsample_set
   )
 }
