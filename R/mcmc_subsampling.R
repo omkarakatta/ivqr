@@ -370,8 +370,13 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 #' @param theta Hyperparameter (numeric)
 #' @param discard_burnin If TRUE (default), discard the first set of draws that are equivalent to the IQR MILP estimate
 #'
-#' @return data frame where the rows are beta_D and beta_X while the columns
-#'  are each iteration in the MCMC (excluding the burn-in period)
+#' @return A named list, each with a data frame:
+#'  \enumerate{
+#'    \item "beta": data frame where the rows are beta_D and beta_X while the
+#'      columns are each iteration in the MCMC (excluding the burn-in period if \code{discard_burnin} is TRUE)
+#'    \item "h": data frame where the rows are each entry in the active basis
+#'      while the columns are each iteration in the MCMC (excluding the burn-in
+#'      period if \code{discard_burnin} is TRUE)
 # TODO: right now, I feed in beta_D to figure out h; maybe I should feed in h to figure out beta_D and beta_X? Also, maybe I should create beta_to_h(beta_D, ...) function
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
@@ -402,6 +407,8 @@ mcmc_active_basis <- function(iterations,
   )$varcov
 
   result <- vector("list", iterations) # preallocate space to store coefficients
+  result_h <- vector("list", iterations) # preallocate space to store active basis
+  h_current <- initial_draws # TODO: refactor `draws` and `h`
   for (i in seq_len(iterations)) {
     u <- u_vec[[i]]
     h_proposal <- propose_active_basis(residuals, p_design = p_design, theta = theta)
@@ -429,21 +436,25 @@ mcmc_active_basis <- function(iterations,
     if (u < a) { # accept
       beta_current <- beta_proposal
       draws_current <- draws_proposal
+      h_current <- h_proposal$h_star
       wald_current <- wald_proposal
       geom_current <- geom_proposal
     }
     result[[i]] <- beta_current
+    result_h[[i]] <- h_current
   }
   # each row is a coefficient, each column is one iteration of MCMC
   result_df <- do.call(cbind, result)
   rownames(result_df) <- c(paste0("beta_D", seq_len(ncol(D))), paste0("beta_X", seq_len(ncol(X))))
+  result_h_df <- do.call(cbind, result_h)
   if (discard_burnin) {
     # find where stationary distribution begins
     stationary_begin <- min(which(result_df[1, ] != beta_hat[1]))
     # remove burn-in period
     result_df <- result_df[, stationary_begin:ncol(result_df)]
+    result_h_df <- result_h_df[, stationary_begin:ncol(result_h_df)]
   }
-  result_df
+  list("beta" = result_df, "h" = result_h_df)
 }
 
 ### Propose first subsample -- "First Approach" -------------------------
