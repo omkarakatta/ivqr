@@ -190,7 +190,13 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
 #' @param beta_D Coefficients on the endogeneous variable; ideally obtained
 #'  from \code{h} (p_D by 1 matrix)
 #'
-#' @return TRUE if the subsample satisfies FOC conditions; FALSE otherwise
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{status}: TRUE if subsample satisfies FOC conditions; FALSE
+#'      otherwise
+#'    \item \code{xi}: vector that must be contained within -tau and 1-tau to
+#'      satisfy FOC conditions
+#'  }
 #'
 #' @family mcmc_subsampling
 foc_membership <- function(
@@ -263,7 +269,10 @@ foc_membership <- function(
   # check if xi satisfies FOC inequality
   left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
   right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
-  all((left <= xi) & (xi <= right)) # returns TRUE if both are true, else FALSE
+  list(
+    status = all((left <= xi) & (xi <= right)), # returns TRUE if both are true, else FALSE
+    xi = xi
+  )
 }
 # TODO: Sanity Check -- check for the false case
 
