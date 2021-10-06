@@ -408,6 +408,7 @@ mcmc_active_basis <- function(iterations,
 
   result <- vector("list", iterations) # preallocate space to store coefficients
   result_h <- vector("list", iterations) # preallocate space to store active basis
+  result_prob <- vector("double", iterations) # store wald density of coefficients
   h_current <- initial_draws # TODO: refactor `draws` and `h`
   for (i in seq_len(iterations)) {
     u <- u_vec[[i]]
@@ -442,6 +443,7 @@ mcmc_active_basis <- function(iterations,
     }
     result[[i]] <- beta_current
     result_h[[i]] <- h_current
+    result_prob[[i]] <- wald_current
   }
   # each row is a coefficient, each column is one iteration of MCMC
   result_df <- do.call(cbind, result)
@@ -453,8 +455,9 @@ mcmc_active_basis <- function(iterations,
     # remove burn-in period
     result_df <- result_df[, stationary_begin:ncol(result_df)]
     result_h_df <- result_h_df[, stationary_begin:ncol(result_h_df)]
+    result_prob <- result_prob[stationary_begin:length(result_prob)]
   }
-  list("beta" = result_df, "h" = result_h_df)
+  list("beta" = result_df, "h" = result_h_df, "prob", result_prob)
 }
 
 ### Propose first subsample -- "First Approach" -------------------------
