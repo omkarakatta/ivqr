@@ -418,7 +418,7 @@ mcmc_active_basis <- function(iterations,
   result <- vector("list", iterations) # preallocate space to store coefficients
   result_h <- vector("list", iterations) # preallocate space to store active basis
   result_prob <- vector("double", iterations) # store wald density of coefficients
-  h_current <- initial_draws # TODO: refactor `draws` and `h`
+  h_current <- initial_basis # TODO: refactor `draws` and `h`
   for (i in seq_len(iterations)) {
     u <- u_vec[[i]]
     h_proposal <- propose_active_basis(residuals, p_design = p_design, theta = theta)
