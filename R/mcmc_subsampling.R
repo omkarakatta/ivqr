@@ -547,6 +547,13 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
       # exp(-gamma * sum(max(c(x - (1 - tau), - tau - x, 0)))^l)
     })
 
+    # check if weights are 0
+    if (all(sapply(weights, function(wt) {isTRUE(all.equal(wt, 0))}))) {
+      out$status <- "ERROR"
+      out$status_message <- "Weights are 0"
+      return(out)
+    }
+
     # choose 1 element in a single vector of size `length(weights)` to be 1
     winner <- which(rmultinom(n = 1, size = 1, prob = weights) == 1)
     subsample_weights[[j]] <- weights[winner]
@@ -557,6 +564,8 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   }
   prob <- prod(subsample_weights)
   list(
+    status = "OKAY",
+    status_message = "OKAY",
     "prob" = prob, # return unnormalized probability of creating subsample
     "subsample_set" = subsample_set, # return set of indices to create subsample!
     subsample_weights = subsample_weights # return weights for each observation in subsample
