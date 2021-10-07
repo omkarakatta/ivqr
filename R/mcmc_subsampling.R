@@ -491,6 +491,7 @@ mcmc_active_basis <- function(iterations,
 #'    \item \code{subsample_set}: set of indices in subsample
 #'    \item \code{prob}: probability of proposing \code{subsample_set} (except
 #'      for observations already in active basis)
+#'    \item \code{log_prob}: log of \code{prob}
 #'  }
 # Q: Should the beta_*_proposal correspond to the same coefficients as h_to_beta(h)? If so, I don't even need the beta_*_proposal in the arguments. I can just use the h_to_beta(h) to get these coefficients...right?
 first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
@@ -571,10 +572,12 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     sum_across_subsample_set <- sum_across_subsample_set + s[new_observation, , drop = FALSE]
   }
   prob <- prod(subsample_weights)
+  log_prob <- sum(log(subsample_weights))
   list(
     status = "OKAY",
     status_message = "OKAY",
     "prob" = prob, # return unnormalized probability of creating subsample
+    "log_prob" = log_prob, # return log of unnormalized probability of creating subsample
     "subsample_set" = subsample_set, # return set of indices to create subsample!
     subsample_weights = subsample_weights # return weights for each observation in subsample
     # TODO: return sum_across_subsample_set
