@@ -547,15 +547,23 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
       # exp(-gamma * sum(max(c(x - (1 - tau), - tau - x, 0)))^l)
     })
 
-    # check if weights are 0
-    if (all(sapply(weights, function(wt) {isTRUE(all.equal(wt, 0))}))) {
-      out$status <- "ERROR"
-      out$status_message <- "Weights are 0"
-      return(out)
-    }
-
     # choose 1 element in a single vector of size `length(weights)` to be 1
-    winner <- which(rmultinom(n = 1, size = 1, prob = weights) == 1)
+    winner <- tryCatch({
+      list(
+        status = "OKAY",
+        answer = which(rmultinom(n = 1, size = 1, prob = weights) == 1)
+      )
+    }, error = function(e) {
+      list(
+        status = "ERROR",
+        status_message = e,
+        problem_weights = weights # return problematic weights
+      )
+    })
+    if (winner$status == "ERROR") {
+      return(winner)
+    }
+    winner <- winner$answer
     subsample_weights[[j]] <- weights[winner]
     new_observation <- choices[winner]
     # TODO: store new_observation in new vector; then append to subsample_set after for loop
