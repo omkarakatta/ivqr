@@ -335,7 +335,7 @@ propose_active_basis <- function(residuals, p_design, theta = 1) {
     draws <- as.numeric(rmultinom(n = 1, size = p_design, prob = weights))
     # NOTE: possible to pick two balls from the same bin, hence the while loop will ensure all balls are from different bins
     # break out of while loop if we pick at most 1 ball from each bin
-    if (identical(unique(draws), c(0, 1))) {
+    if (identical(sort(unique(draws)), c(0, 1))) {
       while_bool <- FALSE
     }
   }
