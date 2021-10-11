@@ -570,7 +570,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
         right_entry <- right[[entry]]
         max_result[[entry]] <- max(left_entry, right_entry, 0)
       }
-      exp(-gamma * sum(max_result)^l)
+      exp(-gamma * sum(abs(max_result))^l)
     })
 
     # choose 1 element in a single vector of size `length(weights)` to be 1
