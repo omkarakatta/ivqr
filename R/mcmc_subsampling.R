@@ -266,11 +266,19 @@ foc_membership <- function(
   stopifnot(nrow(xi) == p)
   stopifnot(ncol(xi) == 1)
 
+  # DEBUG: see each entry of sum in xi object
+  s_i <- vector("list", length(noth))
+  for (i in seq_len(nrow(summand))) {
+    s_i[[i]] <- summand[i, ] %*% solve(designh)
+  }
+  s <- do.call("rbind", s_i)
+
   # check if xi satisfies FOC inequality
   left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
   right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
   list(
     status = all((left <= xi) & (xi <= right)), # returns TRUE if both are true, else FALSE
+    s = s, # return entries of xi object
     xi = xi
   )
 }
@@ -599,6 +607,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     subsample_set = subsample_set, # return set of indices to create subsample!
     alt_subsample_weights = alt_subsample_weights, # return alternative weights
     subsample_weights = subsample_weights, # return weights for each observation in subsample
-    xi = sum_across_subsample_set # return xi object # TODO: double-check that this is indeed the xi object
+    xi = sum_across_subsample_set, # return xi object # TODO: double-check that this is indeed the xi object
+    s = s # return each entry of term of xi for all observations, not just those in the subsample
   )
 }
