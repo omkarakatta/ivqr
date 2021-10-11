@@ -529,6 +529,8 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   ones <- matrix(1, nrow = 1, ncol = length(subsample_set))
   sum_across_subsample_set <- ones %*% s[subsample_set, , drop = FALSE]
   subsample_weights <- vector("double", subsample_size - length(h))
+  # TODO: remove `alt_subsample_weights` after debugging
+  alt_subsample_weights <- vector("double", subsample_size - length(h))
   # we have length(h) observations in subsample; we need subsample_size - length(h) more
   for (j in seq_len(subsample_size - length(h))) {
     choices <- setdiff(seq_len(nrow(Y)), subsample_set)
@@ -542,10 +544,12 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     # for each row, apply e^(-gamma * (l-norm^l))
     weights <- apply(sum_remaining, 1, function(x){
       exp(-gamma * sum(abs(x)^l))
+    })
 
+    alt_weights <- apply(sum_remaining, 1, function(x){
       # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
       # => max{...} = 0 => we satisfy FOC
-      # exp(-gamma * sum(max(c(x - (1 - tau), - tau - x, 0)))^l)
+      exp(-gamma * sum(max(c(x - (1 - tau), - tau - x, 0)))^l)
     })
 
     # choose 1 element in a single vector of size `length(weights)` to be 1
@@ -566,6 +570,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     }
     winner <- winner$answer
     subsample_weights[[j]] <- weights[winner]
+    alt_subsample_weights[[j]] <- alt_weights[winner]
     new_observation <- choices[winner]
     # TODO: store new_observation in new vector; then append to subsample_set after for loop
     subsample_set <- c(subsample_set, new_observation)
@@ -579,7 +584,8 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     prob = prob, # return unnormalized probability of creating subsample
     log_prob = log_prob, # return log of unnormalized probability of creating subsample
     subsample_set = subsample_set, # return set of indices to create subsample!
-    subsample_weights = subsample_weights # return weights for each observation in subsample
-    # TODO: return sum_across_subsample_set
+    alt_subsample_weights = alt_subsample_weights, # return alternative weights
+    subsample_weights = subsample_weights, # return weights for each observation in subsample
+    xi = sum_across_subsample_set # return xi object # TODO: double-check that this is indeed the xi object
   )
 }
