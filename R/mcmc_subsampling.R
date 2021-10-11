@@ -549,7 +549,20 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     alt_weights <- apply(sum_remaining, 1, function(x){
       # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
       # => max{...} = 0 => we satisfy FOC
-      exp(-gamma * sum(max(c(x - (1 - tau), - tau - x, 0)))^l)
+      # Put differently:
+      # x is a 1 by p vector;
+      # So, x - (t - tau) and (- tau - x) are both 1 by p vectors.
+      # If each entry of these 1 by p vectors are negative, we satisfy FOC conditions
+      # Fix: `max` must be used element-wise!!! # Q: ask GP if this is right
+      left <- - tau - x
+      right <- x - (1 - tau)
+      max_result <- vector("double", length(x))
+      for (entry in seq_along(left)) {
+        left_entry <- left[[entry]]
+        right_entry <- right[[entry]]
+        max_result[[entry]] <- max(left_entry, right_entry, 0)
+      }
+      exp(-gamma * sum(max_result)^l)
     })
 
     # choose 1 element in a single vector of size `length(weights)` to be 1
