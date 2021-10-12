@@ -252,6 +252,7 @@ foc_membership <- function(
   reg <- quantreg::rq(y_tilde_subsample ~ X_subsample + Phi_subsample - 1,
                       tau = tau)
   resid_subsample <- reg$residuals
+  # TODO: I need to compute the residuals after *assuming* beta_Phi = 0
 
   # create indices that are not in h
   noth <- setdiff(seq_len(m), h)
@@ -283,6 +284,38 @@ foc_membership <- function(
   )
 }
 # TODO: Sanity Check -- check for the false case
+
+# TODO: document
+foc_membership_v2 <- function(
+  h,
+  Y_subsample,
+  X_subsample,
+  D_subsample,
+  Phi_subsample,
+  tau,
+  beta_D = h_to_beta(h,
+                     Y = Y_subsample,
+                     X = X_subsample,
+                     D = D_subsample,
+                     Phi = Phi_subsample)$beta_D,
+  tolerance = 1e-9
+) {
+  # run a regression of Y_tilde ~ X and Phi
+  # using just the subsample
+  # check if L1 norm of the beta_Phi's are less than some tolerance
+  # with default tolerance being 1e-9
+
+  Y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
+  qr <- quantreg::rq(Y_tilde_subsample ~ Phi_subsample + X_subsample - 1, tau = tau)
+  beta_Phi <- coef(qr)[seq_len(ncol(Phi))]
+  beta_Phi_norm <- sum(abs(beta_Phi))
+  status <- beta_Phi_norm < tolerance
+  list(
+    beta_Phi = beta_Phi,
+    norm = beta_Phi_norm,
+    status = status
+  )
+}
 
 #' @param beta_D Endogenous coefficients (vector of length p_D)
 #' @param Y Dependent variable (vector of length n)
