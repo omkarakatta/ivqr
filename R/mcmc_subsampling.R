@@ -628,6 +628,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
       list(
         status = "ERROR",
         status_message = e,
+        sum_remaining = sum_remaining,
         problem_weights = weights # return problematic weights
       )
     })
