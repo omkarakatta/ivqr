@@ -579,7 +579,8 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     n_choices <- length(choices)
     s_remaining <- s[choices, , drop = FALSE]
 
-    # each row is one observation that we can choose from; the value is the weight in the exponent
+    # each row is one observation that we can choose from;
+    # the value is the weight in the exponent
     ones <- matrix(1, nrow = n_choices, ncol = 1)
     sum_remaining <- kronecker(ones, sum_across_subsample_set) + s_remaining
 
@@ -592,7 +593,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     total_weights <- sum(unlist(raw_weights))
     weights <- raw_weights / total_weights
 
-    # alt_weights <- apply(sum_remaining, 1, function(x){
+    # alt_weights <- apply(sum_remaining, 1, function(x) {
     #   # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
     #   # => max{...} = 0 => we satisfy FOC
     #   # Put differently:
