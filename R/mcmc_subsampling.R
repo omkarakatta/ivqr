@@ -582,9 +582,13 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     sum_remaining <- kronecker(ones, sum_across_subsample_set) + s_remaining
 
     # for each row, apply e^(-gamma * (l-norm^l))
-    weights <- apply(sum_remaining, 1, function(x){
+    raw_weights <- apply(sum_remaining, 1, function(x){
       exp(-gamma * sum(abs(x)^l))
+      # TODO: fix this
+      # exp(-gamma * sum(abs(x)^l)^(1/l))
     })
+    total_weights <- sum(unlist(raw_weights))
+    weights <- raw_weights / total_weights
 
     alt_weights <- apply(sum_remaining, 1, function(x){
       # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
