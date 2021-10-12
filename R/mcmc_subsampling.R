@@ -302,15 +302,12 @@ foc_membership_v2 <- function(
                      Phi = Phi_subsample)$beta_D,
   tolerance = 1e-9
 ) {
-  # run a regression of Y_tilde ~ X and Phi
-  # using just the subsample
-  # check if L1 norm of the beta_Phi's are less than some tolerance
-  # with default tolerance being 1e-9
-
+  # run a regression of Y_tilde ~ X and Phi using just the subsample
   Y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
   qr <- quantreg::rq(Y_tilde_subsample ~ Phi_subsample + X_subsample - 1, tau = tau)
   beta_Phi <- coef(qr)[seq_len(ncol(Phi))]
   beta_Phi_norm <- sum(abs(beta_Phi))
+  # check if L1 norm of the beta_Phi's are less than some tolerance
   status <- beta_Phi_norm < tolerance
   list(
     beta_Phi = beta_Phi,
