@@ -524,7 +524,7 @@ mcmc_active_basis <- function(iterations,
 #' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
 #'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
 #'  arugment to determine \code{beta_X_proposal}
-#' @param gamma,l Hyperparameters
+#' @param gamma,l_norm,l_power Hyperparameters
 #'
 #' @return Named list
 #'  \enumerate{
@@ -537,7 +537,7 @@ mcmc_active_basis <- function(iterations,
 first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
                            h, subsample_size,
                            beta_D_proposal = NULL, beta_X_proposal = NULL, 
-                           gamma = 1, l = 2) {
+                           gamma = 1, l_norm = 1, l_power = l_norm) {
   n <- length(Y)
   p_design <- length(h)
   subsample_set <- h # store indices of subsample
@@ -584,12 +584,10 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     sum_remaining <- kronecker(ones, sum_across_subsample_set) + s_remaining
 
     # for each row, apply e^(-gamma * (l-norm^l))
-    raw_weights <- apply(sum_remaining, 1, function(x){
-      # TODO: compute the l^th power of l-norm!!!
-      # TODO: separate the `l` for the power and the `l` for the norm
-      exp(-gamma * sum(abs(x)^l))
-      # TODO: fix this
-      # exp(-gamma * sum(abs(x)^l)^(1/l))
+    raw_weights <- apply(sum_remaining, 1, function(x) {
+      # exp(-gamma * sum(abs(x)^l)) # TODO: this is the old version, delete this
+      tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
+      exp(-gamma * tmp^l_power)
     })
     total_weights <- sum(unlist(raw_weights))
     weights <- raw_weights / total_weights
