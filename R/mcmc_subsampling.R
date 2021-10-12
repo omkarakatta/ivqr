@@ -590,6 +590,10 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
       tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
       exp(-gamma * tmp^l_power)
     })
+    # FIX: what if raw_weights are 0? then total_weights = 0, so then we get 0 / 0!!!
+    # We still raise an error in rmultinom.
+    # But if we were to try repeating this in the main MCMC, we would still the same weights...
+    # So, we need to repeat the mcmc_active_basis to get a new proposal of the active basis and coefficients?
     total_weights <- sum(unlist(raw_weights))
     weights <- raw_weights / total_weights
 
