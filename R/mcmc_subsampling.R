@@ -1052,8 +1052,8 @@ random_walk_subsample <- function(initial_subsample,
 
   list(
     a_log = out_a_log,
-    subsample = out_subsample
-    distance = out_distance
+    subsample = out_subsample,
+    distance = out_distance,
     record = out_record
   )
 }
