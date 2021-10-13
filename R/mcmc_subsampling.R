@@ -523,7 +523,7 @@ mcmc_active_basis <- function(iterations,
 #'  argument to determine \code{beta_D_proposal}
 #' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
 #'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
-#'  arugment to determine \code{beta_X_proposal}
+#'  argument to determine \code{beta_X_proposal}
 #' @param gamma,l_norm,l_power Hyperparameters
 #'
 #' @return Named list
@@ -909,4 +909,142 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     # s = s, # return each entry of term of xi for all observations, not just those in the subsample
     xi = sum_across_subsample_set # return xi object # TODO: double-check that this is indeed the xi object
   )
+}
+
+### random_walk_subsample -------------------------
+
+#' @param initial_subsample A vector of length n with m 1's and n-m 0's; 1
+#'  means that the corresponding index is in the subsample
+#' @param h Active basis in terms of the data provided
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_X_proposal}
+#' @param iter How many iterations in the for loop?
+#' @param gamma,l_norm,l_power Tuning parameters
+#' @param k How many observations do we want to remove/add to the subsample in
+#'  the random walk? Larger k means larger jumps; only valid if \code{k_method} is "constant"
+#' @param k_method If "constant" (default), we set \code{k} to be user-specified
+#' @param distance_method If it is 1 (default), we use the norm sum of the xi's
+#' @param function_method If "exp", use the exponential as the target distribution
+#' @param seed For replicability
+random_walk_subsample <- function(initial_subsample,
+                                  h,
+                                  Y, X, D, Z, Phi = linear_projection(D, X, Z),
+                                  beta_D_proposal = NULL,
+                                  beta_X_proposal = NULL,
+                                  iter = 1000,
+                                  gamma = 1, l_norm = 1, l_power = 1,
+                                  k,
+                                  k_method = "constant",
+                                  distance_method = 1,
+                                  function_method = "exp",
+                                  seed = Sys.date()) {
+  # k must be smaller than the number of observations in subsample minus the
+  # observations in the active basis
+  stopifnot(sum(initial_subsample) - length(h) > k)
+  # ensure observations in active basis are in the initial subsample
+  stopifnot(all(initial_subsample[h] == 1))
+
+  # get beta_X_proposal and beta_D_proposal
+  if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
+    coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
+    if (is.null(beta_D_proposal)) {
+      beta_D_proposal <- coef$beta_D
+    }
+    if (is.null(beta_X_proposal)) {
+      beta_X_proposal <- coef$beta_X
+    }
+  }
+
+  n <- length(initial_subsample)
+  m <- sum(initial_subsample)
+  current_subsample <- initial_subsample
+  current_prob <- 1 # Q: is this right?
+
+  # define how do we transform the distance into a weight/unnormalized probability
+  if (function_method == "exp") {
+    distance_function <- function(x) {
+      tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
+      exp(-gamma & tmp^l_power)
+    }
+  } else if (function_method == "rec") {
+    distance_function <- function(x) {
+      tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
+      gamma / tmp^l_power
+    }
+  }
+
+  # compute distance of initial_subsample
+  if (distance_method == 1) {
+    s_i <- vector("list", length = n)
+    for (i in seq_len(n)) {
+      if (is.element(i, h)) {
+        s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
+      } else {
+        # NOTE: beta_Phi should be 0
+        # Q: should I compute beta_X_proposal from h or from a QR?
+        const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
+        s_i[[i]] <- const * design[i, ] %*% designh_inv
+      }
+    }
+    s <- do.call(rbind, s_i)
+  }
+  current_s <- s[current_subsample == 1, ]
+  current_distance <- apply(current_s, 1, distance_function)
+
+  set.seed(seed)
+  u_vec <- runif(iter)
+  out_subsample <- vector("list", iter)
+  out_distance <- vector("list", iter)
+  out_a_log <- vector("double", iter)
+  out_record <- vector("double", iter)
+  for (i in seq_len(iter)) {
+    u <- u_vec[[i]]
+
+    # choose k
+    # if (k_method == "random") {
+    #   # Q: how do we choose k randomly?
+    #   # Q: how do we compute proposal_prob? choose(m-p, k) * choose(n - m, k)?
+    # }
+    if (k_method == "constant") {
+      # ensure proposal_prob / current_prob = 1
+      proposal_prob <- current_prob
+    }
+
+    # random walk: switch k 1's with k 0's
+    ones <- setdiff(which(current_subsample == 1), h)
+    zeros <- setdiff(which(current_subsample == 1), h)
+    switch_ones_to_zeros <- sample(x = ones, size = k)
+    switch_zeros_to_ones <- sample(x = zeros, size = k)
+    proposal_subsample <- current_subsample
+    proposal_subsample[switch_ones_to_zeros] <- 0
+    proposal_subsample[switch_zeros_to_ones] <- 1
+
+    # compute distance of proposal subsample
+    proposal_s <- s[proposal_subsample == 1, ]
+    proposal_distance <- apply(proposal_s, 1, distance_function)
+
+    # compute acceptance probability
+    a_log <- log(proposal_distance) - log(current_distance) + log(proposal_prob) - log(current_prob)
+    out_a_log[[i]] <- a_log
+
+    if (log(u) < a_log) { # accept
+      current_subsample <- proposal_subsample
+      current_distance <- proposal_distance
+      out_record[[i]] <- 1
+    } else {
+      out_record[[i]] <- 0
+    }
+    out_subsample <- current_subsample
+    out_distance <- current_distance
+  }
 }
