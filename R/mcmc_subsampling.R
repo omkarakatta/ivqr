@@ -1027,7 +1027,7 @@ random_walk_subsample <- function(initial_subsample,
 
     # random walk: switch k 1's with k 0's
     ones <- setdiff(which(current_subsample == 1), h)
-    zeros <- setdiff(which(current_subsample == 1), h)
+    zeros <- setdiff(which(current_subsample == 0), h)
     switch_ones_to_zeros <- sample(x = ones, size = k)
     switch_zeros_to_ones <- sample(x = zeros, size = k)
     proposal_subsample <- current_subsample
