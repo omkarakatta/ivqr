@@ -966,6 +966,9 @@ random_walk_subsample <- function(initial_subsample,
       beta_X_proposal <- coef$beta_X
     }
   }
+  Y_tilde <- Y - D %*% beta_D_proposal
+  design <- cbind(X, Phi)
+  designh_inv <- solve(design[h, , drop = FALSE])
 
   n <- length(initial_subsample)
   m <- sum(initial_subsample)
