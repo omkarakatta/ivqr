@@ -541,6 +541,7 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   n <- length(Y)
   p_design <- length(h)
   subsample_set <- h # store indices of subsample
+  # Q: is this correct? do we need to run a regression to get beta_X_proposal?
   if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
     coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
     if (is.null(beta_D_proposal)) {
@@ -670,6 +671,7 @@ first_approach_v2 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   n <- length(Y)
   p_design <- length(h)
   subsample_set <- h # store indices of subsample
+  # Q: is this correct? do we need to run a regression to get beta_X_proposal?
   if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
     coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
     if (is.null(beta_D_proposal)) {
@@ -790,6 +792,7 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   n <- length(Y)
   p_design <- length(h)
   subsample_set <- h # store indices of subsample
+  # Q: is this correct? do we need to run a regression to get beta_X_proposal?
   if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
     coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
     if (is.null(beta_D_proposal)) {
