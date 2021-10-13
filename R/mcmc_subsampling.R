@@ -922,6 +922,7 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #' @param Z Instrumental variable (n by p_Z matrix)
 #' @param Phi Transformation of X and Z to be used in the program;
 #'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param tau Quantile (numeric)
 #' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
 #'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
 #'  argument to determine \code{beta_D_proposal}
@@ -939,6 +940,7 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 random_walk_subsample <- function(initial_subsample,
                                   h,
                                   Y, X, D, Z, Phi = linear_projection(D, X, Z),
+                                  tau,
                                   beta_D_proposal = NULL,
                                   beta_X_proposal = NULL,
                                   iter = 1000,
