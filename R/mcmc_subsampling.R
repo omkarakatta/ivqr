@@ -977,14 +977,12 @@ random_walk_subsample <- function(initial_subsample,
 
   # define how do we transform the distance into a weight/unnormalized probability
   if (transform_method == "exp") {
-    distance_function <- function(x) {
-      tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
-      exp(-gamma & tmp^l_power)
+    transform_function <- function(x) {
+      exp(-gamma * x^l_power)
     }
   } else if (transform_method == "rec") {
-    distance_function <- function(x) {
-      tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
-      gamma / tmp^l_power
+    transform_function <- function(x) {
+      gamma / (x^l_power)
     }
   }
 
@@ -996,20 +994,24 @@ random_walk_subsample <- function(initial_subsample,
         s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
       } else {
         # NOTE: beta_Phi should be 0
-        # Q: should I compute beta_X_proposal from h or from a QR?
         const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
         s_i[[i]] <- const * design[i, ] %*% designh_inv
       }
     }
     s <- do.call(rbind, s_i)
+    distance_function <- function(x) {
+      sum(abs(x) ^ l_norm) ^ (1 / l_norm)
+    }
   }
   current_s <- s[current_subsample == 1, ]
-  current_distance <- apply(current_s, 1, distance_function)
+  current_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(current_s)) %*% current_s)
+  current_distance_prob <- transform_function(current_distance)
 
   set.seed(seed)
   u_vec <- runif(iter)
   out_subsample <- vector("list", iter)
   out_distance <- vector("list", iter)
+  out_distance_prob <- vector("list", iter)
   out_a_log <- vector("double", iter)
   out_record <- vector("double", iter)
   for (i in seq_len(iter)) {
@@ -1036,22 +1038,27 @@ random_walk_subsample <- function(initial_subsample,
 
     # compute distance of proposal subsample
     proposal_s <- s[proposal_subsample == 1, ]
-    proposal_distance <- apply(proposal_s, 1, distance_function)
+    proposal_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(proposal_s)) %*% proposal_s)
+    proposal_distance_prob <- transform_function(proposal_distance)
 
     # compute acceptance probability
-    a_log <- log(proposal_distance) - log(current_distance) + log(proposal_prob) - log(current_prob)
+    a_log <- log(proposal_distance_prob) - log(current_distance_prob) + log(proposal_prob) - log(current_prob)
     out_a_log[[i]] <- a_log
 
     if (log(u) < a_log) { # accept
       current_subsample <- proposal_subsample
       current_distance <- proposal_distance
+      current_distance_prob <- proposal_distance_prob
       out_record[[i]] <- 1
     } else {
       out_record[[i]] <- 0
     }
-    out_subsample <- current_subsample
-    out_distance <- current_distance
+    out_subsample[[i]] <- current_subsample
+    out_distance[[i]] <- current_distance
+    out_distance_prob[[i]] <- current_distance_prob
   }
+
+  # TODO: compute foc_membership?
 
   list(
     a_log = out_a_log,
