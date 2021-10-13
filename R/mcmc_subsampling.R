@@ -1064,6 +1064,7 @@ random_walk_subsample <- function(initial_subsample,
     a_log = out_a_log,
     subsample = out_subsample,
     distance = out_distance,
+    distance_prob = out_distance_prob, # use in main MCMC
     record = out_record
   )
 }
