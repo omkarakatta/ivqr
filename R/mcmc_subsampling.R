@@ -935,7 +935,7 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #'  the random walk? Larger k means larger jumps; only valid if \code{k_method} is "constant"
 #' @param k_method If "constant" (default), we set \code{k} to be user-specified
 #' @param distance_method If it is 1 (default), we use the norm sum of the xi's
-#' @param function_method If "exp", use the exponential as the target distribution
+#' @param transform_method If "exp", use the exponential as the target distribution
 #' @param seed For replicability
 random_walk_subsample <- function(initial_subsample,
                                   h,
@@ -948,7 +948,7 @@ random_walk_subsample <- function(initial_subsample,
                                   k,
                                   k_method = "constant",
                                   distance_method = 1,
-                                  function_method = "exp",
+                                  transform_method = "exp",
                                   seed = Sys.date()) {
   # k must be smaller than the number of observations in subsample minus the
   # observations in the active basis
@@ -973,12 +973,12 @@ random_walk_subsample <- function(initial_subsample,
   current_prob <- 1 # Q: is this right?
 
   # define how do we transform the distance into a weight/unnormalized probability
-  if (function_method == "exp") {
+  if (transform_method == "exp") {
     distance_function <- function(x) {
       tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
       exp(-gamma & tmp^l_power)
     }
-  } else if (function_method == "rec") {
+  } else if (transform_method == "rec") {
     distance_function <- function(x) {
       tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
       gamma / tmp^l_power
