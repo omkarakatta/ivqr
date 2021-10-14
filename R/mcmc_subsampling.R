@@ -1206,7 +1206,8 @@ find_subsample_in_polytope <- function(
   omega_mod <- omega
   omega_mod[switch] <- 1
   omega_mod[which(omega_mod < 1)] <- 0
-  stopifnot(sum(omega_mod) == subsample_size - p)
+  omega_mod <- round(omega_mod, 0)
+  stopifnot(all.equal(sum(omega_mod), subsample_size - p))
 
   list(
     model = model,
