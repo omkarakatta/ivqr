@@ -739,7 +739,7 @@ first_approach_v2 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     while_counter <- 0
     while (while_bool) {
       while_counter <- while_counter + 1
-      print(while_counter)
+      # print(while_counter)
       draws <- as.numeric(rmultinom(
         n = 1, size = subsample_size - length(h), prob = weights
       ))
