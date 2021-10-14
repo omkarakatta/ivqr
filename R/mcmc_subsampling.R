@@ -427,6 +427,7 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 #'      while the columns are each iteration in the MCMC (excluding the burn-in
 #'      period if \code{discard_burnin} is TRUE)
 # TODO: right now, I feed in beta_D to figure out h; maybe I should feed in h to figure out beta_D and beta_X? Also, maybe I should create beta_to_h(beta_D, ...) function
+# TODO: document psi as tuning parameter in front of varov matrix
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
                               beta_D, # beta_D from IQR point estimates
@@ -434,6 +435,7 @@ mcmc_active_basis <- function(iterations,
                               tau,
                               alpha = 0.1,
                               theta = 1,
+                              psi = 1, # coefficient on the varcov matrix
                               discard_burnin = TRUE) {
   qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
   residuals <- qr$residuals
@@ -452,7 +454,8 @@ mcmc_active_basis <- function(iterations,
     tau = tau,
     D = D,
     X = X,
-    Phi = Phi
+    Phi = Phi,
+    psi = psi
   )$varcov
 
   result <- vector("list", iterations) # preallocate space to store coefficients

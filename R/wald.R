@@ -29,13 +29,15 @@
 #'    \item \code{hs}: Hall and Sheather Bandwidth
 #'    \item Other objects used to create varcov
 #'  }
+# TODO: document psi -- scalar in front of the varcov matrix
 wald_varcov <- function(resid,
                         alpha,
                         tau,
                         D,
                         X,
                         Z,
-                        Phi = linear_projection(D, X, Z)) {
+                        Phi = linear_projection(D, X, Z),
+                        psi = 1) {
 
   out <- list() # initialize list of results to return
 
@@ -69,7 +71,7 @@ wald_varcov <- function(resid,
   varcov <- 1 / n * solve(J) %*% S %*% t(solve(J)) # variance of estimator
   out$S <- S
   out$J <- J
-  out$varcov <- varcov
+  out$varcov <- psi * varcov
   stopifnot(nrow(varcov) == p_D + p_X)
   stopifnot(ncol(varcov) == p_D + p_X)
 
