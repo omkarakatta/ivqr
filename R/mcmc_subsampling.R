@@ -1042,15 +1042,34 @@ random_walk_subsample <- function(initial_subsample,
     proposal_distance_prob <- transform_function(proposal_distance)
 
     # compute acceptance probability
-    # print(proposal_distance_prob)
-    # print(current_distance_prob)
-    # print(proposal_prob)
-    # print(current_prob)
-    # print(i)
-    a_log <- log(proposal_distance_prob) - log(current_distance_prob) + log(proposal_prob) - log(current_prob)
-    out_a_log[[i]] <- a_log
+    # print(proposal_distance_prob) # DEBUG:
+    # print(current_distance_prob) # DEBUG:
+    # print(proposal_prob) # DEBUG:
+    # print(current_prob) # DEBUG:
+    # print(i) # DEBUG:
 
-    if (log(u) < a_log) { # accept
+    accept_bool <- tryCatch({
+      a_log <- log(proposal_distance_prob) - log(current_distance_prob) + log(proposal_prob) - log(current_prob)
+      out_a_log[[i]] <- a_log
+      bool <- log(u) < a_log
+      # print(bool) # DEBUG:
+      stopifnot(is.logical(bool) & !is.na(bool))
+      list(
+        status = "OKAY",
+        bool = bool
+      )
+    }, error = function(e) {
+      list(
+        status = "ERROR",
+        status_message = e
+      )
+    })
+    if (accept_bool$status == "ERROR") {
+      return(accept_bool)
+    }
+
+    accept_bool <- accept_bool$bool
+    if (accept_bool) { # accept
       current_subsample <- proposal_subsample
       current_distance <- proposal_distance
       current_distance_prob <- proposal_distance_prob
@@ -1066,6 +1085,7 @@ random_walk_subsample <- function(initial_subsample,
   # TODO: compute foc_membership?
 
   list(
+    status = "OKAY",
     a_log = out_a_log,
     subsample = out_subsample,
     distance = out_distance,
@@ -1194,6 +1214,16 @@ find_subsample_in_polytope <- function(
   sol <- gurobi::gurobi(model, params)
   status <- sol$status
   omega <- sol$x[seq_len(num_omega)]
+
+  if (status != "OPTIMAL") {
+    return(list(
+      status = status,
+      status_message = paste("Gurobi status:", status),
+      model = model,
+      sol = sol,
+      omega = omega
+    ))
+  }
 
   # turn continuous solution into an integral one
   current_sum <- length(which(omega == 1)) # how many integral 1's do we have?
