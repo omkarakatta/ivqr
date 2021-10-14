@@ -1073,3 +1073,146 @@ random_walk_subsample <- function(initial_subsample,
     record = out_record
   )
 }
+
+
+# find_subsample_in_polytope -------------------------
+
+# TODO: document this
+# goal: given an active basis, find a subsample inside the polytope
+find_subsample_in_polytope <- function(
+  h,
+  Y, X, D, Z, Phi = linear_projection(D, X, Z),
+  tau,
+  beta_D_proposal = NULL,
+  beta_X_proposal = NULL,
+  subsample_size,
+  params = list(OutputFlag = 0)
+) {
+
+  n <- nrow(Y)
+  p <- length(h)
+
+  # get beta_X_proposal and beta_D_proposal
+
+  if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
+    coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
+    if (is.null(beta_D_proposal)) {
+      beta_D_proposal <- coef$beta_D
+    }
+    if (is.null(beta_X_proposal)) {
+      beta_X_proposal <- coef$beta_X
+    }
+  }
+  Y_tilde <- Y - D %*% beta_D_proposal
+  design <- cbind(X, Phi)
+  designh_inv <- solve(design[h, , drop = FALSE])
+
+  s_i <- vector("list", length = n)
+  for (i in seq_len(n)) {
+    if (is.element(i, h)) {
+      s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
+    } else {
+      # NOTE: beta_Phi should be 0
+      const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
+      s_i[[i]] <- const * design[i, ] %*% designh_inv
+    }
+  }
+  s <- t(do.call(rbind, s_i))
+  xi_mat <- s[, setdiff(seq_len(n), h)]
+  stopifnot(nrow(xi_mat) == p)
+  stopifnot(ncol(xi_mat) == n - p)
+
+  # Decision variables in order from left/top to right/bottom:
+  # 1. omega --- (n - p) by 1
+  # 2. xi --- (p by 1)
+  # 3. ximinus --- (p by 1)
+  # 4. xiplus --- (p by 1)
+
+  num_omega <- n - p
+  num_xi <- p
+  num_ximinus <- num_xi
+  num_xiplus <- num_xi
+  num_decision_vars <- num_omega + num_xi + num_ximinus + num_xiplus
+
+  model <- list()
+  model$lb <- c(
+    rep(0, num_omega),
+    rep(-Inf, num_xi),
+    rep(0, num_ximinus),
+    rep(0, num_xiplus)
+  )
+  model$ub <- c(
+    rep(1, num_omega),
+    rep(Inf, num_xi),
+    rep(Inf, num_ximinus),
+    rep(Inf, num_xiplus)
+  )
+  model$obj <- c(
+    rep(0, num_omega),
+    rep(0, num_xi),
+    rep(1, num_ximinus),
+    rep(1, num_xiplus)
+  )
+  model$vtype <- rep("C", num_decision_vars)
+
+  # define xiplus and ximinus
+  tmp <- diag(1, nrow = num_xi)
+  zero_mat <- diag(0, nrow = num_omega)
+  xisign_A <- expand_matrix(
+    cbind(tmp, -tmp, -tmp),
+    newrow = num_xi,
+    newcol = num_decision_vars,
+    row_direction = "bottom",
+    col_direction = "left"
+  )
+  xisign_sense <- rep("=", num_xi)
+  xisign_rhs <- rep(0, num_xi)
+
+  # define xi
+  tmp <- cbind(xi_mat, diag(-1, nrow = num_xi))
+  xi_A <- expand_matrix(
+    tmp,
+    newrow = num_xi,
+    newcol = num_decision_vars,
+    row_direction = "bottom",
+    col_direction = "right"
+  )
+  xi_sense <- rep("=", num_xi)
+  xi_rhs <- rep(0, num_xi)
+
+  # sum of omega
+  omega_A <- matrix(c(
+    rep(1, num_omega), rep(0, num_decision_vars - num_omega)
+  ), nrow = 1)
+  omega_sense <- "="
+  omega_rhs <- subsample_size - p
+
+  model$A <- rbind(xisign_A, xi_A, omega_A)
+  model$rhs <- c(xisign_rhs, xi_rhs, omega_rhs)
+  model$sense <- c(xisign_sense, xi_sense, omega_sense)
+
+  sol <- gurobi::gurobi(model, params)
+  status <- sol$status
+  omega <- sol$x[seq_len(num_omega)]
+
+  # turn continuous solution into an integral one
+  current_sum <- length(which(omega == 1)) # how many integral 1's do we have?
+  remaining <- subsample_size - p - current_sum # how many need to be switched?
+  to_be_rounded <- omega > 0 & omega < 1 # which can we switch?
+  # NOTE: rank works better than order when there are ties
+  max_indices <- rank(-omega, ties.method = "random") # 1 = largest
+  # switch the largest numbers that aren't 1
+  switch <- which(max_indices <= current_sum + remaining & max_indices > current_sum)
+  omega_mod <- omega
+  omega_mod[switch] <- 1
+  omega_mod[which(omega_mod < 1)] <- 0
+  stopifnot(sum(omega_mod) == subsample_size - p)
+
+  list(
+    model = model,
+    sol = sol,
+    status = status,
+    omega = omega,
+    omega_mod = omega_mod
+  )
+}
