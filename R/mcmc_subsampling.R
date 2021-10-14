@@ -1042,6 +1042,11 @@ random_walk_subsample <- function(initial_subsample,
     proposal_distance_prob <- transform_function(proposal_distance)
 
     # compute acceptance probability
+    # print(proposal_distance_prob)
+    # print(current_distance_prob)
+    # print(proposal_prob)
+    # print(current_prob)
+    # print(i)
     a_log <- log(proposal_distance_prob) - log(current_distance_prob) + log(proposal_prob) - log(current_prob)
     out_a_log[[i]] <- a_log
 
