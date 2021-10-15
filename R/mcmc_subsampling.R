@@ -249,9 +249,7 @@ foc_membership <- function(
   stopifnot(nrow(beta_D) == p_D)
   stopifnot(ncol(beta_D) == 1)
   y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
-  # TODO: I need to compute the residuals after *assuming* beta_Phi = 0
   # assume beta_Phi is 0 => doesn't show up in residuals
-  # I think this TODO is done...?
   reg <- quantreg::rq(y_tilde_subsample ~ X_subsample - 1,
                       tau = tau)
   resid_subsample <- reg$residuals
