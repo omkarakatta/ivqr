@@ -22,14 +22,16 @@
 #' @param Z Matrix of instruments (only relevant for obtaining \code{Phi})
 #' @param Phi Transformed matrix of instruments; defaults to linear projection
 #'  of D on X and Z
+#' @param psi Scalar coefficient in front of the variance-covariance matrix;
+#'  useful for tuning MCMC subsampling (see \code{mcmc_active_basis}); defaults
+#'  to 1
 #'
 #' @return Named list
 #'  \enumerate{
-#'    \item \code{varcov}:
+#'    \item \code{varcov}: variance-covariance matrix multiplied by \code{psi}
 #'    \item \code{hs}: Hall and Sheather Bandwidth
 #'    \item Other objects used to create varcov
 #'  }
-# TODO: document psi -- scalar in front of the varcov matrix
 wald_varcov <- function(resid,
                         alpha,
                         tau,
@@ -71,6 +73,7 @@ wald_varcov <- function(resid,
   varcov <- 1 / n * solve(J) %*% S %*% t(solve(J)) # variance of estimator
   out$S <- S
   out$J <- J
+  out$psi <- psi
   out$varcov <- psi * varcov
   stopifnot(nrow(varcov) == p_D + p_X)
   stopifnot(ncol(varcov) == p_D + p_X)
@@ -101,6 +104,8 @@ wald_varcov <- function(resid,
 #' @param Z Matrix of instruments (only relevant for obtaining \code{Phi})
 #' @param Phi Transformed matrix of instruments; defaults to linear projection
 #'  of D on X and Z
+#' @param psi Scalar coefficient in front of the variance-covariance matrix;
+#'  useful for tuning MCMC subsampling (see \code{mcmc_active_basis}); defaults to 1
 wald_univariate <- function(center,
                             endogeneous,
                             index,
@@ -110,7 +115,8 @@ wald_univariate <- function(center,
                             D,
                             X,
                             Z,
-                            Phi = linear_projection(D, X, Z)) {
+                            Phi = linear_projection(D, X, Z),
+                            psi = 1) {
 
   start_clock <- Sys.time()
   out <- list() # initialize list of results to return
@@ -132,6 +138,7 @@ wald_univariate <- function(center,
                                D = D,
                                X = X,
                                Z = Z,
+                               psi = psi,
                                Phi = Phi)
   out$varcov_result <- varcov_result
   varcov <- varcov_result$varcov
