@@ -641,9 +641,8 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
     #     right_entry <- right[[entry]]
     #     max_result[[entry]] <- max(left_entry, right_entry, 0)
     #   }
-    #   # TODO: compute the l^th power of l-norm!!!
-    #   # TODO: separate the `l` for the power and the `l` for the norm
-    #   exp(-gamma * sum(abs(max_result))^l)
+    #   tmp <- sum(abs(max_result)^l_norm) ^ (1 / l_norm)
+    #   exp(-gamma * tmp^l_power)
     # })
 
     # choose 1 element in a single vector of size `length(weights)` to be 1
