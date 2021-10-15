@@ -539,6 +539,11 @@ mcmc_active_basis <- function(iterations,
 
 ### Propose first subsample -- "First Approach" -------------------------
 
+#' Propose subsamples
+#'
+#' Propose observations, one at a time, until we have enough to create a subsample.
+#' Note that observations inside the active basis will be inside the final subsample.
+#'
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
 #' @param D Endogenous variable (n by p_D matrix)
@@ -557,9 +562,11 @@ mcmc_active_basis <- function(iterations,
 #' @return Named list
 #'  \enumerate{
 #'    \item \code{subsample_set}: set of indices in subsample
+#'    \item \code{subsample_weights}: set of weights for each observation in subsample
 #'    \item \code{prob}: probability of proposing \code{subsample_set} (except
 #'      for observations already in active basis)
 #'    \item \code{log_prob}: log of \code{prob}
+#'    \item \code{xi}: xi vector for this subsample
 #'  }
 # Q: Should the beta_*_proposal correspond to the same coefficients as h_to_beta(h)? If so, I don't even need the beta_*_proposal in the arguments. I can just use the h_to_beta(h) to get these coefficients...right?
 first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
@@ -686,10 +693,36 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 }
 
 
-# TODO: document
-# propose all at once
-# problem: weights are very different from one another
-# so we can't gaurantee draws where we sample each observation at most once
+#' Propose subsamples
+#'
+#' Propose `subsample_size - (p_X + p_Phi)` observations all at once to create a subsample.
+#' Note that observations inside the active basis will be inside the final subsample.
+#' So, the final subsample will be of size `subsample_size`.
+#'
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param tau Quantile (numeric)
+#' @param h Indices of active basis (vector of length p_X + p_Phi)
+#' @param subsample_size Size of subsample (numeric at most n)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_X_proposal}
+#' @param gamma,l_norm,l_power Hyperparameters
+#'
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{subsample_set}: set of indices in subsample
+#'    \item \code{subsample_weights}: set of weights for each observation in subsample
+#'    \item \code{prob}: probability of proposing \code{subsample_set} (except
+#'      for observations already in active basis)
+#'    \item \code{log_prob}: log of \code{prob}
+#'    \item \code{xi}: xi vector for this subsample
+#'  }
 first_approach_v2 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
                               h, subsample_size,
                               beta_D_proposal = NULL, beta_X_proposal = NULL, 
@@ -809,8 +842,37 @@ first_approach_v2 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
   )
 }
 
-# TODO: document this
-# replace exp{...} and replace with  1 / {...} or -log(...)
+#' Propose subsamples
+#'
+#' Propose observations, one at a time, until we have enough to create a subsample.
+#' Note that observations inside the active basis will be inside the final subsample.
+#' Unlike the original \code{first_approach}, I am replacing the exponential
+#' function with the reciprocal.
+#'
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param tau Quantile (numeric)
+#' @param h Indices of active basis (vector of length p_X + p_Phi)
+#' @param subsample_size Size of subsample (numeric at most n)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_X_proposal}
+#' @param gamma,l_norm,l_power Hyperparameters
+#'
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{subsample_set}: set of indices in subsample
+#'    \item \code{subsample_weights}: set of weights for each observation in subsample
+#'    \item \code{prob}: probability of proposing \code{subsample_set} (except
+#'      for observations already in active basis)
+#'    \item \code{log_prob}: log of \code{prob}
+#'    \item \code{xi}: xi vector for this subsample
+#'  }
 first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
                            h, subsample_size,
                            beta_D_proposal = NULL, beta_X_proposal = NULL, 
@@ -864,7 +926,6 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 
     # for each row, apply e^(-gamma * (l-norm^l))
     raw_weights <- apply(sum_remaining, 1, function(x) {
-      # exp(-gamma * sum(abs(x)^l)) # TODO: this is the old version, delete this
       tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
       gamma / tmp^l_power
       # exp(-gamma * tmp^l_power)
