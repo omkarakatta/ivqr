@@ -935,10 +935,20 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #' @param iter How many iterations in the for loop?
 #' @param gamma,l_norm,l_power Tuning parameters
 #' @param k How many observations do we want to remove/add to the subsample in
-#'  the random walk? Larger k means larger jumps; only valid if \code{k_method} is "constant"
+#'  the random walk? Larger k means larger jumps; only valid if \code{k_method}
+#'  is "constant"
 #' @param k_method If "constant" (default), we set \code{k} to be user-specified
-#' @param distance_method If it is 1 (default), we use the norm sum of the xi's
-#' @param transform_method If "exp", use the exponential as the target distribution
+#' @param distance_method How do we compute the distance to the FOC polytope?
+#'  If it is 1 (default), we use the norm sum of the xi's.
+#'  If it is 2, we use the normed difference of the current subsample in the
+#'  random walk and \code{reference_subsample}.
+#' @param reference_subsample If \code{distance_method} is 2, we compare the
+#'  subsamples in the random walk to this reference subsample to determine the
+#'  distance; only valid if \code{distance_method} is 2; default is NULL; The
+#'  intention was that this reference would be a subsample inside the global
+#'  FOC polytope.
+#' @param transform_method If "exp", use the exponential as the target
+#'  distribution
 #' @param seed For replicability
 random_walk_subsample <- function(initial_subsample,
                                   h,
@@ -952,33 +962,40 @@ random_walk_subsample <- function(initial_subsample,
                                   k_method = "constant",
                                   distance_method = 1,
                                   transform_method = "exp",
+                                  reference_subsample = NULL, # for distance_method = 2
                                   seed = Sys.date()) {
   # k must be smaller than the number of observations in subsample minus the
   # observations in the active basis
   stopifnot(sum(initial_subsample) - length(h) > k)
   # ensure observations in active basis are in the initial subsample
   stopifnot(all(initial_subsample[h] == 1))
+  if (distance_method == 2) {
+    stopifnot(!is.null(reference_subsample))
+    stopifnot(length(reference_subsample) == length(initial_subsample))
+  }
 
   # get beta_X_proposal and beta_D_proposal
-  if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
-    coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
-    if (is.null(beta_D_proposal)) {
-      beta_D_proposal <- coef$beta_D
+  if (distance_method == 1) {
+    if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
+      coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
+      if (is.null(beta_D_proposal)) {
+        beta_D_proposal <- coef$beta_D
+      }
+      if (is.null(beta_X_proposal)) {
+        beta_X_proposal <- coef$beta_X
+      }
     }
-    if (is.null(beta_X_proposal)) {
-      beta_X_proposal <- coef$beta_X
-    }
+    Y_tilde <- Y - D %*% beta_D_proposal
+    design <- cbind(X, Phi)
+    designh_inv <- solve(design[h, , drop = FALSE])
   }
-  Y_tilde <- Y - D %*% beta_D_proposal
-  design <- cbind(X, Phi)
-  designh_inv <- solve(design[h, , drop = FALSE])
 
   n <- length(initial_subsample)
   m <- sum(initial_subsample)
   current_subsample <- initial_subsample
   current_prob <- 1 # Q: is this right?
 
-  # define how do we transform the distance into a weight/unnormalized probability
+  # define how we transform the distance into a weight/unnormalized probability
   if (transform_method == "exp") {
     transform_function <- function(x) {
       exp(-gamma * x^l_power)
@@ -1005,10 +1022,17 @@ random_walk_subsample <- function(initial_subsample,
     distance_function <- function(x) {
       sum(abs(x) ^ l_norm) ^ (1 / l_norm)
     }
+    curr_s <- s[current_subsample == 1, ]
+    current_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(curr_s)) %*% curr_s)
+    current_distance_prob <- transform_function(current_distance)
+  } else if (distance_method == 2) {
+    # find norm of global subsample and current subsample
+    distance_function <- function(x) {
+      sum(abs(x - reference_subsample)^l_norm) ^ (1 / l_norm)
+    }
+    current_distance <- distance_function(current_subsample)
+    current_distance_prob <- transform_function(current_distance)
   }
-  current_s <- s[current_subsample == 1, ]
-  current_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(current_s)) %*% current_s)
-  current_distance_prob <- transform_function(current_distance)
 
   set.seed(seed)
   u_vec <- runif(iter)
@@ -1032,6 +1056,9 @@ random_walk_subsample <- function(initial_subsample,
 
     # random walk: switch k 1's with k 0's
     ones <- setdiff(which(current_subsample == 1), h)
+    # print(which(current_subsample == 1))
+    # print(ones)
+    # print(h)
     zeros <- setdiff(which(current_subsample == 0), h)
     switch_ones_to_zeros <- sample(x = ones, size = k)
     switch_zeros_to_ones <- sample(x = zeros, size = k)
@@ -1040,9 +1067,14 @@ random_walk_subsample <- function(initial_subsample,
     proposal_subsample[switch_zeros_to_ones] <- 1
 
     # compute distance of proposal subsample
-    proposal_s <- s[proposal_subsample == 1, ]
-    proposal_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(proposal_s)) %*% proposal_s)
-    proposal_distance_prob <- transform_function(proposal_distance)
+    if (distance_method == 1) {
+      proposal_s <- s[proposal_subsample == 1, ]
+      proposal_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(proposal_s)) %*% proposal_s)
+      proposal_distance_prob <- transform_function(proposal_distance)
+    } else if (distance_method == 2) {
+      proposal_distance <- distance_function(proposal_subsample)
+      proposal_distance_prob <- transform_function(proposal_distance)
+    }
 
     # compute acceptance probability
     # print(proposal_distance_prob) # DEBUG:
