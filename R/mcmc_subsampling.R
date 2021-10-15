@@ -442,6 +442,7 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 #' @param tau Quantile (numeric)
 #' @param alpha Used for Hall and Sheather bandwidth; defaults to 0,1
 #' @param theta Hyperparameter (numeric)
+#' @param psi Hyperparameter; Coefficient on the variance-covariance matrix; defaults to 1 (numeric)
 #' @param discard_burnin If TRUE (default), discard the first set of draws that are equivalent to the IQR MILP estimate
 #'
 #' @return A named list, each with a data frame:
@@ -452,7 +453,6 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 #'      while the columns are each iteration in the MCMC (excluding the burn-in
 #'      period if \code{discard_burnin} is TRUE)
 # TODO: right now, I feed in beta_D to figure out h; maybe I should feed in h to figure out beta_D and beta_X? Also, maybe I should create beta_to_h(beta_D, ...) function
-# TODO: document psi as tuning parameter in front of varov matrix
 mcmc_active_basis <- function(iterations,
                               beta_X, # beta_X IQR point estimates
                               beta_D, # beta_D from IQR point estimates
