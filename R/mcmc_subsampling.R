@@ -1215,8 +1215,39 @@ random_walk_subsample <- function(initial_subsample,
 
 # find_subsample_in_polytope -------------------------
 
-# TODO: document this
 # goal: given an active basis, find a subsample inside the polytope
+# Q: is it possible for there to be multiple solutions? In which case, maybe this doesn't provide a deterministic map from the active basis to the subsample, depending on how Gurobi breaks ties.
+#' Find subsample in the FOC polytope
+#'
+#' It is useful to start our random walk at a subsample that is inside the FOC
+#' polytope. To find this polytope, we solve a linear program that aims to
+#' minimize the absolute L-1 norm of the weighted average of the xi_i objects.
+#' The weights are inside the unit interval and sum to the size of our
+#' subsample. Most of the weights will be integral, but some will be between 0
+#' and 1. We will round the non-integral solutions so they are integra. If the
+#' weight for an observaion is 1, then that observation belongs in the
+#' subsample. Otherwise, the observation doesn't belong in the subsample. Due
+#' to the rounding, it isn't guaranteed that the resulting subsample belongs in
+#' the FOC polytope, but it shouldn't be too far away from the polytope.
+#' Note that this program excludes the observations in the active basis -- we
+#' must add them back in after-the-fact.
+#'
+#' @param h Active basis in terms of the data provided
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param tau Quantile (numeric)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_X_proposal}
+#' @param subsample_size Size of subsample
+#' @param params Named list of parameters to send to Gurobi
 find_subsample_in_polytope <- function(
   h,
   Y, X, D, Z, Phi = linear_projection(D, X, Z),
