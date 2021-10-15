@@ -615,7 +615,6 @@ first_approach <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 
     # for each row, apply e^(-gamma * (l-norm^l))
     raw_weights <- apply(sum_remaining, 1, function(x) {
-      # exp(-gamma * sum(abs(x)^l)) # TODO: this is the old version, delete this
       tmp <- sum(abs(x)^l_norm) ^ (1 / l_norm)
       exp(-gamma * tmp^l_power)
     })
