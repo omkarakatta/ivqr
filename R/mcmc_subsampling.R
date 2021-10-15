@@ -285,7 +285,34 @@ foc_membership <- function(
 }
 # TODO: Sanity Check -- check for the false case
 
-# TODO: document
+#' Verify membership of a data set in the FOC conditions
+#'
+#' If a data set satisfies the FOC conditions with respect to some active
+#' basis, then a quantile regression of the concentrated-out outcome using the
+#' endogeneous coefficients given by the active basis on the covariates and the
+#' transformed instruments should be 0.
+#'
+#' @param h Indices of the active basis written in terms of the subsample data
+#'  (p-dimensional vector)
+#' @param Y_subsample Outcome vector in the subsample (m by 1 matrix)
+#' @param X_subsample Covariates in subsample (m by p_X matrix)
+#' @param D_subsample Endogeneous variables in subsample (m by p_D matrix)
+#' @param Phi_subsample Transformed instruments in subsample (m by p_Phi)
+#' @param tau Quantile (numeric)
+#' @param beta_D Coefficients on the endogeneous variable; ideally obtained
+#'  from \code{h} (p_D by 1 matrix)
+#'
+#' @return Named list
+#'  \enumerate{
+#'    \item \code{status}: TRUE if subsample satisfies FOC conditions; FALSE
+#'      otherwise
+#'    \item \code{beta_Phi}: coefficients on transfomed instruments when
+#'      running a QR of Y - D %*% beta_D on X and Phi, where beta_D is given by
+#'      \code{h}
+#'    \item \code{norm}: L1 norm of \code{beta_Phi}
+#'  }
+#'
+#' @family mcmc_subsampling
 foc_membership_v2 <- function(
   h,
   Y_subsample,
