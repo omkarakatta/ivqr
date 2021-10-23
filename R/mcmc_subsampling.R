@@ -1025,6 +1025,8 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #'  If it is 1 (default), we use the norm sum of the xi's.
 #'  If it is 2, we use the normed difference of the current subsample in the
 #'  random walk and \code{reference_subsample}.
+#'  If it is "simple_random_walk", then we run a simple random walk without any
+#'  MCMC-related business.
 #' @param reference_subsample If \code{distance_method} is 2, we compare the
 #'  subsamples in the random walk to this reference subsample to determine the
 #'  distance; only valid if \code{distance_method} is 2; default is NULL; The
@@ -1033,6 +1035,9 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #' @param transform_method If "exp", use the exponential as the target
 #'  distribution
 #' @param seed For replicability
+# TODO: test that we always accept the subsample if distance_method = "simple_random_walk"
+# TODO: create a separate function just to do the simple random walk without
+# any of the extra bells and whistles of MCMC
 random_walk_subsample <- function(initial_subsample,
                                   h,
                                   Y, X, D, Z, Phi = linear_projection(D, X, Z),
@@ -1115,6 +1120,9 @@ random_walk_subsample <- function(initial_subsample,
     }
     current_distance <- distance_function(current_subsample)
     current_distance_prob <- transform_function(current_distance)
+  } else if (distance_method == "simple_random_walk") {
+    current_distance <- NA
+    current_distance_prob <- 1
   }
 
   set.seed(seed)
@@ -1157,6 +1165,9 @@ random_walk_subsample <- function(initial_subsample,
     } else if (distance_method == 2) {
       proposal_distance <- distance_function(proposal_subsample)
       proposal_distance_prob <- transform_function(proposal_distance)
+    } else if (distance_method = "simple_random_walk") {
+      proposal_distance <- NA
+      proposal_distance_prob <- 1
     }
 
     # compute acceptance probability
