@@ -1181,7 +1181,7 @@ random_walk_subsample <- function(initial_subsample,
     } else if (distance_method == 2) {
       proposal_distance <- distance_function(proposal_subsample)
       proposal_distance_prob <- transform_function(proposal_distance)
-    } else if (distance_method = "simple_random_walk") {
+    } else if (distance_method == "simple_random_walk") {
       proposal_distance <- NA
       proposal_distance_prob <- 1
     } else if (distance_method == 3) {
@@ -1522,8 +1522,8 @@ ot <- function(pre, post, params = list(OutputFlag = 0)) {
     const_post[[i]] <- c(t(a_mat))
   }
   a_mat <- do.call(rbind, list(const_i, const_j))
-  stopifnot(nrow(a_mat) = num_decision_vars)
-  stopifnot(ncol(a_mat) = n_minus_p * 2)
+  stopifnot(nrow(a_mat) == num_decision_vars)
+  stopifnot(ncol(a_mat) == n_minus_p * 2)
 
   # create program
   model <- list()
