@@ -1086,8 +1086,6 @@ random_walk_subsample <- function(initial_subsample,
   m <- sum(initial_subsample)
   current_subsample <- initial_subsample
   current_prob <- 1
-  draws <- rep(0, m)
-  draws[h] <- 1
 
   # define how we transform the distance into a weight/unnormalized probability
   if (transform_method == "exp") {
@@ -1131,10 +1129,14 @@ random_walk_subsample <- function(initial_subsample,
     current_distance_prob <- 1
   } else if (distance_method == 3) {
     distance_function <- function(x) {
-      sum(x)^l_norm ^ (1 / l_norm)
+      # sum the column vectors of x
+      sum_cols <- x %*% rep(1, ncol(x))
+      # take norm of sum of s_i's
+      sum(abs(sum_cols)^l_norm) ^ (1 / l_norm)
     }
-    current_minus_h <- current_subsample - draws
-    s_i_current <- s_i[, current_minus_h == 1]
+    okay <- setdiff(seq_len(n), h)
+    ones_current <- which(current_subsample[okay] == 1)
+    s_i_current <- s_i[, ones_current]
     # compute norm of sum of s_i_current
     current_distance <- distance_function(s_i_current)
     # transform (e.g., exponentiate) "distance"
@@ -1185,8 +1187,9 @@ random_walk_subsample <- function(initial_subsample,
       proposal_distance <- NA
       proposal_distance_prob <- 1
     } else if (distance_method == 3) {
-      proposal_minus_h <- proposal_subsample - draws
-      s_i_proposal <- s_i[, proposal_subsample == 1]
+      okay <- setdiff(seq_len(n), h)
+      ones_proposal <- which(proposal_subsample[okay] == 1)
+      s_i_proposal <- s_i[, ones_proposal]
       # compute norm of sum of s_i_proposal
       proposal_distance <- distance_function(s_i_proposal)
       # transform (e.g., exponentiate) "distance"
@@ -1213,7 +1216,15 @@ random_walk_subsample <- function(initial_subsample,
     }, error = function(e) {
       list(
         status = "ERROR",
-        status_message = e
+        status_message = e,
+        bool = bool,
+        a_log = a_log,
+        s_i_current = s_i_current,
+        s_i_proposal = s_i_proposal,
+        proposal_distance = proposal_distance,
+        current_distance = current_distance,
+        proposal_distance_prob = proposal_distance_prob,
+        current_distance_prob = current_distance_prob
       )
     })
     if (accept_bool$status == "ERROR") {
