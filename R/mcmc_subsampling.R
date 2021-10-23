@@ -1025,6 +1025,7 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #'  If it is 1 (default), we use the norm sum of the xi's.
 #'  If it is 2, we use the normed difference of the current subsample in the
 #'  random walk and \code{reference_subsample}.
+#'  If it is 3, we use the transport map idea! TODO: describe this!!!
 #'  If it is "simple_random_walk", then we run a simple random walk without any
 #'  MCMC-related business.
 #' @param reference_subsample If \code{distance_method} is 2, we compare the
@@ -1034,6 +1035,8 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #'  FOC polytope.
 #' @param transform_method If "exp", use the exponential as the target
 #'  distribution
+#' @param s_i Matrix of dimension n - p that contains the xi_i_opts that are
+#'  mapped from the xi_i_star according to the optimal transport map; only valid for distance_method == 3
 #' @param seed For replicability
 # TODO: test that we always accept the subsample if distance_method = "simple_random_walk"
 # TODO: create a separate function just to do the simple random walk without
@@ -1051,6 +1054,7 @@ random_walk_subsample <- function(initial_subsample,
                                   distance_method = 1,
                                   transform_method = "exp",
                                   reference_subsample = NULL, # for distance_method = 2
+                                  s_i,
                                   seed = Sys.date()) {
   # k must be smaller than the number of observations in subsample minus the
   # observations in the active basis
@@ -1081,7 +1085,9 @@ random_walk_subsample <- function(initial_subsample,
   n <- length(initial_subsample)
   m <- sum(initial_subsample)
   current_subsample <- initial_subsample
-  current_prob <- 1 # Q: is this right?
+  current_prob <- 1
+  draws <- rep(0, m)
+  draws[h] <- 1
 
   # define how we transform the distance into a weight/unnormalized probability
   if (transform_method == "exp") {
@@ -1123,6 +1129,16 @@ random_walk_subsample <- function(initial_subsample,
   } else if (distance_method == "simple_random_walk") {
     current_distance <- NA
     current_distance_prob <- 1
+  } else if (distance_method == 3) {
+    distance_function <- function(x) {
+      sum(x)^l_norm ^ (1 / l_norm)
+    }
+    current_minus_h <- current_subsample - draws
+    s_i_current <- s_i[, current_minus_h == 1]
+    # compute norm of sum of s_i_current
+    current_distance <- distance_function(s_i_current)
+    # transform (e.g., exponentiate) "distance"
+    current_distance_prob <- transform_function(current_distance)
   }
 
   set.seed(seed)
@@ -1168,6 +1184,13 @@ random_walk_subsample <- function(initial_subsample,
     } else if (distance_method = "simple_random_walk") {
       proposal_distance <- NA
       proposal_distance_prob <- 1
+    } else if (distance_method == 3) {
+      proposal_minus_h <- proposal_subsample - draws
+      s_i_proposal <- s_i[, proposal_subsample == 1]
+      # compute norm of sum of s_i_proposal
+      proposal_distance <- distance_function(s_i_proposal)
+      # transform (e.g., exponentiate) "distance"
+      proposal_distance_prob <- transform_function(proposal_distance)
     }
 
     # compute acceptance probability
@@ -1419,6 +1442,8 @@ find_subsample_in_polytope <- function(
 #' @param Phi Transformation of X and Z to be used in the program;
 #'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #' @param tau Quantile (numeric)
+#'
+#' @return Matrix of dimension p by (n-p) of xi_i's not including the i's in the active basis
 compute_xi_i <- function(h,
                          Y, X, D, Z, Phi = linear_projection(D, X, Z),
                          tau) {
