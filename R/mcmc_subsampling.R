@@ -1498,20 +1498,20 @@ compute_xi_i <- function(h,
 #' n-p
 ot <- function(pre, post, params = list(OutputFlag = 0)) {
   n_minus_p <- ncol(pre)
-  stopifnot(n_minus_p == (post))
+  stopifnot(n_minus_p == ncol(post))
 
   # prelims
   num_decision_vars <- n_minus_p^2
 
   # compute cost matrix
   c_ij <- matrix(0, nrow = n_minus_p, ncol = n_minus_p)
-  for (col in seq_along(n_minus_p)) {
+  for (col in seq_len(n_minus_p)) {
     # get diagonals
     c_ij[col, col] <- sum(abs(pre[, col] - post[, col]))
-    for (i in seq_along(n_minus_p - col - 1)) {
+    for (i in seq_len(n_minus_p - col)) {
       row <- i + col
       # create a lower-triangular matrix with the cost
-      c_ij[i, j] <- sum(abs(pre[, row] - post[, col]))
+      c_ij[row, col] <- sum(abs(pre[, row] - post[, col]))
     }
   }
   # fill out the matrix
@@ -1520,27 +1520,29 @@ ot <- function(pre, post, params = list(OutputFlag = 0)) {
   # create constraints
   const_pre <- vector("list", length = n_minus_p)
   const_post <- vector("list", length = n_minus_p)
-  for (i in seq_along(n_minus_p)) {
+  for (i in seq_len(n_minus_p)) {
     zeros_left <- matrix(0, nrow = n_minus_p, ncol = i - 1)
-    ones <- matrix(1, nrow = num_minus_p, ncol = 1)
+    ones <- matrix(1, nrow = n_minus_p, ncol = 1)
     zeros_right <- matrix(0, nrow = n_minus_p, ncol = n_minus_p - i)
     a_mat <- cbind(zeros_left, ones, zeros_right)
     const_pre[[i]] <- c(a_mat)
     const_post[[i]] <- c(t(a_mat))
   }
-  a_mat <- do.call(rbind, list(const_i, const_j))
-  stopifnot(nrow(a_mat) == num_decision_vars)
-  stopifnot(ncol(a_mat) == n_minus_p * 2)
+  a_mat_pre <- do.call(rbind, const_pre)
+  a_mat_post <- do.call(rbind, const_post)
+  a_mat <- rbind(a_mat_pre, a_mat_post)
+  stopifnot(ncol(a_mat) == num_decision_vars)
+  stopifnot(nrow(a_mat) == n_minus_p * 2)
 
   # create program
   model <- list()
   model$obj <- c(c_ij) # turn into vector (go down each column)
-  model$a_mat <- a_mat
+  model$A <- a_mat
   model$sense <- rep("=", length = n_minus_p * 2)
   model$rhs <- rep(1, length = n_minus_p * 2)
   model$vtype <- rep("B", num_decision_vars)
 
-  sol <- gurobi(model, params)
+  sol <- gurobi::gurobi(model, params)
   status <- sol$status
   map <- matrix(sol$x, nrow = n_minus_p, ncol = n_minus_p)
 
