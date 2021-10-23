@@ -1442,11 +1442,18 @@ find_subsample_in_polytope <- function(
 #' @param Phi Transformation of X and Z to be used in the program;
 #'  defaults to the linear projection of D on X and Z (matrix with n rows)
 #' @param tau Quantile (numeric)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
 #'
 #' @return Matrix of dimension p by (n-p) of xi_i's not including the i's in the active basis
 compute_xi_i <- function(h,
                          Y, X, D, Z, Phi = linear_projection(D, X, Z),
-                         tau) {
+                         tau,
+                         beta_D_proposal = NULL,
+                         beta_X_proposal = NULL) {
   n <- nrow(Y)
   p <- length(h)
 
