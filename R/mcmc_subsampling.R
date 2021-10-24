@@ -1141,6 +1141,28 @@ random_walk_subsample <- function(initial_subsample,
     current_distance <- distance_function(s_i_current)
     # transform (e.g., exponentiate) "distance"
     current_distance_prob <- transform_function(current_distance)
+  } else if (distance_method == 4) {
+    distance_function <- function(x) {
+      # sum the column vectors of x
+      sum_cols <- x %*% rep(1, ncol(x))
+      left <- - tau - sum_cols
+      right <- sum_cols - (1 - tau)
+      max_result <- vector("double", length(sum_cols))
+      for (entry in seq_along(left)) {
+        left_entry <- left[[entry]]
+        right_entry <- right[[entry]]
+        max_result[[entry]] <- max(left_entry, right_entry, 0)
+      }
+      tmp <- sum(abs(max_result)^l_norm) ^ (1 / l_norm)
+      exp(-gamma * tmp^l_power)
+    }
+    okay <- setdiff(seq_len(n), h)
+    ones_current <- which(current_subsample[okay] == 1)
+    s_i_current <- s_i[, ones_current]
+    # compute norm of sum of s_i_current
+    current_distance <- distance_function(s_i_current)
+    # transform (e.g., exponentiate) "distance"
+    current_distance_prob <- transform_function(current_distance)
   }
 
   set.seed(seed)
