@@ -1551,7 +1551,7 @@ ot <- function(pre, post, params = list(OutputFlag = 0)) {
   model$A <- a_mat
   model$sense <- rep("=", length = n_minus_p * 2)
   model$rhs <- rep(1, length = n_minus_p * 2)
-  model$vtype <- rep("B", num_decision_vars)
+  model$vtype <- rep("C", num_decision_vars)
 
   sol <- gurobi::gurobi(model, params)
   status <- sol$status
