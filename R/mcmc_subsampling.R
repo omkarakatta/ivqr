@@ -1029,7 +1029,9 @@ first_approach_v4 <- function(Y, X, D, Z, Phi = linear_projection(D, X, Z), tau,
 #'  random walk and \code{reference_subsample}.
 #'  If it is 3, we use the transport map idea! TODO: describe this!!!
 #'  If it is "simple_random_walk", then we run a simple random walk without any
-#'  MCMC-related business.
+#'  MCMC-related business. # TODO: test this
+#'  If it is 4, we use the transport map idea with violation of the FOC
+#'  condition.! TODO: describe this!!!
 #' @param reference_subsample If \code{distance_method} is 2, we compare the
 #'  subsamples in the random walk to this reference subsample to determine the
 #'  distance; only valid if \code{distance_method} is 2; default is NULL; The
@@ -1211,6 +1213,14 @@ random_walk_subsample <- function(initial_subsample,
       proposal_distance <- NA
       proposal_distance_prob <- 1
     } else if (distance_method == 3) {
+      okay <- setdiff(seq_len(n), h)
+      ones_proposal <- which(proposal_subsample[okay] == 1)
+      s_i_proposal <- s_i[, ones_proposal]
+      # compute norm of sum of s_i_proposal
+      proposal_distance <- distance_function(s_i_proposal)
+      # transform (e.g., exponentiate) "distance"
+      proposal_distance_prob <- transform_function(proposal_distance)
+    } else if (distance_method == 4) {
       okay <- setdiff(seq_len(n), h)
       ones_proposal <- which(proposal_subsample[okay] == 1)
       s_i_proposal <- s_i[, ones_proposal]
