@@ -268,19 +268,21 @@ foc_membership <- function(
   stopifnot(ncol(xi) == 1)
 
   # DEBUG: see each entry of sum in xi object
-  # s_i <- vector("list", length(noth))
-  # for (i in seq_len(nrow(summand))) {
-  #   s_i[[i]] <- summand[i, ] %*% solve(designh)
-  # }
-  # s <- do.call("rbind", s_i)
+  s_i <- vector("list", length(noth))
+  for (i in seq_len(nrow(summand))) {
+    s_i[[i]] <- summand[i, ] %*% solve(designh)
+  }
+  s <- do.call("rbind", s_i)
 
   # check if xi satisfies FOC inequality
   left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
   right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
   list(
     status = all((left <= xi) & (xi <= right)), # returns TRUE if both are true, else FALSE
-    # s = s, # return entries of xi object
-    xi = xi
+    s = s, # return entries of xi object
+    xi = xi,
+    left = left,
+    right = right
   )
 }
 # TODO: Sanity Check -- check for the false case
