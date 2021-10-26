@@ -668,3 +668,152 @@ iqr_milp_es <- function(beta_D_index, # which coefficient are we interested in?
 
   return(out)
 }
+
+
+### iqr_milp_es_gp -------------------------
+# from ~/BFI/5_IVQR_GP/fromGuillaume/early_stopping/bounds as preprocessing_OK.R
+iqr_milp_es_gp <- function(beta_index = 2,
+                           bound = 0,
+                           modelsense = "min",
+                           Y, D, X, Z,
+                           tau = 0.5,
+                           O_pos = NULL, O_neg = NULL,
+                           cuts = NULL, eps = 1e-14,
+                           M_k, M_l, M = 10,
+                           start = NULL,
+                           TimeLimit = 300, FeasibilityTol = 1e-6, MIPFocus=0, heuristics = 0.05, LogToConsole = 0) {
+	
+	 #TODO: add condition that makes M_k and M_l all equal to M if they are NULL
+	
+	p_D = dim(D)[2] ; if(is.null(p_D)){p_D<-0}; if(dim(as.matrix(D))[2]==1){p_D<-1}
+	n = dim(X)[1]
+	p_X = dim(X)[2]
+	p_Z = dim(Z)[2]
+
+	ones = rep(1,n)
+	
+	O = c(O_neg, O_pos)
+	
+	if(is.null(O)==F){O <- sort(O)} #put index of pos and neg outlier together
+	I = setdiff(1:n, O)
+	Iu = setdiff(1:n, O_neg) #no pos error variable u if error is negative
+	Iv = setdiff(1:n, O_pos) #no neg error variable v if error is positive
+
+	n_O = length(O)
+	n_I = length(I) # number of observations that are neither fixed as positive or negative residuals
+	n_Iu = length(Iu)
+	n_Iv = length(Iv)
+
+	if(is.null(O)==F){
+	a_fix = rep(NA, n); a_fix[O_pos] = 1; a_fix[O_neg] = 0; a_O <- a_fix[O]
+	}
+
+
+	#B_Z_plus, B_Z_min, B_D, B_X, u_Iu, v_Iv, a_I, k_I, l_I
+	#obj_core = c(rep(1, 2*p_Z), rep(0, p_D), rep(0, p_X), rep(0, n_Iu+n_Iv), rep(0, n_I), rep(0, n_I+n_I)) # old objective
+	beta_D_obj = rep(0, p_D); beta_D_obj[beta_index] <- 1 # new objective
+	obj_core = c(rep(0, 2*p_Z), beta_D_obj, rep(0, p_X), rep(0, n_Iu+n_Iv), rep(0, n_I), rep(0, n_I+n_I))
+	
+	#constraint on objective
+
+	# constrain ||beta_Phi|| = 0 (or some epsilon)
+	A_obj = c(rep(1, 2*p_Z), rep(0, p_D), rep(0, p_X), rep(0, n_Iu+n_Iv), rep(0, n_I), rep(0, n_I+n_I))
+	b_obj = bound # TODO: add this as an argument to the parameter to allow this to be > 0 so that the feasible set of solutions contain the early-stopping solution
+	sense_obj = "<="
+	
+	#primal feasibility
+	A_pf = cbind(Z, -Z, D, X, diag(as.numeric(is.element(1:n, Iu)))[,is.element(1:n, Iu)], -diag(as.numeric(is.element(1:n, Iv)))[,is.element(1:n, Iv)], matrix(0, n, n_I+n_I+n_I)) 	
+ 	b_pf = Y
+ 	sense_pf = rep("=", n)
+ 	
+ 	#dual feasibility
+ 	A_df_X = cbind(matrix(0, p_X, 2*p_Z+p_D+p_X), matrix(0, p_X, n_Iu+n_Iv), t(X[I,]), matrix(0, p_X, n_I+n_I)) 
+ 	if(is.null(O)){ b_df_X = (1-tau)*t(X)%*%ones }  
+  	if(is.null(O)==F){ b_df_X = (1-tau)*t(X)%*%ones - t(X[O,])%*%a_O }
+  	sense_df_X = rep("=", p_X)
+ 		
+ 	A_df_Z = cbind(matrix(0, p_Z, 2*p_Z+p_D+p_X), matrix(0, p_Z, n_Iu+n_Iv), t(Z[I,]), matrix(0, p_Z, n_I+n_I)) 
+ 	if(is.null(O)){ b_df_Z = (1-tau)*t(Z)%*%ones }
+ 	if(is.null(O)==F){ b_df_Z = (1-tau)*t(Z)%*%ones - t(Z[O,])%*%a_O }
+  	sense_df_Z = rep("=", p_Z)
+ 			
+ 	
+ 	
+	#complementary slackness .. do I need the eps? 
+	
+  # note: all of this is for the n_I observations, not for all n observations
+	A_vl_I = cbind(matrix(0, n_I, (2*p_Z + p_D + p_X)), matrix(0,n_I,n_Iu), diag(as.numeric(is.element(Iv, I)))[is.element(Iv, I),], matrix(0, n_I, n_I), matrix(0, n_I, n_I), - diag(M_l[I])*diag(n_I)) #v<=lM # Each v,l has a unique M_l (TODO: remove diag(n_I))
+	b_vl_I = rep(0 + eps, n_I)
+	sense_vl_I = rep("<=", n_I)   
+	
+	A_uk_I = cbind(matrix(0, n_I, (2*p_Z + p_D + p_X)), diag(as.numeric(is.element(Iu, I)))[is.element(Iu, I),], matrix(0,n_I,n_Iv), matrix(0, n_I, n_I), - diag(M_k[I])*diag(n_I), matrix(0, n_I, n_I)) #u<=kM # Each u,k has a unique M_l (TODO: remove diag(n_I))
+	b_uk_I = rep(0 + eps, n_I)
+	sense_uk_I = rep("<=", n_I)  
+	
+	
+	A_ak_I = cbind(matrix(0, n_I, (2*p_Z + p_D + p_X + n_Iu + n_Iv)), diag(n_I), -diag(n_I), matrix(0, n_I, n_I)) #a_i >= k_i 
+	b_ak_I = rep(0, n_I) 
+	sense_ak_I =  rep(">=", n_I) 
+
+	A_al_I = cbind(matrix(0, n_I, (2*p_Z + p_D + p_X + n_Iu + n_Iv)), diag(n_I), matrix(0, n_I, n_I), diag(n_I)) #a_i <= 1 - l_i 
+	b_al_I = rep(1, n_I) 
+	sense_al_I =  rep("<=", n_I) 
+
+	
+	A_core = rbind(A_obj, A_pf, A_df_X, A_df_Z, A_vl_I, A_uk_I, A_ak_I, A_al_I)
+	b_core = c(b_obj, b_pf, b_df_X, b_df_Z, b_vl_I, b_uk_I, b_ak_I, b_al_I)
+	sense_core = c(sense_obj, sense_pf, sense_df_X, sense_df_Z, sense_vl_I, sense_uk_I, sense_ak_I, sense_al_I)
+	
+	#B_Z_plus, B_Z_min, B_D, B_X, u_Iu, v_Iv, a_I, k_I, l_I
+	lb_core = c(rep(0, 2*p_Z), rep(-Inf, p_D+p_X), rep(0, n_Iu+n_Iv), rep(0, 3*n_I))
+	ub_core = c(rep(Inf, 2*p_Z), rep(Inf, p_D+p_X), rep(Inf, n_Iu+n_Iv), rep(1, 3*n_I))
+	vtype_core = "C" #c(rep("C", 2*p_Z+p_D+p_X+n_Iu+n_Iv+n_I), rep("B", 2*n_I)) # we solve continuous relaxation
+	
+	
+	model_core = list()
+	model_core$obj = obj_core
+	model_core$A = A_core
+	model_core$rhs = b_core
+	model_core$modelsense = modelsense
+	model_core$lb = lb_core
+	model_core$ub = ub_core
+	model_core$vtype = vtype_core
+	model_core$sense = sense_core
+	model_core$start = start
+	
+	
+	model <- model_core
+	
+	 
+	params <- list(TimeLimit = TimeLimit, FeasibilityTol = FeasibilityTol, MIPFocus = MIPFocus, heuristics = heuristics, LogToConsole = LogToConsole)
+  		
+  	out = gurobi::gurobi(model, params) 
+  	
+  	if(out$status != "TIME_LIMIT"){
+  	objval = out$objval
+  	x = out$x
+  	B_Z_plus = x[1:p_Z]
+  	B_Z_min = x[(p_Z+1):(2*p_Z)]
+  	if(p_D>0){ B_D = x[(2*p_Z+1):(2*p_Z+p_D)] }; if(p_D==0){ B_D = NULL }
+  	B_X = x[(2*p_Z+p_D+1):(2*p_Z+p_D+p_X)]
+  	u_Iu = x[(2*p_Z+p_D+p_X+1):(2*p_Z+p_D+p_X+n_Iu)] 
+  	v_Iv = x[(2*p_Z+p_D+p_X+n_Iu+1):(2*p_Z+p_D+p_X+n_Iu+n_Iv)] 
+  	a_I = x[(2*p_Z+p_D+p_X+n_Iu+n_Iv+1):(2*p_Z+p_D+p_X+n_Iu+n_Iv+n_I)] 
+  	k_I = x[(2*p_Z+p_D+p_X+n_Iu+n_Iv+n_I+1):(2*p_Z+p_D+p_X+n_Iu+n_Iv+2*n_I)] 
+  	l_I = x[(2*p_Z+p_D+p_X+n_Iu+n_Iv+2*n_I+1):(2*p_Z+p_D+p_X+n_Iu+n_Iv+3*n_I)] 
+	#put full dual back together
+	if(is.null(O)){a = a_I}
+	if(is.null(O)==F){ a_fix[I] = a_I; a <- a_fix }
+	
+	
+	regression_out = list("objval" = objval, "B_Z" =  B_Z_plus-B_Z_min, "B_D" = B_D, "B_X" = B_X, "a" = a, "x" = x, "status" = out$status)
+	
+	return(regression_out)
+	}
+	
+	if(out$status == "TIME_LIMIT"){
+		regression_out = list("status" = out$status, "out" = out)
+		return(regression_out)
+	}
+
+}
