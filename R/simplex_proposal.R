@@ -36,30 +36,39 @@
 #' @param n_directions Number of directions from which we want to choose
 #' @param center_subsample A binary vector of length `n` with `m` 1's that is
 #'  inside the FOC polytope of interest
-# maybe there is some recursion that I can take advantage of...
-get_entering_directions <- function(current_subsample,
-                                    last_entrant,
-                                    n_directions,
-                                    center_subsample) {
+# TODO: finish documenting
+get_directions <- function(current_subsample,
+                           last,
+                           n_directions,
+                           center_subsample,
+                           mode = "enter") {
   # partition observations
   in_current <- which(current_subsample == 1)
   in_center <- which(center_subsample == 1)
   out_current <- which(current_subsample == 0)
   out_center <- which(center_subsample == 0)
-  in_current_out_center <- sort(setdiff(in_current, in_center))
-  in_center_out_current <- sort(setdiff(in_center, in_current))
-  in_current_in_center <- sort(intersect(in_center, in_current))
-  out_current_out_center <- sort(intersect(out_current, out_center))
 
-  # preallocate vector of directions
-  # dir <- vector("double", n_directions)
+  if (tolower(mode) == "enter") {
+    in_center_out_current <- sort(setdiff(in_center, in_current))
+    out_current_out_center <- sort(intersect(out_current, out_center))
+    vec_list <- list(in_center_out_current, out_current_out_center)
+  } else if (tolower(mode) == "exit") {
+    in_current_out_center <- sort(setdiff(in_current, in_center))
+    in_current_in_center <- sort(intersect(in_center, in_current))
+    vec_list <- list(in_current_out_center, in_current_in_center)
+  } else {
+    stop("Wrong value for `mode`")
+  }
+  get_valid_directions(vec_list, n_directions, last)
+}
 
-  vec <- in_center_out_current
-  n_dir <- n_directions
-  dir <- c()
-
+# get directions from vec_list until we run out
+# recursive function
+# TODO: document
+get_valid_directions <- function(vec_list, n_dir, last, dir = c()) {
+  vec <- vec_list[[1]]
   if (length(vec) >= n_dir) {
-    valid_dir <- vec[vec > last_entrant]
+    valid_dir <- vec[vec > last]
     remaining <- n_dir - length(valid_dir)
     if (remaining <= 0) {
       dir <- c(dir, valid_dir[seq_len(n_dir)])
@@ -68,18 +77,9 @@ get_entering_directions <- function(current_subsample,
     }
   } else {
     dir <- c(dir, vec)
-    vec <- out_current_out_center # update choices
-    n_dir <- n_dir - length(dir) # update how many we need to choose
-    if (length(vec) >= n_dir) {
-      valid_dir <- vec[vec > last_entrant]
-      remaining <- n_dir - length(valid_dir)
-      if (remaining <= 0) {
-        dir <- c(dir, valid_dir[seq_len(n_dir)])
-      } else {
-        dir <- c(dir, valid_dir, vec[seq_len(remaining)])
-      }
-    }
+    n_dir <- n_dir - length(dir)
+    vec_list <- vec_list[2:length(vec_list)]
+    dir <- get_valid_directions(vec_list, n_dir, last, dir)
   }
-
   dir
 }
