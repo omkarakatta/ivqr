@@ -41,6 +41,7 @@ get_directions <- function(current_subsample,
                            last,
                            n_directions,
                            center_subsample,
+                           avoid = NA,
                            mode = "enter") {
   # partition observations
   in_current <- which(current_subsample == 1)
@@ -49,12 +50,17 @@ get_directions <- function(current_subsample,
   out_center <- which(center_subsample == 0)
 
   if (tolower(mode) == "enter") {
-    in_center_out_current <- sort(setdiff(in_center, in_current))
-    out_current_out_center <- sort(intersect(out_current, out_center))
+    in_center_out_current <- setdiff(sort(setdiff(in_center, in_current)),
+                                     avoid)
+    out_current_out_center <- setdiff(sort(intersect(out_current, out_center)),
+                                      avoid)
     vec_list <- list(in_center_out_current, out_current_out_center)
   } else if (tolower(mode) == "exit") {
-    in_current_out_center <- sort(setdiff(in_current, in_center))
-    in_current_in_center <- sort(intersect(in_center, in_current))
+    # make sure we don't remove observations in `avoid`
+    in_current_out_center <- setdiff(sort(setdiff(in_current, in_center)),
+                                     avoid)
+    in_current_in_center <- setdiff(sort(intersect(in_center, in_current)),
+                                    avoid)
     vec_list <- list(in_current_out_center, in_current_in_center)
   } else {
     stop("Wrong value for `mode`")
@@ -90,7 +96,8 @@ simplex_proposal <- function(total_steps,
                              exit = which(start_subsample == 0)[1],
                              n_directions_enter,
                              n_directions_exit,
-                             center_subsample) {
+                             center_subsample,
+                             avoid = NA) {
   sub <- start_subsample
   sub_list <- vector("list", total_steps)
   dist_to_center <- vector("list", total_steps)
@@ -104,6 +111,7 @@ simplex_proposal <- function(total_steps,
                                   entrant,
                                   n_directions_enter,
                                   center_subsample,
+                                  avoid,
                                   mode = "enter")
       entrant_index <- sample(seq_along(enter_dir), 1)
       entrant <- enter_dir[[entrant_index]]
@@ -111,6 +119,7 @@ simplex_proposal <- function(total_steps,
                                  exit,
                                  n_directions_exit,
                                  center_subsample,
+                                 avoid,
                                  mode = "exit")
       exit_index <- sample(seq_along(exit_dir), 1)
       exit <- exit_dir[[exit_index]]
@@ -137,5 +146,3 @@ simplex_proposal <- function(total_steps,
     exit = exit_list
   )
 }
-
-# TODO: ignore active basis observations
