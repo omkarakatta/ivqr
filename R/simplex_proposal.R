@@ -83,3 +83,59 @@ get_valid_directions <- function(vec_list, n_dir, last, dir = c()) {
   }
   dir
 }
+
+simplex_proposal <- function(total_steps,
+                             start_subsample,
+                             entrant = which(start_subsample == 1)[1],
+                             exit = which(start_subsample == 0)[1],
+                             n_directions_enter,
+                             n_directions_exit,
+                             center_subsample) {
+  sub <- start_subsample
+  sub_list <- vector("list", total_steps)
+  dist_to_center <- vector("list", total_steps)
+  enter_dir_list <- vector("list", total_steps)
+  entrant_list <- vector("list", total_steps)
+  exit_dir_list <- vector("list", total_steps)
+  exit_list <- vector("list", total_steps)
+  for (step in seq_len(total_steps + 1)) {
+    if (step != 1) {
+      enter_dir <- get_directions(sub,
+                                  entrant,
+                                  n_directions_enter,
+                                  center_subsample,
+                                  mode = "enter")
+      entrant_index <- sample(seq_along(enter_dir), 1)
+      entrant <- enter_dir[[entrant_index]]
+      exit_dir <- get_directions(sub,
+                                 exit,
+                                 n_directions_exit,
+                                 center_subsample,
+                                 mode = "exit")
+      exit_index <- sample(seq_along(exit_dir), 1)
+      exit <- exit_dir[[exit_index]]
+      sub[entrant] <- 1
+      sub[exit] <- 0
+      stopifnot(sum(sub) == sum(start_subsample))
+    } else {
+      enter_dir <- NA
+      exit_dir <- NA
+    }
+    enter_dir_list[[step]] <- enter_dir
+    entrant_list[[step]] <- entrant
+    exit_dir_list[[step]] <- exit_dir
+    exit_list[[step]] <- exit
+    sub_list[[step]] <- sub
+    dist_to_center[[step]] <- sum(abs(sub - center_subsample))
+  }
+  list(
+    subsamples = sub_list,
+    distance = dist_to_center,
+    enter_dir = enter_dir_list,
+    entrant = entrant_list,
+    exit_dir = exit_dir_list,
+    exit = exit_list
+  )
+}
+
+# TODO: ignore active basis observations
