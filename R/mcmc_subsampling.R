@@ -1327,6 +1327,13 @@ random_walk_subsample <- function(initial_subsample,
 #'  argument to determine \code{beta_X_proposal}
 #' @param subsample_size Size of subsample
 #' @param params Named list of parameters to send to Gurobi
+# We need something inside the polytope. This continuous method with our
+# arbitrary rounding doesn't guarantee this. Our workaround:
+# 1. exhaustive search over non-integral solutions
+# 2. solve the program as an MILP
+# TODO: solve the program as an MILP and see if the result is inside the FOC
+# polytope
+# TODO: code up improved linear program to find DC (ask GP for the note)
 find_subsample_in_polytope <- function(
   h,
   Y, X, D, Z, Phi = linear_projection(D, X, Z),
@@ -1407,7 +1414,7 @@ find_subsample_in_polytope <- function(
   tmp <- diag(1, nrow = num_xi)
   zero_mat <- diag(0, nrow = num_omega)
   xisign_A <- expand_matrix(
-    cbind(tmp, -tmp, -tmp),
+    cbind(tmp, -tmp, -tmp), # TODO: maybe the final minus should be a plus?
     newrow = num_xi,
     newcol = num_decision_vars,
     row_direction = "bottom",
