@@ -1327,6 +1327,9 @@ random_walk_subsample <- function(initial_subsample,
 #'  argument to determine \code{beta_X_proposal}
 #' @param subsample_size Size of subsample
 #' @param params Named list of parameters to send to Gurobi
+#' @param type Either "C" or "B" to denote if our "omega" variables are
+#'  continuous or binary; If "C", then the solution is the continuous center
+#'  of our FOC polytope; If "B", then the solution is the actual center
 # We need something inside the polytope. This continuous method with our
 # arbitrary rounding doesn't guarantee this. Our workaround:
 # 1. exhaustive search over non-integral solutions
@@ -1341,7 +1344,8 @@ find_subsample_in_polytope <- function(
   beta_D_proposal = NULL,
   beta_X_proposal = NULL,
   subsample_size,
-  params = list(OutputFlag = 0)
+  params = list(OutputFlag = 0),
+  type = "C"
 ) {
 
   n <- nrow(Y)
@@ -1408,7 +1412,10 @@ find_subsample_in_polytope <- function(
     rep(1, num_ximinus),
     rep(1, num_xiplus)
   )
-  model$vtype <- rep("C", num_decision_vars)
+  model$vtype <- c(
+    rep(type, num_omega),
+    rep("C", num_decision_vars - num_omega)
+  )
 
   # define xiplus and ximinus
   tmp <- diag(1, nrow = num_xi)
@@ -1461,18 +1468,22 @@ find_subsample_in_polytope <- function(
   }
 
   # turn continuous solution into an integral one
-  current_sum <- length(which(omega == 1)) # how many integral 1's do we have?
-  remaining <- subsample_size - p - current_sum # how many need to be switched?
-  to_be_rounded <- omega > 0 & omega < 1 # which can we switch?
-  # NOTE: rank works better than order when there are ties
-  max_indices <- rank(-omega, ties.method = "random") # 1 = largest
-  # switch the largest numbers that aren't 1
-  switch <- which(max_indices <= current_sum + remaining & max_indices > current_sum)
-  omega_mod <- omega
-  omega_mod[switch] <- 1
-  omega_mod[which(omega_mod < 1)] <- 0
-  omega_mod <- round(omega_mod, 0)
-  stopifnot(all.equal(sum(omega_mod), subsample_size - p))
+  if (type == "C") {
+    current_sum <- length(which(omega == 1)) # how many integral 1's do we have?
+    remaining <- subsample_size - p - current_sum # how many need to be switched?
+    to_be_rounded <- omega > 0 & omega < 1 # which can we switch?
+    # NOTE: `rank` works better than `order` when there are ties
+    max_indices <- rank(-omega, ties.method = "random") # 1 = largest
+    # switch the largest numbers that aren't 1
+    switch <- which(max_indices <= current_sum + remaining & max_indices > current_sum)
+    omega_mod <- omega
+    omega_mod[switch] <- 1
+    omega_mod[which(omega_mod < 1)] <- 0
+    omega_mod <- round(omega_mod, 0)
+    stopifnot(all.equal(sum(omega_mod), subsample_size - p))
+  } else if (type == "B") {
+    omega_mod <- omega
+  }
 
   list(
     model = model,
