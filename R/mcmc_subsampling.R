@@ -1414,7 +1414,7 @@ find_subsample_in_polytope <- function(
   tmp <- diag(1, nrow = num_xi)
   zero_mat <- diag(0, nrow = num_omega)
   xisign_A <- expand_matrix(
-    cbind(tmp, -tmp, -tmp), # TODO: maybe the final minus should be a plus?
+    cbind(tmp, -tmp, tmp), # TODO: maybe the final minus should be a plus?
     newrow = num_xi,
     newcol = num_decision_vars,
     row_direction = "bottom",
