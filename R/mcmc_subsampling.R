@@ -1394,6 +1394,7 @@ find_subsample_in_polytope <- function(
   num_decision_vars <- num_omega + num_xi + num_ximinus + num_xiplus
 
   model <- list()
+  model$modelsense <- "min"
   model$lb <- c(
     rep(0, num_omega),
     rep(-Inf, num_xi),
@@ -1549,6 +1550,7 @@ find_chebyschev_center <- function(
   num_decision_vars <- num_omega + num_r
 
   model <- list()
+  model$modelsense <- "max"
   model$lb <- rep(0, num_decision_vars)
   model$ub <- c(
     rep(1, num_omega),
