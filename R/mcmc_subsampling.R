@@ -1602,7 +1602,8 @@ find_chebyschev_center <- function(
       status_message = paste("Gurobi status:", status),
       model = model,
       sol = sol,
-      omega = omega
+      omega = omega,
+      xi_mat = xi_mat
     ))
   }
 
@@ -1629,7 +1630,8 @@ find_chebyschev_center <- function(
     sol = sol,
     status = status,
     omega = omega,
-    omega_mod = omega_mod
+    omega_mod = omega_mod,
+    xi_mat = xi_mat
   )
 }
 
