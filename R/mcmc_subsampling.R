@@ -1636,6 +1636,127 @@ find_chebyschev_center <- function(
   )
 }
 
+### find_center_repellent -------------------------
+# TODO: document
+find_center_repellent <- function(
+  h,
+  Y, X, D, Z, Phi = linear_projection(D, X, Z),
+  tau,
+  beta_D_proposal = NULL,
+  beta_X_proposal = NULL,
+  subsample_size,
+  params = list(OutputFlag = 0),
+  type = "C"
+) {
+
+  n <- nrow(Y)
+  p <- length(h)
+
+  xi_mat <- compute_xi_i(
+    h = h,
+    Y = Y, X = X, D = D, Z = Z, Phi = Phi,
+    tau = tau,
+    beta_D_proposal = beta_D_proposal,
+    beta_X_proposal = beta_X_proposal
+  )
+
+  # Decision variables in order from left/top to right/bottom:
+  # 1. omega --- (n - p) by 1
+  # 2. right_slack --- p by 1
+  # 3. left_slack --- p by 1
+  num_omega <- n - p
+  num_right_slack <- p
+  num_left_slack <- p
+  num_decision_vars <- num_omega + num_right_slack + num_left_slack
+
+  model <- list()
+  model$modelsense <- "max"
+  model$lb <- rep(0, num_decision_vars)
+  model$ub <- c(
+    rep(1, num_omega),
+    rep(Inf, num_decision_vars - num_omega)
+  )
+  model$Q <- block_diagonal(list(
+    diag(0, num_omega),
+    diag(1, num_decision_vars - num_omega)
+  ))
+  model$vtype <- c(
+    rep(type, num_omega),
+    rep("C", num_decision_vars - num_omega)
+  )
+
+  # sum of omega
+  omega_A <- matrix(c(
+    rep(1, num_omega), rep(0, num_decision_vars - num_omega)
+  ), nrow = 1)
+  omega_sense <- "="
+  omega_rhs <- subsample_size - p
+
+  # slack variables
+  right_A <- vector("list", p)
+  left_A <- vector("list", p)
+  for (j in seq_len(p)) {
+    xi_j <- xi_mat[j, ]
+    zeros <- rep(0, p)
+    ones <- zeros
+    ones[j] <- 1
+    right_A[[j]] <- c(xi_mat[j, ], ones, zeros)
+    left_A[[j]] <- c(-xi_mat[j, ], zeros, ones)
+  }
+  right_A <- do.call(rbind, right_A)
+  left_A <- do.call(rbind, left_A)
+  foc_A <- rbind(right_A, left_A)
+  foc_sense <- rep("<=", 2 * p)
+  foc_rhs <- c(rep(1-tau, p), rep(tau, p))
+
+  # constraints
+  model$A <- rbind(omega_A, foc_A)
+  model$sense <- c(omega_sense, foc_sense)
+  model$rhs <- c(omega_rhs, foc_rhs)
+
+  sol <- gurobi::gurobi(model, params)
+  status <- sol$status
+  omega <- sol$x[seq_len(num_omega)]
+
+  if (status != "OPTIMAL") {
+    return(list(
+      status = status,
+      status_message = paste("Gurobi status:", status),
+      model = model,
+      sol = sol,
+      omega = omega,
+      xi_mat = xi_mat
+    ))
+  }
+
+  # turn continuous solution into an integral one
+  if (type == "C") {
+    current_sum <- length(which(omega == 1)) # how many integral 1's do we have?
+    remaining <- subsample_size - p - current_sum # how many need to be switched?
+    to_be_rounded <- omega > 0 & omega < 1 # which can we switch?
+    # NOTE: `rank` works better than `order` when there are ties
+    max_indices <- rank(-omega, ties.method = "random") # 1 = largest
+    # switch the largest numbers that aren't 1
+    switch <- which(max_indices <= current_sum + remaining & max_indices > current_sum)
+    omega_mod <- omega
+    omega_mod[switch] <- 1
+    omega_mod[which(omega_mod < 1)] <- 0
+    omega_mod <- round(omega_mod, 0)
+    stopifnot(all.equal(sum(omega_mod), subsample_size - p))
+  } else if (type == "B") {
+    omega_mod <- omega
+  }
+
+  list(
+    model = model,
+    sol = sol,
+    status = status,
+    omega = omega,
+    omega_mod = omega_mod,
+    xi_mat = xi_mat
+  )
+}
+
 ### compute_xi_i -------------------------
 # TODO: incorporate this function into first_approach* and
 # find_subsample_in_polytope
