@@ -1496,6 +1496,7 @@ find_subsample_in_polytope <- function(
 }
 
 ### find_chebyschev_center -------------------------
+# TODO: document
 find_chebyschev_center <- function(
   h,
   Y, X, D, Z, Phi = linear_projection(D, X, Z),
