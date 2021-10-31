@@ -1700,14 +1700,14 @@ find_center_repellent <- function(
     zeros <- rep(0, p)
     ones <- zeros
     ones[j] <- 1
-    right_A[[j]] <- c(xi_mat[j, ], ones, zeros)
-    left_A[[j]] <- c(-xi_mat[j, ], zeros, ones)
+    right_A[[j]] <- c(xi_j, ones, zeros)
+    left_A[[j]] <- c(-xi_j, zeros, ones)
   }
   right_A <- do.call(rbind, right_A)
   left_A <- do.call(rbind, left_A)
   foc_A <- rbind(right_A, left_A)
   foc_sense <- rep("=", 2 * p)
-  foc_rhs <- c(rep(1-tau, p), rep(tau, p))
+  foc_rhs <- c(rep(1 - tau, p), rep(tau, p))
 
   # constraints
   model$A <- rbind(omega_A, foc_A)
