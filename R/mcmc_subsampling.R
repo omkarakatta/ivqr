@@ -1491,7 +1491,8 @@ find_subsample_in_polytope <- function(
     sol = sol,
     status = status,
     omega = omega,
-    omega_mod = omega_mod
+    omega_mod = omega_mod,
+    xi_mat = xi_mat
   )
 }
 
@@ -1646,7 +1647,9 @@ find_center_repellent <- function(
   beta_X_proposal = NULL,
   subsample_size,
   params = list(OutputFlag = 0),
-  type = "C"
+  type = "C",
+  gencontype = "power",
+  a = ifelse(gencontype == "power", 0.5, exp(1))
 ) {
 
   n <- nrow(Y)
@@ -1664,22 +1667,34 @@ find_center_repellent <- function(
   # 1. omega --- (n - p) by 1
   # 2. right_slack --- p by 1
   # 3. left_slack --- p by 1
+  # 2. right_slack_transformed --- p by 1
+  # 3. left_slack_transformed --- p by 1
   num_omega <- n - p
   num_right_slack <- p
   num_left_slack <- p
-  num_decision_vars <- num_omega + num_right_slack + num_left_slack
+  num_right_slack_transform <- p
+  num_left_slack_transform <- p
+  num_decision_vars <- num_omega + num_right_slack + num_left_slack +
+    num_right_slack_transform + num_left_slack_transform
 
   model <- list()
   model$modelsense <- "max"
-  model$lb <- rep(0, num_decision_vars)
+  model$lb <- c(
+    rep(0, num_omega),
+    rep(0, num_right_slack),
+    rep(0, num_left_slack),
+    rep(-Inf, num_right_slack_transform),
+    rep(-Inf, num_right_slack_transform)
+  )
   model$ub <- c(
     rep(1, num_omega),
     rep(Inf, num_decision_vars - num_omega)
   )
-  model$Q <- block_diagonal(list(
-    diag(0, num_omega),
-    diag(1, num_decision_vars - num_omega)
-  ))
+  model$obj <- c(
+    rep(0, num_decision_vars - num_right_slack_transform -
+           num_left_slack_transform),
+    rep(1, num_right_slack_transform + num_left_slack_transform)
+  )
   model$vtype <- c(
     rep(type, num_omega),
     rep("C", num_decision_vars - num_omega)
@@ -1700,14 +1715,31 @@ find_center_repellent <- function(
     zeros <- rep(0, p)
     ones <- zeros
     ones[j] <- 1
-    right_A[[j]] <- c(xi_j, ones, zeros)
-    left_A[[j]] <- c(-xi_j, zeros, ones)
+    right_A[[j]] <- c(xi_j, ones, zeros, zeros, zeros)
+    left_A[[j]] <- c(-xi_j, zeros, ones, zeros, zeros)
   }
   right_A <- do.call(rbind, right_A)
   left_A <- do.call(rbind, left_A)
   foc_A <- rbind(right_A, left_A)
   foc_sense <- rep("=", 2 * p)
   foc_rhs <- c(rep(1 - tau, p), rep(tau, p))
+
+  # transform slack variables
+  xstart <- num_omega
+  ystart <- xstart + num_right_slack + num_left_slack
+  gencon <- vector("list", 2 * p)
+  for (j in seq_len(2 * p)) {
+    yvar <- ystart + j
+    xvar <- xstart + j
+    gencon[[j]]$xvar <- xvar
+    gencon[[j]]$yvar <- yvar
+    gencon[[j]]$a <- a
+  }
+  if (gencontype == "log") {
+    model$genconloga <- gencon
+  } else if (gencontype == "power") {
+    model$genconpow <- gencon
+  }
 
   # constraints
   model$A <- rbind(omega_A, foc_A)
