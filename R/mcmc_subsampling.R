@@ -1706,7 +1706,7 @@ find_center_repellent <- function(
   right_A <- do.call(rbind, right_A)
   left_A <- do.call(rbind, left_A)
   foc_A <- rbind(right_A, left_A)
-  foc_sense <- rep("<=", 2 * p)
+  foc_sense <- rep("=", 2 * p)
   foc_rhs <- c(rep(1-tau, p), rep(tau, p))
 
   # constraints
