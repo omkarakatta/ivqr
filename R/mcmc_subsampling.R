@@ -1648,7 +1648,7 @@ find_center_repellent <- function(
   subsample_size,
   params = list(OutputFlag = 0),
   type = "C",
-  gencontype = "power",
+  gencontype = "power", # "power" or "log"
   a = ifelse(gencontype == "power", 0.5, exp(1))
 ) {
 
