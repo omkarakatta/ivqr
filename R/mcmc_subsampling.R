@@ -157,7 +157,7 @@ h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
   design <- cbind(X, Phi)
   designh <- design[h, ]
   a <- solve(designh, Y[h])
-  B <- solve(designh, D[h, ])
+  B <- solve(designh, D[h, , drop = FALSE])
 
   # Solve system from the lower rows, corresponding to beta_Phi = 0
   a_Phi <- a[(p_X + 1):p]
