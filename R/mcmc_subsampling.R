@@ -445,6 +445,7 @@ density_active_basis <- function(active_basis_draws, residuals, p_design, theta 
 #' @param alpha Used for Hall and Sheather bandwidth; defaults to 0,1
 #' @param theta Hyperparameter (numeric)
 #' @param psi Hyperparameter; Coefficient on the variance-covariance matrix; defaults to 1 (numeric)
+#' @param varcov_mat variance-covariance matrix of beta_D and beta_X
 #' @param discard_burnin If TRUE (default), discard the first set of draws that are equivalent to the IQR MILP estimate
 #'
 #' @return A named list, each with a data frame:
@@ -463,27 +464,30 @@ mcmc_active_basis <- function(iterations,
                               alpha = 0.1,
                               theta = 1,
                               psi = 1, # coefficient on the varcov matrix
+                              varcov_mat = NULL,
                               discard_burnin = TRUE) {
   qr <- run_concentrated_qr(beta_D = beta_D, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
   residuals <- qr$residuals
   dual <- qr$dual
   initial_basis <- which(dual > 0 & dual < 1)
+  u_vec <- runif(n = iterations) # create uniform RV for acceptance/rejection rule
   initial_draws <- vector("double", length = nrow(Y))
   initial_draws[initial_basis] <- 1
   beta_hat <- c(beta_D, beta_X)
   draws_current <- initial_draws
   beta_current <- beta_hat
   p_design <- ncol(X) + ncol(Phi)
-  u_vec <- runif(n = iterations) # create uniform RV for acceptance/rejection rule
-  varcov_mat <- wald_varcov(
-    resid = residuals,
-    alpha = alpha,
-    tau = tau,
-    D = D,
-    X = X,
-    Phi = Phi,
-    psi = psi
-  )$varcov
+  if (is.null(varcov_mat)) {
+    varcov_mat <- wald_varcov(
+      resid = residuals,
+      alpha = alpha,
+      tau = tau,
+      D = D,
+      X = X,
+      Phi = Phi,
+      psi = psi
+    )$varcov
+  }
 
   result <- vector("list", iterations) # preallocate space to store coefficients
   result_h <- vector("list", iterations) # preallocate space to store active basis
