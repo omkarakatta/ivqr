@@ -1068,7 +1068,8 @@ random_walk_subsample <- function(initial_subsample,
   # observations in the active basis
   stopifnot(sum(initial_subsample) - length(h) > k)
   # ensure observations in active basis are in the initial subsample
-  stopifnot(all(initial_subsample[h] == 1))
+  # stopifnot(all(initial_subsample[h] == 1)) # if initial_subsample is rounded,
+  # we don't want to check for this.
   if (distance_method == 2) {
     stopifnot(!is.null(reference_subsample))
     stopifnot(length(reference_subsample) == length(initial_subsample))
