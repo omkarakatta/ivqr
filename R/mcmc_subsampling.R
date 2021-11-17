@@ -343,6 +343,69 @@ foc_membership_v2 <- function(
   )
 }
 
+# TODO: document
+foc_membership_v3 <- function(
+  h,
+  Y_subsample,
+  X_subsample,
+  D_subsample,
+  Phi_subsample,
+  tau
+) {
+
+  m <- nrow(Y_subsample)
+  p <- ncol(X_subsample) + ncol(Phi_subsample) # we concentrate out D_subsample
+  stopifnot(length(h) == p)
+
+  # compute relevant data
+  yh <- Y_subsample[h]
+  design <- cbind(X_subsample, Phi_subsample) # design matrix
+  designh <- design[h, , drop = FALSE] # design matrix
+
+  # compute b(h)
+  bh <- solve(designh) %*% yh # bh is a p by 1 matrix
+  stopifnot(nrow(bh) == p)
+  stopifnot(ncol(bh) == 1)
+
+  # compute resid_subsample
+  beta <- h_to_beta(h, Y = Y_subsample, X = X_subsample, D = D_subsample, Phi =
+                    Phi_subsample)
+  beta_D <- beta$beta_D
+  beta_X <- beta$beta_X
+  resid_subsample <- Y_subsample - D_subsample %*% beta_D - X_subsample %*% beta_X
+
+  # create indices that are not in h
+  noth <- setdiff(seq_len(m), h)
+
+  # compute xi(h, D)
+  resid_noth <- matrix(resid_subsample[noth], ncol = 1) # (m - p) by 1 matrix
+  ind_mat <- diag(tau - as.numeric(resid_noth < 0)) # (m - p) by (m - p) matrix
+  design_noth <- design[noth, , drop = FALSE] # (m - p) by p matrix
+  summand <- ind_mat %*% design_noth
+  sum_summand <- matrix(1, nrow = 1, ncol = length(noth)) %*% summand
+  xi <- t(sum_summand %*% solve(designh))
+  stopifnot(nrow(xi) == p)
+  stopifnot(ncol(xi) == 1)
+
+  # DEBUG: see each entry of sum in xi object
+  s_i <- vector("list", length(noth))
+  for (i in seq_len(nrow(summand))) {
+    s_i[[i]] <- summand[i, ] %*% solve(designh)
+  }
+  s <- do.call("rbind", s_i)
+
+  # check if xi satisfies FOC inequality
+  left <- matrix(-1 * tau %*% rep(1, p), ncol = 1)
+  right <- matrix((1 - tau) %*% rep(1, p), ncol = 1)
+  list(
+    status = all((left <= xi) & (xi <= right)), # returns TRUE if both are true, else FALSE
+    s = s, # return entries of xi object
+    xi = xi,
+    left = left,
+    right = right
+  )
+}
+
 #' @param beta_D Endogenous coefficients (vector of length p_D)
 #' @param Y Dependent variable (vector of length n)
 #' @param X Exogenous variable (including constant vector) (n by p_X matrix)
