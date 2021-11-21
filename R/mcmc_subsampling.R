@@ -1359,6 +1359,83 @@ random_walk_subsample <- function(initial_subsample,
   )
 }
 
+# find_center_simplex -------------------------
+
+# The center of the subsample simplex, {D \in [0,1]^n s.t. sum(D_i) = m}, should
+# be rep(m/n, length = n). This function creates a program that verifies this.
+# Examples:
+# tmp <- find_center_simplex(n = 4, m = 2)
+# tmp$center # should be roughly m/n = 1/2
+# Q: The log variant of the program showing up as infeasible. Why?
+find_center_simplex <- function(
+  n, m,
+  gencontype = "power", 
+  a = ifelse(gencontype == "power", 0.5, exp(1)),
+  params = list()
+) {
+  vertices_index <- combn(n, m)
+  num_vertices <- ncol(vertices_index)
+  stopifnot(num_vertices == choose(n, m))
+  n_ones <- rep(0, n)
+  vertices <- t(apply(vertices_index, 2, function(i) {
+    n_ones[i] <- 1
+    n_ones
+  }))
+  stopifnot(ncol(vertices) == n)
+  stopifnot(nrow(vertices) == num_vertices)
+  vertices_i <- c(t(vertices)) # collapse by rows
+  stopifnot(length(vertices_i) == num_vertices * n)
+  slack_i <- diag(1, length(vertices_i))
+  zero_mat <- diag(0, length(vertices_i))
+  dv_i <- do.call("rbind", rep(list(diag(1, nrow = n)), length = num_vertices))
+  define_slack <- cbind(dv_i,      # coordinates of center
+                        -slack_i,  # positive part of slack
+                        slack_i,   # negative part of slack
+                        zero_mat,  # f(pos slack), where f = sqrt by default
+                        zero_mat)  # f(neg slack), where f = sqrt by default
+  num_decision_vars <- ncol(define_slack)
+
+  sum_A <- c(rep(1, n), rep(0, num_decision_vars - n))
+  sum_rhs <- m
+
+  model <- list()
+  model$A <- rbind(define_slack, sum_A)
+  model$rhs <- c(vertices_i, sum_rhs)
+  model$sense <- "="
+  model$modelsense <- "max"
+  model$lb <- rep(0, num_decision_vars)
+  # model$ub <- c(rep(1, n), rep(Inf, num_decision_vars - n))
+  model$ub <- c(rep(1, num_decision_vars)) # slack in each index must be <= 1
+  model$obj <- c(
+    rep(0, n),
+    rep(0, 2 * length(vertices_i)),
+    rep(1, 2 * length(vertices_i))
+  )
+
+  xstart <- n
+  ystart <- n + 2 * length(vertices_i)
+  gencon <- vector("list", 2 * length(vertices_i))
+  for (j in seq_len(2 * length(vertices_i))) {
+    yvar <- ystart + j
+    xvar <- xstart + j
+    gencon[[j]]$xvar <- xvar
+    gencon[[j]]$yvar <- yvar
+    gencon[[j]]$a <- a
+  }
+  if (gencontype == "log") {
+    model$genconloga <- gencon
+  } else if (gencontype == "power") {
+    model$genconpow <- gencon
+  }
+
+  sol <- gurobi::gurobi(model, params)
+
+  list(
+    model = model,
+    sol = sol,
+    center = sol$x[seq_len(n)]
+  )
+}
 
 # find_subsample_in_polytope -------------------------
 
