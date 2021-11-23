@@ -1359,17 +1359,17 @@ random_walk_subsample <- function(initial_subsample,
   )
 }
 
-# find_center_simplex -------------------------
+# find_center_subsample_polytope -------------------------
 
 # The center of the subsample simplex, {D \in [0,1]^n s.t. sum(D_i) = m}, should
 # be rep(m/n, length = n). This function creates a program that verifies this.
 # Examples:
-# tmp <- find_center_simplex(n = 4, m = 2)
+# tmp <- find_center_subsample_polytope(n = 4, m = 2)
 # tmp$center # should be roughly m/n = 1/2
 # Q: The log variant of the program showing up as infeasible. Why?
-find_center_simplex <- function(
+find_center_subsample_polytope <- function(
   n, m,
-  gencontype = "power", 
+  gencontype = "power",
   a = ifelse(gencontype == "power", 0.5, exp(1)),
   params = list()
 ) {
