@@ -1919,14 +1919,14 @@ find_center_repellent <- function(
       facet_center[i] <- j
       normal_vec <- subsample_center - facet_center
       normal_unit <- normal_vec / sqrt(sum(normal_vec^2))
-      simplex_rhs[[counter]] <- sum(normal_unit * facet_center)
+      simplex_rhs[[counter]] <- -sum(normal_unit * facet_center)
       # if (j == 0) {
       #   normal_A <- c(normal_unit, rep(0, n))
       # } else {
       #   normal_A <- c(rep(0, n), normal_unit)
       # }
       simplex_lhs[[counter]] <- c(
-        normal_unit, # num_omega
+        -normal_unit, # num_omega
         rep(0, num_left_slack + num_right_slack +
             num_left_slack_transform + num_right_slack_transform),
         e_ij, # num_simplex_slack
