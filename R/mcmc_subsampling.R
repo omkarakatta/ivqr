@@ -1402,7 +1402,7 @@ find_center_subsample_polytope <- function(
   model$A <- rbind(define_slack, sum_A)
   model$rhs <- c(vertices_i, sum_rhs)
   model$sense <- "="
-  model$modelsense <- "max"
+  model$modelsense <- ifelse(gencontype == "max", "min", "max")
   model$lb <- rep(0, num_decision_vars)
   # model$ub <- c(rep(1, n), rep(Inf, num_decision_vars - n))
   model$ub <- c(rep(1, num_decision_vars)) # slack in each index must be <= 1
@@ -1793,7 +1793,7 @@ find_center_repellent <- function(
   subsample_size,
   params = list(OutputFlag = 0),
   type = "C",
-  gencontype = "power", # "power" or "log"
+  gencontype = "power", # "power" or "log" or "max"
   a = ifelse(gencontype == "power", 0.5, exp(1)),
   simplex_repel = TRUE, # repel away from facets of the simplex
   foc_repel = TRUE # repel away from the FOC conditions
@@ -1805,9 +1805,9 @@ find_center_repellent <- function(
   if (!simplex_repel & !foc_repel) {
     stop("At least one of `foc_repel` and `simplex_repel` must be TRUE. Both can't be false.")
   }
-
-  n <- nrow(Y)
-  p <- length(h)
+  if (simplex_repel & ((n - p) - 1) <= 0) {
+    stop("facet_center denominator must be positive i.e. we need n - p - 1 > 0")
+  }
 
   xi_mat <- compute_xi_i(
     h = h,
@@ -1961,10 +1961,45 @@ find_center_repellent <- function(
   model$rhs <- c(omega_rhs, foc_rhs, simplex_rhs)
   gencon <- append(foc_gencon, simplex_gencon)
 
+  if (gencontype == "max") {
+    model$A <- cbind(model$A, rep(0, nrow = model$A))
+
+    # max >= slack => -slack + max >= 0
+    foc_slack_tmp <- diag(-1, num_right_slack + num_left_slack)
+    max_foc_slack <- cbind(
+      matrix(0, nrow = nrow(foc_slack_tmp), ncol = num_omega),
+      foc_slack_tmp,
+      matrix(0, nrow = nrow(foc_slack_tmp), ncol = num_right_slack_transform +
+        num_left_slack_transform + num_simplex_slack +
+        num_simplex_slack_transform),
+      rep(1, length = nrow(foc_slack_tmp))
+    )
+    max_foc_slack_sense <- rep(">=", length = nrow(foc_slack_tmp))
+    max_foc_slack_rhs <- rep(0, length = nrow(foc_slack_tmp))
+
+    simplex_slack_tmp <- diag(-1, num_simplex_slack_transform)
+    max_simplex_slack <- cbind(
+      matrix(0, nrow = nrow(simplex_slack_tmp), ncol = num_right_slack +
+        num_left_slack + num_right_slack_transform + num_left_slack_transform),
+      simplex_slack_tmp,
+      matrix(0, nrow = nrow(simplex_slack_tmp), ncol = num_simplex_slack_transform),
+      rep(1, length = nrow(simplex_slack_tmp))
+    )
+    max_simplex_slack_sense <- rep(">=", length = nrow(simplex_slack_tmp))
+    max_simplex_slack_rhs <- rep(0, length = nrow(simplex_slack_tmp))
+  } else {
+    max_foc_slack <- c()
+    max_foc_slack_sense <- c()
+    max_foc_slack_rhs <- c()
+    max_simplex_slack <- c()
+    max_simplex_slack_sense <- c()
+    max_simplex_slack_rhs <- c()
+  }
+
   if (!foc_repel) { # no foc, only simplex
-    model$A <- rbind(omega_A, simplex_A)
-    model$sense <- c(omega_sense, simplex_sense)
-    model$rhs <- c(omega_rhs, simplex_rhs)
+    model$A <- rbind(omega_A, simplex_A, max_simplex_slack)
+    model$sense <- c(omega_sense, simplex_sense, max_simplex_slack_sense)
+    model$rhs <- c(omega_rhs, simplex_rhs, max_simplex_slack_rhs)
     gencon <- simplex_gencon
     model$obj <- c(
       rep(0, num_omega + num_right_slack + num_left_slack),
@@ -1972,11 +2007,20 @@ find_center_repellent <- function(
       rep(0, num_simplex_slack),
       rep(1, num_simplex_slack_transform)
     )
+    if (gencontype == "max") {
+      model$obj <- c(
+        rep(0, num_omega + num_right_slack + num_left_slack),
+        rep(0, num_right_slack_transform + num_left_slack_transform),
+        rep(0, num_simplex_slack),
+        rep(0, num_simplex_slack_transform),
+        1
+      )
+    }
   }
   if (!simplex_repel) { # no simplex, only foc
-    model$A <- rbind(omega_A, foc_A)
-    model$sense <- c(omega_sense, foc_sense)
-    model$rhs <- c(omega_rhs, foc_rhs)
+    model$A <- rbind(omega_A, foc_A, max_foc_slack)
+    model$sense <- c(omega_sense, foc_sense, max_foc_slack_sense)
+    model$rhs <- c(omega_rhs, foc_rhs, max_foc_slack_rhs)
     gencon <- foc_gencon
     model$obj <- c(
       rep(0, num_omega + num_right_slack + num_left_slack),
@@ -1984,6 +2028,15 @@ find_center_repellent <- function(
       rep(0, num_simplex_slack),
       rep(0, num_simplex_slack_transform)
     )
+    if (gencontype == "max") {
+      model$obj <- c(
+        rep(0, num_omega + num_right_slack + num_left_slack),
+        rep(0, num_right_slack_transform + num_left_slack_transform),
+        rep(0, num_simplex_slack),
+        rep(0, num_simplex_slack_transform),
+        1
+      )
+    }
   }
 
   if (gencontype == "log") {
