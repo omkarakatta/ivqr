@@ -1794,8 +1794,14 @@ find_center_repellent <- function(
   params = list(OutputFlag = 0),
   type = "C",
   gencontype = "power", # "power" or "log"
-  a = ifelse(gencontype == "power", 0.5, exp(1))
+  a = ifelse(gencontype == "power", 0.5, exp(1)),
+  simplex_repel = TRUE, # repel away from facets of the simplex
+  foc_repel = TRUE # repel away from the FOC conditions
 ) {
+
+  if (!simplex_repel & !foc_repel) {
+    stop("At least one of `foc_repel` and `simplex_repel` must be TRUE. Both can't be false.")
+  }
 
   n <- nrow(Y)
   p <- length(h)
@@ -1812,15 +1818,20 @@ find_center_repellent <- function(
   # 1. omega --- (n - p) by 1
   # 2. right_slack --- p by 1
   # 3. left_slack --- p by 1
-  # 2. right_slack_transformed --- p by 1
-  # 3. left_slack_transformed --- p by 1
+  # 4. right_slack_transformed --- p by 1
+  # 5. left_slack_transformed --- p by 1
+  # 6. simplex_slack --- 2n by 1
+  # 6. simplex_slack_transformed --- 2n by 1
   num_omega <- n - p
   num_right_slack <- p
   num_left_slack <- p
-  num_right_slack_transform <- p
-  num_left_slack_transform <- p
+  num_right_slack_transform <- num_right_slack
+  num_left_slack_transform <- num_left_slack
+  num_simplex_slack <- 2 * (n - p)
+  num_simplex_slack_transform <- 2 * (n - p)
   num_decision_vars <- num_omega + num_right_slack + num_left_slack +
-    num_right_slack_transform + num_left_slack_transform
+    num_right_slack_transform + num_left_slack_transform +
+    num_simplex_slack + num_simplex_slack_transform
 
   model <- list()
   model$modelsense <- "max"
@@ -1829,16 +1840,22 @@ find_center_repellent <- function(
     rep(0, num_right_slack),
     rep(0, num_left_slack),
     rep(-Inf, num_right_slack_transform),
-    rep(-Inf, num_right_slack_transform)
+    rep(-Inf, num_right_slack_transform),
+    rep(0, num_simplex_slack),
+    rep(-Inf, num_simplex_slack_transform)
   )
   model$ub <- c(
     rep(1, num_omega),
-    rep(Inf, num_decision_vars - num_omega)
+    rep(Inf, num_right_slack + num_left_slack),
+    rep(Inf, num_right_slack_transform + num_left_slack_transform),
+    rep(Inf, num_simplex_slack),
+    rep(Inf, num_simplex_slack_transform)
   )
   model$obj <- c(
-    rep(0, num_decision_vars - num_right_slack_transform -
-           num_left_slack_transform),
-    rep(1, num_right_slack_transform + num_left_slack_transform)
+    rep(0, num_omega + num_right_slack + num_left_slack),
+    rep(1, num_right_slack_transform + num_left_slack_transform),
+    rep(0, num_simplex_slack),
+    rep(1, num_simplex_slack_transform)
   )
   model$vtype <- c(
     rep(type, num_omega),
@@ -1852,7 +1869,7 @@ find_center_repellent <- function(
   omega_sense <- "="
   omega_rhs <- subsample_size - p
 
-  # slack variables
+  # FOC slack variables
   right_A <- vector("list", p)
   left_A <- vector("list", p)
   for (j in seq_len(p)) {
@@ -1866,30 +1883,111 @@ find_center_repellent <- function(
   right_A <- do.call(rbind, right_A)
   left_A <- do.call(rbind, left_A)
   foc_A <- rbind(right_A, left_A)
+  foc_A <- expand_matrix(
+    foc_A, newrow = nrow(foc_A), newcol = num_decision_vars,
+    row_direction = "bottom", col_direction = "right"
+  )
   foc_sense <- rep("=", 2 * p)
   foc_rhs <- c(rep(1 - tau, p), rep(tau, p))
 
-  # transform slack variables
+  # transform FOC slack variables
   xstart <- num_omega
   ystart <- xstart + num_right_slack + num_left_slack
-  gencon <- vector("list", 2 * p)
+  foc_gencon <- vector("list", num_left_slack_transform + num_right_slack_transform)
   for (j in seq_len(2 * p)) {
     yvar <- ystart + j
     xvar <- xstart + j
-    gencon[[j]]$xvar <- xvar
-    gencon[[j]]$yvar <- yvar
-    gencon[[j]]$a <- a
+    foc_gencon[[j]]$xvar <- xvar
+    foc_gencon[[j]]$yvar <- yvar
+    foc_gencon[[j]]$a <- a
   }
+
+  # simplex slack variables
+  simplex_rhs <- vector("double", num_simplex_slack)
+  simplex_lhs <- vector("list", num_simplex_slack)
+  counter <- 0
+  subsample_center <- rep((subsample_size - p) / (n - p), n - p)
+  for (j in c(0, 1)) {
+    for (i in seq_len(n - p)) {
+      counter <- counter + 1
+      e_ij <- rep(0, num_simplex_slack)
+      e_ij[[counter]] <- 1
+      facet_center <- rep(
+        ifelse(j == 0, (subsample_size - p) / ((n - p) - 1), ((subsample_size - p) - 1) / ((n - p) - 1)),
+        n - p
+      )
+      facet_center[i] <- j
+      normal_vec <- subsample_center - facet_center
+      normal_unit <- normal_vec / sqrt(sum(normal_vec^2))
+      simplex_rhs[[counter]] <- sum(normal_unit * facet_center)
+      # if (j == 0) {
+      #   normal_A <- c(normal_unit, rep(0, n))
+      # } else {
+      #   normal_A <- c(rep(0, n), normal_unit)
+      # }
+      simplex_lhs[[counter]] <- c(
+        normal_unit, # num_omega
+        rep(0, num_left_slack + num_right_slack +
+            num_left_slack_transform + num_right_slack_transform),
+        e_ij, # num_simplex_slack
+        rep(0, num_simplex_slack_transform) # num_simplex_slack_transform
+      )
+    }
+  }
+  simplex_A <- do.call(rbind, simplex_lhs)
+  stopifnot(ncol(simplex_A) == num_decision_vars)
+  stopifnot(nrow(simplex_A) == num_simplex_slack)
+  simplex_sense <- rep("=", num_simplex_slack)
+
+  # transform simplex slack variables
+  xstart <- num_omega + num_left_slack + num_right_slack +
+    num_left_slack_transform + num_right_slack_transform
+  y_start <- xstart + num_simplex_slack
+  simplex_gencon <- vector("list", num_simplex_slack_transform)
+  for (j in seq_len(num_simplex_slack_transform)) {
+    yvar <- ystart + j
+    xvar <- xstart + j
+    simplex_gencon[[j]]$xvar <- xvar
+    simplex_gencon[[j]]$yvar <- yvar
+    simplex_gencon[[j]]$a <- a
+  }
+
+  # constraints
+  model$A <- rbind(omega_A, foc_A, simplex_A)
+  model$sense <- c(omega_sense, foc_sense, simplex_sense)
+  model$rhs <- c(omega_rhs, foc_rhs, simplex_rhs)
+  gencon <- append(foc_gencon, simplex_gencon)
+
+  if (!foc_repel) { # no foc, only simplex
+    model$A <- rbind(omega_A, simplex_A)
+    model$sense <- c(omega_sense, simplex_sense)
+    model$rhs <- c(omega_rhs, simplex_rhs)
+    gencon <- simplex_gencon
+    model$obj <- c(
+      rep(0, num_omega + num_right_slack + num_left_slack),
+      rep(0, num_right_slack_transform + num_left_slack_transform),
+      rep(0, num_simplex_slack),
+      rep(1, num_simplex_slack_transform)
+    )
+  }
+  if (!simplex_repel) { # no simplex, only foc
+    model$A <- rbind(omega_A, foc_A)
+    model$sense <- c(omega_sense, foc_sense)
+    model$rhs <- c(omega_rhs, foc_rhs)
+    gencon <- foc_gencon
+    model$obj <- c(
+      rep(0, num_omega + num_right_slack + num_left_slack),
+      rep(1, num_right_slack_transform + num_left_slack_transform),
+      rep(0, num_simplex_slack),
+      rep(0, num_simplex_slack_transform)
+    )
+  }
+
   if (gencontype == "log") {
     model$genconloga <- gencon
   } else if (gencontype == "power") {
     model$genconpow <- gencon
   }
-
-  # constraints
-  model$A <- rbind(omega_A, foc_A)
-  model$sense <- c(omega_sense, foc_sense)
-  model$rhs <- c(omega_rhs, foc_rhs)
 
   sol <- gurobi::gurobi(model, params)
   status <- sol$status
