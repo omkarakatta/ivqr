@@ -1799,6 +1799,9 @@ find_center_repellent <- function(
   foc_repel = TRUE # repel away from the FOC conditions
 ) {
 
+  n <- nrow(Y)
+  p <- length(h)
+
   if (!simplex_repel & !foc_repel) {
     stop("At least one of `foc_repel` and `simplex_repel` must be TRUE. Both can't be false.")
   }
@@ -1942,7 +1945,7 @@ find_center_repellent <- function(
   # transform simplex slack variables
   xstart <- num_omega + num_left_slack + num_right_slack +
     num_left_slack_transform + num_right_slack_transform
-  y_start <- xstart + num_simplex_slack
+  ystart <- xstart + num_simplex_slack
   simplex_gencon <- vector("list", num_simplex_slack_transform)
   for (j in seq_len(num_simplex_slack_transform)) {
     yvar <- ystart + j
@@ -2084,7 +2087,7 @@ compute_xi_i <- function(h,
     }
   }
   s <- t(do.call(rbind, s_i))
-  xi_mat <- s[, setdiff(seq_len(n), h)]
+  xi_mat <- s[, setdiff(seq_len(n), h), drop = FALSE]
   stopifnot(nrow(xi_mat) == p)
   stopifnot(ncol(xi_mat) == n - p)
 
