@@ -1402,7 +1402,7 @@ find_center_subsample_polytope <- function(
   model$A <- rbind(define_slack, sum_A)
   model$rhs <- c(vertices_i, sum_rhs)
   model$sense <- "="
-  model$modelsense <- ifelse(gencontype == "max", "min", "max")
+  model$modelsense <- "max"
   model$lb <- rep(0, num_decision_vars)
   # model$ub <- c(rep(1, n), rep(Inf, num_decision_vars - n))
   model$ub <- c(rep(1, num_decision_vars)) # slack in each index must be <= 1
