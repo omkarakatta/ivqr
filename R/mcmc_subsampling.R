@@ -1824,7 +1824,10 @@ find_center_repellent <- function(
   # 4. right_slack_transformed --- p by 1
   # 5. left_slack_transformed --- p by 1
   # 6. simplex_slack --- 2n by 1
-  # 6. simplex_slack_transformed --- 2n by 1
+  # 7. simplex_slack_transformed --- 2n by 1
+  # NOTE: when gencontype = "max", we have one additional decision variable
+  # which is the max of the slack variables; we aren't considering this variable
+  # in `num_decision_vars`
   num_omega <- n - p
   num_right_slack <- p
   num_left_slack <- p
@@ -1837,7 +1840,7 @@ find_center_repellent <- function(
     num_simplex_slack + num_simplex_slack_transform
 
   model <- list()
-  model$modelsense <- "max"
+  model$modelsense <- ifelse(gencontype == "max", "min", "max")
   model$lb <- c(
     rep(0, num_omega),
     rep(0, num_right_slack),
@@ -1962,7 +1965,13 @@ find_center_repellent <- function(
   gencon <- append(foc_gencon, simplex_gencon)
 
   if (gencontype == "max") {
-    model$A <- cbind(model$A, rep(0, nrow = model$A))
+    # add one more decision variable for the max slack variable
+    omega_A <- cbind(omega_A, rep(0, nrow = omega_A))
+    foc_A <- cbind(foc_A, rep(0, nrow = foc_A))
+    simplex_A <- cbind(simplex_A, rep(0, nrow = simplex_A))
+    model$lb <- c(model$lb, 0)
+    model$ub <- c(model$ub, Inf)
+    model$vtype <- c(model$vtype, "C")
 
     # max >= slack => -slack + max >= 0
     foc_slack_tmp <- diag(-1, num_right_slack + num_left_slack)
@@ -1979,8 +1988,9 @@ find_center_repellent <- function(
 
     simplex_slack_tmp <- diag(-1, num_simplex_slack_transform)
     max_simplex_slack <- cbind(
-      matrix(0, nrow = nrow(simplex_slack_tmp), ncol = num_right_slack +
-        num_left_slack + num_right_slack_transform + num_left_slack_transform),
+      matrix(0, nrow = nrow(simplex_slack_tmp), ncol = num_omega +
+        num_right_slack + num_left_slack + num_right_slack_transform +
+        num_left_slack_transform),
       simplex_slack_tmp,
       matrix(0, nrow = nrow(simplex_slack_tmp), ncol = num_simplex_slack_transform),
       rep(1, length = nrow(simplex_slack_tmp))
