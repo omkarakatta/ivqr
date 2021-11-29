@@ -1959,19 +1959,16 @@ find_center_repellent <- function(
   }
 
   # constraints
-  model$A <- rbind(omega_A, foc_A, simplex_A)
-  model$sense <- c(omega_sense, foc_sense, simplex_sense)
-  model$rhs <- c(omega_rhs, foc_rhs, simplex_rhs)
-  gencon <- append(foc_gencon, simplex_gencon)
 
   if (gencontype == "max") {
     # add one more decision variable for the max slack variable
-    omega_A <- cbind(omega_A, rep(0, nrow = omega_A))
-    foc_A <- cbind(foc_A, rep(0, nrow = foc_A))
-    simplex_A <- cbind(simplex_A, rep(0, nrow = simplex_A))
+    omega_A <- cbind(omega_A, rep(0, nrow(omega_A)))
+    foc_A <- cbind(foc_A, rep(0, nrow(foc_A)))
+    simplex_A <- cbind(simplex_A, rep(0, nrow(simplex_A)))
     model$lb <- c(model$lb, 0)
     model$ub <- c(model$ub, Inf)
     model$vtype <- c(model$vtype, "C")
+
 
     # max >= slack => -slack + max >= 0
     foc_slack_tmp <- diag(-1, num_right_slack + num_left_slack)
@@ -1997,6 +1994,10 @@ find_center_repellent <- function(
     )
     max_simplex_slack_sense <- rep(">=", length = nrow(simplex_slack_tmp))
     max_simplex_slack_rhs <- rep(0, length = nrow(simplex_slack_tmp))
+    model$obj <- c(
+      rep(0, num_decision_vars),
+      1
+    )
   } else {
     max_foc_slack <- c()
     max_foc_slack_sense <- c()
@@ -2005,6 +2006,11 @@ find_center_repellent <- function(
     max_simplex_slack_sense <- c()
     max_simplex_slack_rhs <- c()
   }
+
+  model$A <- rbind(omega_A, foc_A, simplex_A)
+  model$sense <- c(omega_sense, foc_sense, simplex_sense)
+  model$rhs <- c(omega_rhs, foc_rhs, simplex_rhs)
+  gencon <- append(foc_gencon, simplex_gencon)
 
   if (!foc_repel) { # no foc, only simplex
     model$A <- rbind(omega_A, simplex_A, max_simplex_slack)
