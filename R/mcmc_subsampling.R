@@ -427,20 +427,26 @@ run_concentrated_qr <- function(beta_D, Y, X, D, Z, Phi = linear_projection(D, X
 #' Check membership of one-step neighbors
 #'
 #' @param subsample An n-long vector with m ones
+#' @param reference An n-long vector from which we measure the distance to the
+#'  one-step neighbors
 #' @param h A vector of indices that are the active basis
 #' @param Y,X,D,Phi data
 #' @param tau Quantile
 #' @param MEMBERSHIP_FCN function for checking membership
 #' @param ... arguments for STATUS
 #'
-#' @return A numeric vector indicating whether neighbor is inside FOC polytope
-onestep <- function(subsample, h, Y, X, D, Phi, tau,
+#' @return A named list with two elements
+#'  1. distance: vector with distances between neighbors and \code{reference}
+#'  2. status: vector indicating whether neighbor is inside polytope
+onestep <- function(subsample, reference,
+                    h, Y, X, D, Phi, tau,
                     MEMBERSHIP_FCN = foc_membership_v3,
                     ...) {
   stopifnot(subsample[h] == 1)
   ones <- setdiff(which(subsample == 1), h)
   zeros <- which(subsample == 0)
   status_vec <- vector("double", length(ones) * length(zeros))
+  distance_vec <- vector("double", length(ones) * length(zeros))
   counter <- 0
   for (one_to_zero in ones) {
     for (zero_to_one in zeros) {
@@ -448,6 +454,7 @@ onestep <- function(subsample, h, Y, X, D, Phi, tau,
       neighbor <- subsample
       neighbor[one_to_zero] <- 0
       neighbor[zero_to_one] <- 1
+      distance <- sum((neighbor - unrounded_center)^2)^(0.5)
       sub_ind <- which(neighbor == 1)
       membership_info <- MEMBERSHIP_FCN(
         h = which(sub_ind %in% h),
@@ -459,9 +466,13 @@ onestep <- function(subsample, h, Y, X, D, Phi, tau,
         ...
       )
       status_vec[[counter]] <- as.integer(membership_info$status)
+      distance_vec[[counter]] <- distance
     }
   }
-  status_vec
+  list(
+       distance = distance_vec,
+       status = status_vec
+  )
 }
 
 ### Propose h -- "Algorithm 3" -- Algorithm A -------------------------
