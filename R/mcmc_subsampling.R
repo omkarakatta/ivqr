@@ -475,6 +475,61 @@ onestep <- function(subsample, reference,
   )
 }
 
+### exhaustive_membership -------------------------
+# check all possible subsamples to see if it is inside FOC polytope
+# returns list of:
+# 1. status_vec: logical vector, TRUE when the subsample is inside FOC polytope
+# 2. subsample_list: list of n-vectors with m 1's with entries in h
+exhaustive_membership <- function(
+  h, n, m,
+  Y, X, D, Phi, tau,
+  MEMBERSHIP_FCN = foc_membership_v3,
+  ...
+) {
+  p <- length(h)
+
+  subsample_template <- rep(0, n)
+  subsample_template[h] <- 1
+  possible_indices <- which(subsample_template == 0)
+  tmp <- expand.grid(rep(list(possible_indices), m - p))
+  keep_rows <- apply(tmp, 1, function(row) {
+    row <- as.numeric(row)
+    # columns must be in strictly monotonic order
+    # example: c(1,1) => FALSE
+    # example: c(2,1) => FALSE
+    # example: c(2,3) => TRUE
+    identical(sort(unique(row)), row)
+  })
+  subsample_indices_mat <- tmp[keep_rows, ]
+  num_subsamples <- choose(n - p, m - p)
+  # stopifnot(nrow(subsample_indices_mat) == num_subsamples)
+
+  status_vec <- vector("double", num_subsamples)
+  subsample_list <- vector("list", num_subsamples)
+  for (i in seq_len(num_subsamples)) {
+    new_indices <- as.numeric(subsample_indices_mat[i, ])
+    new_subsample <- subsample_template
+    new_subsample[new_indices] <- 1
+    subsample_list[[i]] <- new_subsample
+    stopifnot(sum(new_subsample) == m)
+    sub_ind <- which(new_subsample == 1)
+    status_vec[i] <- MEMBERSHIP_FCN(
+      h = which(sub_ind %in% curr_h),
+      Y_subsample = Y[sub_ind, , drop = FALSE],
+      X_subsample = X[sub_ind, , drop = FALSE],
+      D_subsample = D[sub_ind, , drop = FALSE],
+      Phi_subsample = Phi[sub_ind, , drop = FALSE],
+      tau = tau,
+      ...
+    )$status
+  }
+
+  list(
+    status_vec = status_vec,
+    subsample_list = subsample_list
+  )
+}
+
 ### Propose h -- "Algorithm 3" -- Algorithm A -------------------------
 
 # TODO: check email for any TODOs
@@ -2292,55 +2347,5 @@ ot <- function(pre, post, params = list(OutputFlag = 0), method = "gurobi") {
     sol = sol,
     c_ij = c_ij,
     map = map
-  )
-}
-
-### exhaustive_membership -------------------------
-# check all possible subsamples to see if it is inside FOC polytope
-# returns list of:
-# 1. status_vec: logical vector that is TRUE when the subsample is inside FOC polytope
-# 2. subsample_list: list of n-vectors with m 1's with entries in h
-exhaustive_membership <- function(h, n, m, Y, X, D, Phi, tau, MEMBERSHIP_FCN = foc_membership_v3, ...) {
-  p <- length(h)
-
-  subsample_template <- rep(0, n)
-  subsample_template[h] <- 1
-  possible_indices <- which(subsample_template == 0)
-  tmp <- expand.grid(rep(list(possible_indices), m - p))
-  keep_rows <- apply(tmp, 1, function(row) {
-    row <- as.numeric(row)
-    # columns must be in strictly monotonic order
-    # example: c(1,1) => FALSE
-    # example: c(2,1) => FALSE
-    # example: c(2,3) => TRUE
-    identical(sort(unique(row)), row)
-  })
-  subsample_indices_mat <- tmp[keep_rows, ]
-  num_subsamples <- choose(n - p, m - p)
-  # stopifnot(nrow(subsample_indices_mat) == num_subsamples)
-
-  status_vec <- vector("double", num_subsamples)
-  subsample_list <- vector("list", num_subsamples)
-  for (i in seq_len(num_subsamples)) {
-    new_indices <- as.numeric(subsample_indices_mat[i, ])
-    new_subsample <- subsample_template
-    new_subsample[new_indices] <- 1
-    subsample_list[[i]] <- new_subsample
-    stopifnot(sum(new_subsample) == n_subsample)
-    sub_ind <- which(new_subsample == 1)
-    status_vec[i] <- MEMBERSHIP_FCN(
-      h = which(sub_ind %in% curr_h),
-      Y_subsample = Y[sub_ind, , drop = FALSE],
-      X_subsample = X[sub_ind, , drop = FALSE],
-      D_subsample = D[sub_ind, , drop = FALSE],
-      Phi_subsample = Phi[sub_ind, , drop = FALSE],
-      tau = tau,
-      ...
-    )$status
-  }
-
-  list(
-    status_vec = status_vec,
-    subsample_list = subsample_list
   )
 }
