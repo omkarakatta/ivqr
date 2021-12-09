@@ -454,7 +454,7 @@ onestep <- function(subsample, reference,
       neighbor <- subsample
       neighbor[one_to_zero] <- 0
       neighbor[zero_to_one] <- 1
-      distance <- sum((neighbor - unrounded_center)^2)^(0.5)
+      distance <- sum((neighbor - reference)^2)^(0.5)
       sub_ind <- which(neighbor == 1)
       membership_info <- MEMBERSHIP_FCN(
         h = which(sub_ind %in% h),
