@@ -1249,7 +1249,7 @@ random_walk_subsample <- function(initial_subsample,
   }
 
   # get beta_X_proposal and beta_D_proposal
-  if (distance_method == 1) {
+  if (distance_method == 1 | distance_method == 5) {
     if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
       coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
       if (is.null(beta_D_proposal)) {
@@ -1282,6 +1282,7 @@ random_walk_subsample <- function(initial_subsample,
 
   # compute distance of initial_subsample
   if (distance_method == 1) {
+    # TODO: is it possible to use compute_xi_i?
     s_i <- vector("list", length = n)
     for (i in seq_len(n)) {
       if (is.element(i, h)) {
@@ -1336,7 +1337,8 @@ random_walk_subsample <- function(initial_subsample,
         max_result[[entry]] <- max(left_entry, right_entry, 0)
       }
       tmp <- sum(abs(max_result)^l_norm) ^ (1 / l_norm)
-      exp(-gamma * tmp^l_power)
+      exp(-gamma * tmp^l_power) # TODO: is this correct? shouldn't this be transform_function?
+      warning("need to double-check distance_method == 4")
     }
     okay <- setdiff(seq_len(n), h)
     ones_current <- which(current_subsample[okay] == 1)
@@ -1344,6 +1346,40 @@ random_walk_subsample <- function(initial_subsample,
     # compute norm of sum of s_i_current
     current_distance <- distance_function(s_i_current)
     # transform (e.g., exponentiate) "distance"
+    current_distance_prob <- transform_function(current_distance)
+  } else if (distance_method == 5) {
+    # TODO: is it possible to use compute_xi_i?
+    s_i <- vector("list", length = n)
+    for (i in seq_len(n)) {
+      if (is.element(i, h)) {
+        s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
+      } else {
+        # NOTE: beta_Phi should be 0
+        const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
+        s_i[[i]] <- const * design[i, ] %*% designh_inv
+      }
+    }
+    s <- do.call(rbind, s_i) # n rows
+    stopifnot(ncol(s) == length(h))
+    stopifnot(nrow(s) == n)
+
+    distance_function <- function(x) {
+      sum_cols <- rep(1, m) %*% x # TODO: double-check this
+      left <- - tau - sum_cols
+      right <- sum_cols - (1 - tau)
+      max_result <- vector("double", length(h))
+      for (entry in seq_along(h)) {
+        left_entry <- left[[entry]]
+        right_entry <- right[[entry]]
+        # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
+        # => max{...} = 0 => we satisfy FOC
+        max_result[[entry]] <- max(left_entry, right_entry, 0)
+      }
+      tmp <- sum(abs(max_result)^l_norm) ^ (1 / l_norm)
+    }
+
+    curr_s <- s[current_subsample == 1, ]
+    current_distance <- distance_function(curr_s)
     current_distance_prob <- transform_function(current_distance)
   }
 
@@ -1405,6 +1441,10 @@ random_walk_subsample <- function(initial_subsample,
       # compute norm of sum of s_i_proposal
       proposal_distance <- distance_function(s_i_proposal)
       # transform (e.g., exponentiate) "distance"
+      proposal_distance_prob <- transform_function(proposal_distance)
+    } else if (distance_method == 5) {
+      proposal_s <- s[proposal_subsample == 1, ]
+      proposal_distance <- distance_function(proposal_s)
       proposal_distance_prob <- transform_function(proposal_distance)
     }
 
