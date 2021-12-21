@@ -77,6 +77,71 @@ round_to_magnitude <- function(x) {
   10 ^ (ceiling(log10(x)))
 }
 
+### h_to_beta -------------------------
+
+#' Find the coefficients given the active basis
+#'
+#' Given the active basis, find the coefficients that solve the IQR problem.
+#'
+#' @param h Active basis in terms of the data provided
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#'
+#' @return A named list of coefficients
+#' \enumerate{
+#'   \item \code{beta_D}: coefficients on the endogeneous variables
+#'   \item \code{beta_X}: coefficients on the exogenous variables
+#'   \item \code{beta_Phi}: coefficients on the transformed instruments
+#' }
+#'
+#' @family mcmc_subsampling
+h_to_beta <- function(h, Y, X, D, Z, Phi = linear_projection(D, X, Z)) {
+  # dimensions
+  p_Phi <- ncol(Phi)
+  p_D <- ncol(D)
+  stopifnot(p_Phi == p_D)
+  p_X <- ncol(X)
+  p <- p_Phi + p_X
+
+  design <- cbind(X, Phi)
+  designh <- design[h, ]
+  a <- solve(designh, Y[h])
+  B <- solve(designh, D[h, , drop = FALSE])
+
+  # Solve system from the lower rows, corresponding to beta_Phi = 0
+  a_Phi <- a[(p_X + 1):p]
+  B_Phi <- B[(p_X + 1):p, ]
+
+  beta_D <- solve(B_Phi, a_Phi)
+  beta_X_Phi <- a - B %*% beta_D
+  beta_X <- beta_X_Phi[1:p_X]
+  beta_Phi <- beta_X_Phi[(p_X + 1):p]
+
+  list("beta_D" = beta_D,
+       "beta_X" = beta_X,
+       "beta_Phi" = beta_Phi)
+}
+
+### run_concentrated_qr
+
+#' @param beta_D Endogenous coefficients (vector of length p_D)
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param tau Quantile (numeric)
+#'
+#' @return Results of QR(Y - D %*% beta_D ~ X + Phi) for a given \code{tau}
+run_concentrated_qr <- function(beta_D, Y, X, D, Z, Phi = linear_projection(D, X, Z), tau) {
+  quantreg::rq(Y - D %*% beta_D ~ X + Phi - 1, tau = tau)
+}
+
 ### p_val_interpolation -------------------------
 #' Perform P-value-weighted Linear Interpolation
 #'
@@ -128,6 +193,144 @@ p_val_interpolation <- function(old_p_val,
 
   # return new beta value and weight
   list(beta_border = beta_border, pi = pi)
+}
+
+### compute_xi_i -------------------------
+
+# TODO: incorporate this function into first_approach* and
+# find_subsample_in_polytope
+#' @param h Active basis in terms of the data provided
+#' @param Y Dependent variable (vector of length n)
+#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
+#' @param D Endogenous variable (n by p_D matrix)
+#' @param Z Instrumental variable (n by p_Z matrix)
+#' @param Phi Transformation of X and Z to be used in the program;
+#'  defaults to the linear projection of D on X and Z (matrix with n rows)
+#' @param tau Quantile (numeric)
+#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'  argument to determine \code{beta_D_proposal}
+#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
+#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
+#'
+#' @return Matrix of dimension p by (n-p) of xi_i's not including the i's in the active basis
+compute_xi_i <- function(h,
+                         Y, X, D, Z, Phi = linear_projection(D, X, Z),
+                         tau,
+                         beta_D_proposal = NULL,
+                         beta_X_proposal = NULL) {
+  n <- nrow(Y)
+  p <- length(h)
+
+  # get beta_X_proposal and beta_D_proposal
+  if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
+    coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
+    if (is.null(beta_D_proposal)) {
+      beta_D_proposal <- coef$beta_D
+    }
+    if (is.null(beta_X_proposal)) {
+      beta_X_proposal <- coef$beta_X
+    }
+  }
+
+  Y_tilde <- Y - D %*% beta_D_proposal
+  design <- cbind(X, Phi)
+  designh_inv <- solve(design[h, , drop = FALSE])
+
+  s_i <- vector("list", length = n)
+  for (i in seq_len(n)) {
+    if (is.element(i, h)) {
+      s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
+    } else {
+      # NOTE: beta_Phi should be 0
+      const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
+      s_i[[i]] <- const * design[i, ] %*% designh_inv
+    }
+  }
+  s <- t(do.call(rbind, s_i))
+  xi_mat <- s[, setdiff(seq_len(n), h), drop = FALSE]
+  stopifnot(nrow(xi_mat) == p)
+  stopifnot(ncol(xi_mat) == n - p)
+
+  xi_mat
+}
+
+### ot -------------------------
+
+#' Compute OT between identical uniform distributions
+#'
+#' Compute transport map between U(1,...,n-p) and U(1,...,n-p) where C(i, j) =
+#' norm difference of pre[, i] and post[, j] where i and j are between 1 and
+#' n-p.
+#'
+#' We use Gurobi to solve the OT problem if \code{method} is "gurobi".
+#' We use the transport package to solve the OT problem if \code{method} is "transport".
+ot <- function(pre, post, params = list(OutputFlag = 0), method = "gurobi") {
+  n_minus_p <- ncol(pre)
+  stopifnot(n_minus_p == ncol(post))
+
+  # prelims
+  num_decision_vars <- n_minus_p^2
+
+  # compute cost matrix
+  c_ij <- matrix(0, nrow = n_minus_p, ncol = n_minus_p)
+  for (col in seq_len(n_minus_p)) {
+    # get diagonals
+    c_ij[col, col] <- sum(abs(pre[, col] - post[, col]))
+    for (i in seq_len(n_minus_p - col)) {
+      row <- i + col
+      # create a lower-triangular matrix with the cost
+      c_ij[row, col] <- sum(abs(pre[, row] - post[, col]))
+    }
+  }
+  # fill out the cost matrix
+  c_ij[upper.tri(c_ij)] <- c_ij[lower.tri(c_ij)]
+
+  if (tolower(method) == "gurobi") {
+    # create constraints
+    const_pre <- vector("list", length = n_minus_p)
+    const_post <- vector("list", length = n_minus_p)
+    for (i in seq_len(n_minus_p)) {
+      zeros_left <- matrix(0, nrow = n_minus_p, ncol = i - 1)
+      ones <- matrix(1, nrow = n_minus_p, ncol = 1)
+      zeros_right <- matrix(0, nrow = n_minus_p, ncol = n_minus_p - i)
+      a_mat <- cbind(zeros_left, ones, zeros_right)
+      const_pre[[i]] <- c(a_mat)
+      const_post[[i]] <- c(t(a_mat))
+    }
+    a_mat_pre <- do.call(rbind, const_pre)
+    a_mat_post <- do.call(rbind, const_post)
+    a_mat <- rbind(a_mat_pre, a_mat_post)
+    stopifnot(ncol(a_mat) == num_decision_vars)
+    stopifnot(nrow(a_mat) == n_minus_p * 2)
+
+    # create program
+    model <- list()
+    model$obj <- c(c_ij) # turn into vector (go down each column)
+    model$A <- a_mat
+    model$sense <- rep("=", length = n_minus_p * 2)
+    model$rhs <- rep(1, length = n_minus_p * 2)
+    model$vtype <- rep("C", num_decision_vars)
+
+    sol <- gurobi::gurobi(model, params)
+    status <- sol$status
+    t_ij <- matrix(sol$x, nrow = n_minus_p, ncol = n_minus_p)
+    map <- apply(t_ij, 1, function(x) which(x == 1))
+  } else if (tolower(method) == "transport") {
+    unif <- rep(1, length = n_minus_p)
+    sol <- transport::transport(unif, unif, costm = c_ij)
+    model <- NA
+    status <- NA
+    map <- sol$to
+  }
+
+  list(
+    model = model, # gurobi-specific
+    status = status, # gurobi-specific
+    sol = sol,
+    c_ij = c_ij,
+    map = map
+  )
 }
 
 ### parse_single_log -------------------------
