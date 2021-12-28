@@ -52,6 +52,25 @@ onestep <- function(subsample, reference,
   )
 }
 
+### exhaustive_subsample_indices -------------------------
+exhaustive_subsample_indices <- function(h, n, m) {
+  p <- length(h)
+  subsample_template <- vector("integer", n)
+  subsample_template[h] <- 1L
+  possible_indices <- which(subsample_template == 0)
+  tmp <- expand.grid(rep(list(possible_indices), m - p))
+  keep_rows <- apply(tmp, 1, function(row) {
+    row <- as.numeric(row)
+    # columns must be in strictly monotonic order
+    # example: c(1,1) => FALSE
+    # example: c(2,1) => FALSE
+    # example: c(2,3) => TRUE
+    identical(sort(unique(row)), row)
+  })
+  tmp[keep_rows, ]
+  # nrow(tmp[keep_rows]) = num of subsamples = choose(n - p, m - p)
+}
+
 ### exhaustive_membership -------------------------
 
 # check all possible subsamples to see if it is inside FOC polytope
@@ -64,23 +83,7 @@ exhaustive_membership <- function(
   MEMBERSHIP_FCN = foc_membership_v3,
   ...
 ) {
-  p <- length(h)
-
-  subsample_template <- rep(0, n)
-  subsample_template[h] <- 1
-  possible_indices <- which(subsample_template == 0)
-  tmp <- expand.grid(rep(list(possible_indices), m - p))
-  keep_rows <- apply(tmp, 1, function(row) {
-    row <- as.numeric(row)
-    # columns must be in strictly monotonic order
-    # example: c(1,1) => FALSE
-    # example: c(2,1) => FALSE
-    # example: c(2,3) => TRUE
-    identical(sort(unique(row)), row)
-  })
-  subsample_indices_mat <- tmp[keep_rows, ]
-  num_subsamples <- choose(n - p, m - p)
-  # stopifnot(nrow(subsample_indices_mat) == num_subsamples)
+  subsample_indices_mat <- exhaustive_subsample_indices(h = h, n = n, m = m)
 
   status_vec <- vector("double", num_subsamples)
   subsample_list <- vector("list", num_subsamples)
@@ -107,4 +110,3 @@ exhaustive_membership <- function(
     subsample_list = subsample_list
   )
 }
-
