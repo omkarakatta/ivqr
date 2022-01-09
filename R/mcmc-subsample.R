@@ -31,6 +31,7 @@
 #'  MCMC-related business. # TODO: test this
 #'  If it is 4, we use the transport map idea with violation of the FOC
 #'  condition.! TODO: describe this!!!
+#'  If it is 5, we use the violation of the FOC constraints.
 #' @param reference_subsample If \code{distance_method} is 2, we compare the
 #'  subsamples in the random walk to this reference subsample to determine the
 #'  distance; only valid if \code{distance_method} is 2; default is NULL; The
