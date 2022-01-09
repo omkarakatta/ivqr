@@ -321,6 +321,7 @@ random_walk_subsample <- function(initial_subsample,
   }
 
   # TODO: compute foc_membership?
+  # TODO: if we use `distance_method = 5`, then don't we already know foc_membership?
 
   list(
     status = "OKAY",
