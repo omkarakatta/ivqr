@@ -42,6 +42,7 @@
 #' @param s_i Matrix of dimension n - p that contains the xi_i_opts that are
 #'  mapped from the xi_i_star according to the optimal transport map; only valid for distance_method == 3
 #' @param seed For replicability
+#' @param save_memory Set to TRUE to save memory by avoiding storage of subsamples
 # TODO: test that we always accept the subsample if distance_method = "simple_random_walk"
 # TODO: create a separate function just to do the simple random walk without
 # any of the extra bells and whistles of MCMC
@@ -59,7 +60,8 @@ random_walk_subsample <- function(initial_subsample,
                                   transform_method = "exp",
                                   reference_subsample = NULL, # for distance_method = 2
                                   s_i,
-                                  seed = Sys.date()) {
+                                  seed = Sys.date(),
+                                  save_memory = FALSE) {
   # k must be smaller than the number of observations in subsample minus the
   # observations in the active basis
   stopifnot(sum(initial_subsample) - length(h) > k)
@@ -315,7 +317,9 @@ random_walk_subsample <- function(initial_subsample,
     } else {
       out_record[[i]] <- 0
     }
-    out_subsample[[i]] <- current_subsample
+    if (!save_memory) {
+      out_subsample[[i]] <- current_subsample
+    }
     out_distance[[i]] <- current_distance
     out_distance_prob[[i]] <- current_distance_prob
   }
@@ -326,7 +330,7 @@ random_walk_subsample <- function(initial_subsample,
   list(
     status = "OKAY",
     a_log = out_a_log,
-    subsample = out_subsample,
+    subsample = ifelse(save_memory, "`save_memory` is `TRUE`", out_subsample),
     distance = out_distance,
     distance_prob = out_distance_prob, # use in main MCMC
     record = out_record
