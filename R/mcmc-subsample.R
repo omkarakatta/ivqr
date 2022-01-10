@@ -325,9 +325,8 @@ random_walk_subsample <- function(initial_subsample,
   }
 
   # TODO: compute foc_membership?
-  # TODO: if we use `distance_method = 5`, then don't we already know foc_membership?
 
-  list(
+  out <- list(
     status = "OKAY",
     a_log = out_a_log,
     subsample = ifelse(save_memory, "`save_memory` is `TRUE`", out_subsample),
@@ -335,4 +334,13 @@ random_walk_subsample <- function(initial_subsample,
     distance_prob = out_distance_prob, # use in main MCMC
     record = out_record
   )
+
+  # save foc membership if `distance_method == 5`
+  if (distance_method == 5) {
+    out$foc_membership <- sapply(out_distance, function(i) {
+      isTRUE(all.equal(i, 0))
+    })
+  }
+
+  out
 }
