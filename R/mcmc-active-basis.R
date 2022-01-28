@@ -124,6 +124,8 @@ mcmc_active_basis <- function(iterations,
       Phi = Phi,
       psi = psi
     )$varcov
+  } else {
+    varcov_mat <- psi * varcov_mat
   }
 
   result <- vector("list", iterations) # preallocate space to store coefficients
