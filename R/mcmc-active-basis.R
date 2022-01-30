@@ -131,6 +131,8 @@ mcmc_active_basis <- function(iterations,
   result <- vector("list", iterations) # preallocate space to store coefficients
   result_h <- vector("list", iterations) # preallocate space to store active basis
   result_prob <- vector("double", iterations) # store wald density of coefficients
+  result_proposal <- vector("list", iterations) # store proposals
+  accept_record <- vector("list", iterations) # acceptance record
   h_current <- initial_basis # TODO: refactor `draws` and `h`
   for (i in seq_len(iterations)) {
     u <- u_vec[[i]]
@@ -138,6 +140,7 @@ mcmc_active_basis <- function(iterations,
     draws_proposal <- h_proposal$draws
     beta_proposal_full <- h_to_beta(h = h_proposal$h_star, Y = Y, X = X, D = D, Phi = Phi)
     beta_proposal <- c(beta_proposal_full$beta_D, beta_proposal_full$beta_X)
+    result_proposal[[i]] <- beta_proposal
     # TODO: come up with better variable names
     wald_proposal <- density_wald(beta_hat = beta_hat,
                                   beta_proposal = beta_proposal,
@@ -155,6 +158,7 @@ mcmc_active_basis <- function(iterations,
                                            p_design = p_design,
                                            theta = theta)
     }
+    accept_record[[i]] <- 0
     a <- wald_proposal / wald_current * geom_current / geom_proposal
     if (u < a) { # accept
       beta_current <- beta_proposal
@@ -162,6 +166,7 @@ mcmc_active_basis <- function(iterations,
       h_current <- h_proposal$h_star
       wald_current <- wald_proposal
       geom_current <- geom_proposal
+      accept_record[[i]] <- 1
     }
     result[[i]] <- beta_current
     result_h[[i]] <- h_current
@@ -169,6 +174,8 @@ mcmc_active_basis <- function(iterations,
   }
   # each row is a coefficient, each column is one iteration of MCMC
   result_df <- do.call(cbind, result)
+  rownames(result_df) <- c(paste0("beta_D", seq_len(ncol(D))), paste0("beta_X", seq_len(ncol(X))))
+  result_proposal_df <- do.call(cbind, result_proposal)
   rownames(result_df) <- c(paste0("beta_D", seq_len(ncol(D))), paste0("beta_X", seq_len(ncol(X))))
   result_h_df <- do.call(cbind, result_h)
   if (discard_burnin) {
@@ -178,6 +185,8 @@ mcmc_active_basis <- function(iterations,
     result_df <- result_df[, stationary_begin:ncol(result_df)]
     result_h_df <- result_h_df[, stationary_begin:ncol(result_h_df)]
     result_prob <- result_prob[stationary_begin:length(result_prob)]
+    result_proposal_df <- result_proposal_df[, stationary_begin:ncol(result_proposal_df)]
+    accept_record <- unlist(accept_record)[stationary_begin:length(accept_record)]
   }
-  list("beta" = result_df, "h" = result_h_df, "prob" = result_prob)
+  list("beta" = result_df, "h" = result_h_df, "prob" = result_prob, "beta_proposal" = result_proposal_df, "accept_record" = accept_record)
 }
