@@ -78,7 +78,7 @@ draw_proposal_h <- function(weights, p, num_draws) {
   }
 
   # each row is an active basis
-  do.call(rbind, lapply(draws, function(draw) which(draw == 1))) # TODO: turn into numeric after extraction
+  do.call(rbind, lapply(draws, function(draw) which(draw == 1)))
 }
 
 #' Evaluate target density in the MCMC Sampler of the proposal coefficients
@@ -160,8 +160,9 @@ mcmc_h <- function(
     u <- u_vec[[mcmc_idx]]
 
     # Step 1: Propose active basis
-    # TODO: can we vectorize this as we do with u_vec? `rmultinom` is not vectorized, is it?
-    h_star <- draw_proposal_h(weights, p, num_draws = 1)[1, ]
+    # TODO: can we vectorize this as we do with u_vec?
+    # `rmultinom` is not vectorized, is it?
+    h_star <- as.numeric(draw_proposal_h(weights, p, num_draws = 1)[1, ])
     Q_star <- proposal_h(weights, h_star)
 
     # Step 2: Compute coefficients
