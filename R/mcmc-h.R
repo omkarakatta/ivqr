@@ -152,6 +152,7 @@ mcmc_h <- function(
   result_beta <- vector("list", iterations)
   result_h <- vector("list", iterations)
   result_record <- vector("double", iterations)
+  result_P <- vector("double", iterations)
 
   # run MCMC
   u_vec <- runif(n = iterations)
@@ -184,6 +185,7 @@ mcmc_h <- function(
     result_beta[[mcmc_idx]] <- beta_current
     result_h[[mcmc_idx]] <- h_current
     result_record[[mcmc_idx]] <- record
+    result_P[[mcmc_idx]] <- P_current
   }
 
   # each row is the information returned by a single iteration of the MCMC
@@ -206,11 +208,13 @@ mcmc_h <- function(
   beta_df <- beta_df[stationary_begin:nrow(beta_df), ]
   h_df <- h_df[stationary_begin:nrow(h_df), ]
   result_record <- result_record[stationary_begin:length(result_record)]
+  result_P <- result_P[stationary_begin:length(result_P)]
 
   list(
     "beta" = beta_df,
     "h" = h_df,
     "record" = result_record,
-    "stationary_begin" = stationary_begin
+    "stationary_begin" = stationary_begin,
+    "target_density" = result_P
   )
 }
