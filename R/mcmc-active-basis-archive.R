@@ -1,18 +1,5 @@
 ### Propose h -- "Algorithm 3" -- Algorithm A -------------------------
 
-#' @param beta_proposal Vector of proposed coefficients beta_D and beta_X
-#'  (vector of length p_D + p_X)
-#' @param beta_hat Vector of beta_D and beta_X coefficients from IQR point
-#'  estimate (vector of length p_D + p_X)
-#' @param varcov_mat Asymptotic variance-covariance matrix; see
-#'  \code{wald_varcov}
-#'
-#' @return density of limiting distribution of estimator evaluated at
-#'  \code{beta_proposal}
-density_wald <- function(beta_hat, beta_proposal, varcov_mat) {
-  mvnfast::dmvn(beta_proposal, mu = beta_hat, sigma = varcov_mat)
-}
-
 #' @param residuals Residuals from IQR point estimation (vector of length n)
 #' @param p_design Dimension of design matrix in QR (p_X + p_Phi) (numeric)
 #' @param theta Hyperparameter (numeric)
