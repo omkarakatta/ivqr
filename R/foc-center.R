@@ -736,12 +736,24 @@ find_center_repellent <- function(
     omega_mod <- omega
   }
 
+  rounded_center_indices <- setdiff(seq_len(n), h)[which(omega_mod == 1)]
+  rounded_center <- vector("integer", n)
+  rounded_center[rounded_center_indices] <- 1
+  rounded_center[h] <- 1
+
+  cts_center_indices <- setdiff(seq_len(n), h)[which(omega > 0)]
+  cts_center <- vector("integer", n)
+  cts_center[cts_center_indices] <- omega[which(omega > 0)]
+  cts_center[h] <- 1
+
   list(
     model = model,
     sol = sol,
     status = status,
     omega = omega,
     omega_mod = omega_mod,
-    xi_mat = xi_mat
+    xi_mat = xi_mat,
+    rounded_center = rounded_center,
+    cts_center = cts_center
   )
 }
