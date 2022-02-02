@@ -58,9 +58,10 @@ proposal_h <- function(weights, h) {
 #' @param weights Vector of weights for each observation
 #' @param theta Tuning parameter
 #' @param p Dimension of design matrix in IQR-QR (p_X + p_Phi)
+#' @param num_draws Number of draws from proposal distribution of active basis
 #'
 #' @return indices in the active basis
-draw_proposal_h <- function(weights, p) {
+draw_proposal_h <- function(weights, p, num_draws) {
   # Choose `p` balls from `n` urns, where `n := length(residuals)`.
   # We are more likely to pick balls from urns with larger entries in `weights`.
   # It's possible to pick two balls from the same bin.
@@ -68,13 +69,16 @@ draw_proposal_h <- function(weights, p) {
   # different bins.
   while_bool <- TRUE
   while (while_bool) {
-    draws <- as.numeric(rmultinom(n = 1, size = p, prob = weights))
-    if (identical(sort(unique(draws)), c(0, 1))) {
+    draws <- lapply(seq_len(num_draws), function(draw) {
+      rmultinom(n = 1, size = p, prob = weights)
+    })
+    if (identical(sort(unique(unlist(draws))), c(0L, 1L))) {
       while_bool <- FALSE
     }
   }
 
-  which(draws == 1)
+  # each row is an active basis
+  do.call(rbind, lapply(draws, function(draw) which(draw == 1))) # TODO: turn into numeric after extraction
 }
 
 #' Evaluate target density in the MCMC Sampler of the proposal coefficients
@@ -156,7 +160,8 @@ mcmc_h <- function(
     u <- u_vec[[mcmc_idx]]
 
     # Step 1: Propose active basis
-    h_star <- draw_proposal_h(weights, p)
+    # TODO: can we vectorize this as we do with u_vec? `rmultinom` is not vectorized, is it?
+    h_star <- draw_proposal_h(weights, p, num_draws = 1)[1, ]
     Q_star <- proposal_h(weights, h_star)
 
     # Step 2: Compute coefficients
