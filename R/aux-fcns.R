@@ -212,15 +212,15 @@ compute_foc_conditions <- function(
   design <- cbind(X, Phi)
   designh_inv <- solve(design[h, , drop = FALSE])
 
-  xi_i <- vector("list", length = n) # create `n` vectors of length `p`
-  for (i in seq_len(n)) {
-    xi_i[[i]] <- 
+  xi_i <- vector("list", length = nrow(Y)) # create `n` matrices of dim 1 by `p`
+  for (i in seq_len(nrow(Y))) {
+    xi_i[[i]] <-
       as.numeric(is.element(i, h)) * # if index is in active basis, set xi to 0
       (tau - as.numeric(residuals[i] < 0)) *
       design[i, ] %*%
-      design_inv
+      designh_inv
   }
-  do.call(cbind, xi_i) # p by n matrix
+  t(do.call(rbind, xi_i)) # p by n matrix; note: don't cbind row matrices
 }
 
 ### ot -------------------------
