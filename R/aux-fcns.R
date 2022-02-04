@@ -200,32 +200,27 @@ p_val_interpolation <- function(old_p_val,
 #' @param h Indices in active basis
 #' @param Y,X,D,Phi Data
 #' @param tau Quantile
+#'
+#' @return A p by n matrix
 compute_foc_conditions <- function(
   h,
   Y, X, D, Phi,
   tau
 ) {
   coef_full <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
-  Y_tilde <- Y - D %*% coef_full$beta_D
+  residuals <- Y - D %*% coef_full$beta_D - X %*% coef_full$beta_X
   design <- cbind(X, Phi)
   designh_inv <- solve(design[h, , drop = FALSE])
 
-  s_i <- vector("list", length = n)
+  xi_i <- vector("list", length = n) # create `n` vectors of length `p`
   for (i in seq_len(n)) {
-    if (is.element(i, h)) {
-      s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
-    } else {
-      # NOTE: beta_Phi should be 0
-      const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
-      s_i[[i]] <- const * design[i, ] %*% designh_inv
-    }
+    xi_i[[i]] <- 
+      as.numeric(is.element(i, h)) * # if index is in active basis, set xi to 0
+      (tau - as.numeric(residuals[i] < 0)) *
+      design[i, ] %*%
+      design_inv
   }
-  s <- t(do.call(rbind, s_i))
-  xi_mat <- s[, setdiff(seq_len(n), h), drop = FALSE]
-  # stopifnot(nrow(xi_mat) == p)
-  # stopifnot(ncol(xi_mat) == n - p)
-
-  xi_mat
+  do.call(cbind, xi_i) # p by n matrix
 }
 
 ### ot -------------------------
