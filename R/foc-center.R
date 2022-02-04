@@ -80,8 +80,8 @@ foc_center <- function(
 
   # Constraint 3: simplex slack variables (2*(n-p) constraints) (*_simplex)
   subsample_center <- rep((subsample_size - p) / (n - p), n - p)
-  simplex_rhs <- vector("double", num_simplex_slack)
-  simplex_lhs <- vector("list", num_simplex_slack)
+  rhs_simplex <- vector("double", num$simplex_slack)
+  lhs_simplex <- vector("list", num$simplex_slack)
   counter <- 0
   zeros <- rep(0, num$simplex_slack)
   for (j in c(0, 1)) {
@@ -135,7 +135,6 @@ foc_center <- function(
 
   # Convert continuous solution to integral solution
   current_sum <- length(which(omega == 1)) # how many integral 1's do we have
-  remaining <- subsample_size - p - current_sum # how many need to be switched?
   max_indices <- rank(-omega, ties.method = "random") # first is largest
 
   # switch the largest numbers that aren't 1
