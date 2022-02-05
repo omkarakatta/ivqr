@@ -215,7 +215,7 @@ compute_foc_conditions <- function(
   xi_i <- vector("list", length = nrow(Y)) # create `n` matrices of dim 1 by `p`
   for (i in seq_len(nrow(Y))) {
     xi_i[[i]] <-
-      as.numeric(is.element(i, h)) * # if index is in active basis, set xi to 0
+      as.numeric(!is.element(i, h)) * # if index is in active basis, set xi to 0
       (tau - as.numeric(residuals[i] < 0)) *
       design[i, ] %*%
       designh_inv
