@@ -27,14 +27,14 @@ rwalk_subsample <- function(
   h,
   Y, X, D, Phi,
   tau,
-  distance_function = foc_violation,
-  distance_params,
-  transform_function = exp_dist,
-  transform_params, # parameters to pass to `transform_function`
   initial_subsample, # rounded version of continuous center to FOC
   iterations,
   h_aux,
-  initial_aux # initial subsample for aux variables
+  initial_aux, # initial subsample for aux variables
+  distance_function = foc_violation,
+  distance_params,
+  transform_function = exp_dist,
+  transform_params # parameters to pass to `transform_function`
 ) {
   # Q: proposal of subsamples/aux variables negate each other...right?
 
