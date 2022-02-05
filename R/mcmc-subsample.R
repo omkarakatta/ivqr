@@ -29,9 +29,7 @@ rwalk_subsample <- function(
   tau,
   initial_subsample, # rounded version of continuous center to FOC
   iterations,
-  h_aux,
-  initial_aux, # initial subsample for aux variables
-  iterations_aux,
+  h_alt = NULL,
   distance_function = foc_violation,
   distance_params,
   transform_function = exp_dist,
@@ -42,7 +40,23 @@ rwalk_subsample <- function(
   # Subsamples -----------------------------------------------------------------
 
   # preliminaries
-  xi_mat <- compute_foc_conditions(h, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+  xi_mat <- compute_foc_conditions(h,
+    Y = Y,
+    X = X,
+    D = D,
+    Phi = Phi,
+    tau = tau
+  )
+  if (!is.null(h_alt)) {
+    xi_mat_alt <- compute_foc_conditions(
+      h_alt,
+      Y = Y,
+      X = X,
+      D = D,
+      Phi = Phi,
+      tau = tau
+    )
+  }
 
   # Initialize MCMC
   D_current <- initial_subsample
@@ -56,14 +70,33 @@ rwalk_subsample <- function(
   P_current <- transform_function(dist_current, transform_params)
   membership_current <- all.equal(dist_current, 0)
 
+  if (!is.null(h_alt)) {
+    dist_alt_current <- distance_function(
+      h = h_alt,
+      subsample = D_current,
+      tau = tau,
+      xi_mat = xi_mat_alt,
+      params = distance_params
+    )
+    P_alt_current <- transform_function(dist_alt_current, transform_params)
+    membership_alt_current <- all.equal(dist_alt_current, 0)
+  } else {
+    dist_alt_current <- NA
+    P_alt_current <- NA
+    membership_alt_current <- NA
+  }
+
   # collect draws from uniform distribution
   u_vec <- runif(n = iterations)
 
   # pre-allocate results
-  result_record <- vector("double", iterations)
-  result_P <- vector("double", iterations)
-  result_distance <- vector("double", iterations)
-  result_membership <- vector("double", iterations)
+  result_record <- vector("double", iterations) # accept or reject?
+  result_P <- vector("double", iterations) # Q(x | beta_star)
+  result_distance <- vector("double", iterations) # FOC(beta_star) violation
+  result_membership <- vector("double", iterations) # x \in FOC(beta_star)
+  result_P_alt <- vector("double", iterations) # Q(x | beta_hat)
+  result_distance_alt <- vector("double", iterations) # FOC(beta_hat) violation
+  result_membership_alt <- vector("double", iterations) # x \in FOC(beta_hat)
 
   for (mcmc_idx in seq_len(iterations)) {
     record <- 0
@@ -96,95 +129,26 @@ rwalk_subsample <- function(
       dist_current <- dist_star
       record <- 1
       membership_current <- all.equal(dist_current, 0)
+
+      if (!is.null(h_alt)) {
+        dist_alt_current <- distance_function(
+          h = h_alt,
+          subsample = D_current,
+          tau = tau,
+          xi_mat = xi_mat_alt,
+          params = distance_params
+        )
+        P_alt_current <- transform_function(dist_alt_current, transform_params)
+        membership_alt_current <- all.equal(dist_alt_current, 0)
+      }
     }
     result_record[[mcmc_idx]] <- record
     result_P[[mcmc_idx]] <- P_current
     result_distance[[mcmc_idx]] <- dist_current
+    result_distance_alt[[mcmc_idx]] <- dist_alt_current
     result_membership[[mcmc_idx]] <- membership_current
-  }
-
-  # Auxiliary Variables --------------------------------------------------------
-
-  # preliminaries
-  xi_mat_aux <- compute_foc_conditions(h_aux, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
-
-  # Initialize MCMC
-  aux_current <- initial_aux
-  dist_aux_current <- distance_function(
-    h = h_aux,
-    subsample = aux_current,
-    tau = tau,
-    xi_mat = xi_mat_aux,
-    params = distance_params
-  )
-  Q_aux_current <- transform_function(dist_aux_current, transform_params)
-  membership_aux_current <- all.equal(dist_aux_current, 0)
-  tmp <- distance_function(
-    h = h,
-    subsample = aux_current,
-    tau = tau,
-    xi_mat = xi_mat,
-    params = distance_params
-  )
-  P_aux_current <- transform_function(tmp, transform_params)
-
-  # collect draws from uniform distribution
-  u_vec_aux <- runif(n = iterations)
-
-  # pre-allocate results
-  result_record_aux <- vector("double", iterations)
-  result_Q_aux <- vector("double", iterations)
-  result_P_aux <- vector("double", iterations)
-  result_distance_aux <- vector("double", iterations)
-  result_membership_aux <- vector("double", iterations)
-
-  for (mcmc_idx in seq_len(iterations_aux)) {
-    record_aux <- 0
-    u_aux <- u_vec_aux[[mcmc_idx]]
-
-    # Get proposals
-    ones <- setdiff(which(aux_current == 1), h_aux)
-    zeros <- setdiff(which(aux_current == 0), h_aux)
-    one_to_zero <- sample(ones, 1, replace = FALSE)
-    zero_to_one <- sample(zeros, 1, replace = FALSE)
-    aux_star <- aux_current
-    aux_star[one_to_zero] <- 0
-    aux_star[zero_to_one] <- 1
-
-    # Compute P_star
-    dist_aux_star <- distance_function(
-      h = h_aux,
-      subsample = aux_star,
-      tau = tau,
-      xi_mat = xi_mat_aux,
-      params = distance_params
-    )
-    Q_aux_star <- transform_function(dist_aux_star, transform_params)
-
-    # Compute acceptance probabilities and accept/reject
-    acc_prob_aux <- Q_aux_star / Q_aux_current
-    if (u_aux < acc_prob_aux) {
-      aux_current <- aux_star
-      Q_aux_current <- Q_aux_star
-      dist_aux_current <- dist_aux_star
-      record_aux <- 1
-      membership_aux_current <- all.equal(dist_current, 0)
-
-      # compute P(x | beta_star)
-      tmp <- distance_function(
-        h = h,
-        subsample = aux_current,
-        tau = tau,
-        xi_mat = xi_mat,
-        params = distance_params
-      )
-      P_aux_current <- transform_function(tmp, transform_params)
-    }
-    result_record_aux[[mcmc_idx]] <- record_aux
-    result_Q_aux[[mcmc_idx]] <- Q_aux_current
-    result_P_aux[[mcmc_idx]] <- P_aux_current
-    result_distance_aux[[mcmc_idx]] <- dist_aux_current
-    result_membership_aux[[mcmc_idx]] <- membership_aux_current
+    result_membership_alt[[mcmc_idx]] <- membership_alt_current
+    result_P_alt[[mcmc_idx]] <- P_alt_current
   }
 
   list(
@@ -192,10 +156,7 @@ rwalk_subsample <- function(
     P = result_P,
     distance = result_distance,
     membership = result_membership,
-    record_aux = result_record_aux,
-    Q_aux = result_Q_aux,
-    P_aux = result_P_aux,
-    distance_aux = result_distance_aux,
-    membership_aux = result_membership_aux,
+    P_alt = result_P_alt,
+    distance_alt = result_distance_alt,
   )
 }
