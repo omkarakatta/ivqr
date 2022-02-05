@@ -31,16 +31,18 @@ rwalk_subsample <- function(
   iterations,
   h_aux,
   initial_aux, # initial subsample for aux variables
+  iterations_aux,
   distance_function = foc_violation,
   distance_params,
   transform_function = exp_dist,
   transform_params # parameters to pass to `transform_function`
 ) {
-  # Q: proposal of subsamples/aux variables negate each other...right?
+  # Q: proposal of subsamples/aux variables negate each other, right?
+
+  # Subsamples -----------------------------------------------------------------
 
   # preliminaries
   xi_mat <- compute_foc_conditions(h, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
-  xi_mat_aux <- compute_foc_conditions(h_aux, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
 
   # Initialize MCMC
   D_current <- initial_subsample
@@ -54,6 +56,59 @@ rwalk_subsample <- function(
   P_current <- transform_function(dist_current, transform_params)
   membership_current <- all.equal(dist_current, 0)
 
+  # collect draws from uniform distribution
+  u_vec <- runif(n = iterations)
+
+  # pre-allocate results
+  result_record <- vector("double", iterations)
+  result_P <- vector("double", iterations)
+  result_distance <- vector("double", iterations)
+  result_membership <- vector("double", iterations)
+
+  for (mcmc_idx in seq_len(iterations)) {
+    record <- 0
+    u <- u_vec[[mcmc_idx]]
+
+    # Get proposals
+    ones <- setdiff(which(D_current == 1), h)
+    zeros <- setdiff(which(D_current == 0), h)
+    one_to_zero <- sample(ones, 1, replace = FALSE)
+    zero_to_one <- sample(zeros, 1, replace = FALSE)
+    D_star <- D_current
+    D_star[one_to_zero] <- 0
+    D_star[zero_to_one] <- 1
+
+    # Compute P_star
+    dist_star <- distance_function(
+      h = h,
+      subsample = D_star,
+      tau = tau,
+      xi_mat = xi_mat,
+      params = distance_params
+    )
+    P_star <- transform_function(dist_star, transform_params)
+
+    # Compute acceptance probabilities and accept/reject
+    acc_prob <- P_star / P_current
+    if (u < acc_prob) {
+      D_current <- D_star
+      P_current <- P_star
+      dist_current <- dist_star
+      record <- 1
+      membership_current <- all.equal(dist_current, 0)
+    }
+    result_record[[mcmc_idx]] <- record
+    result_P[[mcmc_idx]] <- P_current
+    result_distance[[mcmc_idx]] <- dist_current
+    result_membership[[mcmc_idx]] <- membership_current
+  }
+
+  # Auxiliary Variables --------------------------------------------------------
+
+  # preliminaries
+  xi_mat_aux <- compute_foc_conditions(h_aux, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+
+  # Initialize MCMC
   aux_current <- initial_aux
   dist_aux_current <- distance_function(
     h = h_aux,
@@ -74,36 +129,20 @@ rwalk_subsample <- function(
   P_aux_current <- transform_function(tmp, transform_params)
 
   # collect draws from uniform distribution
-  u_vec <- runif(n = iterations)
   u_vec_aux <- runif(n = iterations)
 
   # pre-allocate results
-  result_record <- vector("double", iterations)
-  result_P <- vector("double", iterations)
-  result_distance <- vector("double", iterations)
-  result_membership <- vector("double", iterations)
-
   result_record_aux <- vector("double", iterations)
   result_Q_aux <- vector("double", iterations)
   result_P_aux <- vector("double", iterations)
   result_distance_aux <- vector("double", iterations)
   result_membership_aux <- vector("double", iterations)
 
-  for (mcmc_idx in seq_len(iterations)) {
-    record <- 0
+  for (mcmc_idx in seq_len(iterations_aux)) {
     record_aux <- 0
-    u <- u_vec[[mcmc_idx]]
     u_aux <- u_vec_aux[[mcmc_idx]]
 
     # Get proposals
-    ones <- setdiff(which(D_current == 1), h)
-    zeros <- setdiff(which(D_current == 0), h)
-    one_to_zero <- sample(ones, 1, replace = FALSE)
-    zero_to_one <- sample(zeros, 1, replace = FALSE)
-    D_star <- D_current
-    D_star[one_to_zero] <- 0
-    D_star[zero_to_one] <- 1
-
     ones <- setdiff(which(aux_current == 1), h_aux)
     zeros <- setdiff(which(aux_current == 0), h_aux)
     one_to_zero <- sample(ones, 1, replace = FALSE)
@@ -113,15 +152,6 @@ rwalk_subsample <- function(
     aux_star[zero_to_one] <- 1
 
     # Compute P_star
-    dist_star <- distance_function(
-      h = h,
-      subsample = D_star,
-      tau = tau,
-      xi_mat = xi_mat,
-      params = distance_params
-    )
-    P_star <- transform_function(dist_star, transform_params)
-
     dist_aux_star <- distance_function(
       h = h_aux,
       subsample = aux_star,
@@ -132,19 +162,6 @@ rwalk_subsample <- function(
     Q_aux_star <- transform_function(dist_aux_star, transform_params)
 
     # Compute acceptance probabilities and accept/reject
-    acc_prob <- P_star / P_current
-    if (u < acc_prob) {
-      D_current <- D_star
-      P_current <- P_star
-      dist_current <- dist_star
-      record <- 1
-      membership_current <- all.equal(dist_current, 0)
-    }
-    result_record[[mcmc_idx]] <- record
-    result_P[[mcmc_idx]] <- P_current
-    result_distance[[mcmc_idx]] <- dist_current
-    result_membership[[mcmc_idx]] <- membership_current
-
     acc_prob_aux <- Q_aux_star / Q_aux_current
     if (u_aux < acc_prob_aux) {
       aux_current <- aux_star
