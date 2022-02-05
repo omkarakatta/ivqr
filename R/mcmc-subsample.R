@@ -1,346 +1,184 @@
-### random_walk_subsample -------------------------
+# measures norm of the FOC violation in each of the `p` entries of xi_vec
+# - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
+# => max{...} = 0 => we satisfy FOC
+foc_violation <- function(
+  h,
+  subsample,
+  tau,
+  xi_mat,
+  params # l_norm
+) {
+  # p by m matrix multiplied by m-vector of 1's
+  subsample_indices <- which(subsample > 0)
+  xi_vec <- xi_mat[, subsample_indices] %*% rep(1, length(subsample_indices))
+  left <- -1 * tau - xi_vec
+  right <- xi_vec - (1 - tau)
+  violation <- pmax(left, right, rep(0, length(h))) # p by 1
+  sum(abs(violation) ^ params$l_norm) ^ (1 / params$l_norm)
+}
 
-#' @param initial_subsample A vector of length n with m 1's and n-m 0's; 1
-#'  means that the corresponding index is in the subsample
-#' @param h Active basis in terms of the data provided
-#' @param Y Dependent variable (vector of length n)
-#' @param X Exogenous variable (including constant vector) (n by p_X matrix)
-#' @param D Endogenous variable (n by p_D matrix)
-#' @param Z Instrumental variable (n by p_Z matrix)
-#' @param Phi Transformation of X and Z to be used in the program;
-#'  defaults to the linear projection of D on X and Z (matrix with n rows)
-#' @param tau Quantile (numeric)
-#' @param beta_D_proposal Coefficients on the endogeneous variables (vector of
-#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
-#'  argument to determine \code{beta_D_proposal}
-#' @param beta_X_proposal Coefficients on the exogeneous variables (vector of
-#'  length p_D); if NULL, use \code{h_to_beta} function and the \code{h}
-#'  argument to determine \code{beta_X_proposal}
-#' @param iter How many iterations in the for loop?
-#' @param gamma,l_norm,l_power Tuning parameters
-#' @param k How many observations do we want to remove/add to the subsample in
-#'  the random walk? Larger k means larger jumps; only valid if \code{k_method}
-#'  is "constant"
-#' @param k_method If "constant" (default), we set \code{k} to be user-specified
-#' @param distance_method How do we compute the distance to the FOC polytope?
-#'  If it is 1 (default), we use the norm sum of the xi's.
-#'  If it is 2, we use the normed difference of the current subsample in the
-#'  random walk and \code{reference_subsample}.
-#'  If it is 3, we use the transport map idea! TODO: describe this!!!
-#'  If it is "simple_random_walk", then we run a simple random walk without any
-#'  MCMC-related business. # TODO: test this
-#'  If it is 4, we use the transport map idea with violation of the FOC
-#'  condition.! TODO: describe this!!!
-#'  If it is 5, we use the violation of the FOC constraints.
-#' @param reference_subsample If \code{distance_method} is 2, we compare the
-#'  subsamples in the random walk to this reference subsample to determine the
-#'  distance; only valid if \code{distance_method} is 2; default is NULL; The
-#'  intention was that this reference would be a subsample inside the global
-#'  FOC polytope.
-#' @param transform_method If "exp", use the exponential as the target
-#'  distribution
-#' @param s_i Matrix of dimension n - p that contains the xi_i_opts that are
-#'  mapped from the xi_i_star according to the optimal transport map; only valid for distance_method == 3
-#' @param seed For replicability
-#' @param save_memory Set to TRUE to save memory by avoiding storage of subsamples
-# TODO: test that we always accept the subsample if distance_method = "simple_random_walk"
-# TODO: create a separate function just to do the simple random walk without
-# any of the extra bells and whistles of MCMC
-random_walk_subsample <- function(initial_subsample,
-                                  h,
-                                  Y, X, D, Z, Phi = linear_projection(D, X, Z),
-                                  tau,
-                                  beta_D_proposal = NULL,
-                                  beta_X_proposal = NULL,
-                                  iter = 1000,
-                                  gamma = 1, l_norm = 1, l_power = 1,
-                                  k,
-                                  k_method = "constant",
-                                  distance_method = 1,
-                                  transform_method = "exp",
-                                  reference_subsample = NULL, # for distance_method = 2
-                                  s_i,
-                                  seed = Sys.date(),
-                                  save_memory = FALSE) {
-  # k must be smaller than the number of observations in subsample minus the
-  # observations in the active basis
-  stopifnot(sum(initial_subsample) - length(h) > k)
-  # ensure observations in active basis are in the initial subsample
-  # stopifnot(all(initial_subsample[h] == 1)) # if initial_subsample is rounded,
-  # we don't want to check for this.
-  if (distance_method == 2) {
-    stopifnot(!is.null(reference_subsample))
-    stopifnot(length(reference_subsample) == length(initial_subsample))
-  }
+# transform distance
+exp_dist <- function(distance, params) {
+  exp(-params$gamma * distance^params$l_power)
+}
 
-  # get beta_X_proposal and beta_D_proposal
-  if (distance_method == 1 | distance_method == 5) {
-    if (is.null(beta_D_proposal) | is.null(beta_X_proposal)) {
-      coef <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
-      if (is.null(beta_D_proposal)) {
-        beta_D_proposal <- coef$beta_D
-      }
-      if (is.null(beta_X_proposal)) {
-        beta_X_proposal <- coef$beta_X
-      }
-    }
-    Y_tilde <- Y - D %*% beta_D_proposal
-    design <- cbind(X, Phi)
-    designh_inv <- solve(design[h, , drop = FALSE])
-  }
+# run random walk for main and auxiliary variables
+rwalk_subsample <- function(
+  h,
+  Y, X, D, Phi,
+  tau,
+  distance_function = foc_violation,
+  distance_params,
+  transform_function = exp_dist,
+  transform_params, # parameters to pass to `transform_function`
+  initial_subsample, # rounded version of continuous center to FOC
+  iterations,
+  h_aux,
+  initial_aux # initial subsample for aux variables
+) {
+  # Q: proposal of subsamples/aux variables negate each other...right?
 
-  n <- length(initial_subsample)
-  m <- sum(initial_subsample)
-  current_subsample <- initial_subsample
-  current_prob <- 1
+  # preliminaries
+  xi_mat <- compute_foc_conditions(h, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+  xi_mat_aux <- compute_foc_conditions(h_aux, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
 
-  # define how we transform the distance into a weight/unnormalized probability
-  if (transform_method == "exp") {
-    transform_function <- function(x) {
-      exp(-gamma * x^l_power)
-    }
-  } else if (transform_method == "rec") {
-    transform_function <- function(x) {
-      gamma / (x^l_power)
-    }
-  }
-
-  # compute distance of initial_subsample
-  if (distance_method == 1) {
-    # TODO: is it possible to use compute_xi_i?
-    s_i <- vector("list", length = n)
-    for (i in seq_len(n)) {
-      if (is.element(i, h)) {
-        s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
-      } else {
-        # NOTE: beta_Phi should be 0
-        const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
-        s_i[[i]] <- const * design[i, ] %*% designh_inv
-      }
-    }
-    s <- do.call(rbind, s_i)
-    distance_function <- function(x) {
-      sum(abs(x) ^ l_norm) ^ (1 / l_norm)
-    }
-    curr_s <- s[current_subsample == 1, ]
-    current_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(curr_s)) %*% curr_s)
-    current_distance_prob <- transform_function(current_distance)
-  } else if (distance_method == 2) {
-    # find norm of global subsample and current subsample
-    distance_function <- function(x) {
-      sum(abs(x - reference_subsample)^l_norm) ^ (1 / l_norm)
-    }
-    current_distance <- distance_function(current_subsample)
-    current_distance_prob <- transform_function(current_distance)
-  } else if (distance_method == "simple_random_walk") {
-    current_distance <- NA
-    current_distance_prob <- 1
-  } else if (distance_method == 3) {
-    distance_function <- function(x) {
-      # sum the column vectors of x
-      sum_cols <- x %*% rep(1, ncol(x))
-      # take norm of sum of s_i's
-      sum(abs(sum_cols)^l_norm) ^ (1 / l_norm)
-    }
-    okay <- setdiff(seq_len(n), h)
-    ones_current <- which(current_subsample[okay] == 1)
-    s_i_current <- s_i[, ones_current]
-    # compute norm of sum of s_i_current
-    current_distance <- distance_function(s_i_current)
-    # transform (e.g., exponentiate) "distance"
-    current_distance_prob <- transform_function(current_distance)
-  } else if (distance_method == 4) {
-    distance_function <- function(x) {
-      # sum the column vectors of x
-      sum_cols <- x %*% rep(1, ncol(x))
-      left <- - tau - sum_cols
-      right <- sum_cols - (1 - tau)
-      max_result <- vector("double", length(sum_cols))
-      for (entry in seq_along(left)) {
-        left_entry <- left[[entry]]
-        right_entry <- right[[entry]]
-        max_result[[entry]] <- max(left_entry, right_entry, 0)
-      }
-      tmp <- sum(abs(max_result)^l_norm) ^ (1 / l_norm)
-      exp(-gamma * tmp^l_power) # TODO: is this correct? shouldn't this be transform_function?
-      warning("need to double-check distance_method == 4")
-    }
-    okay <- setdiff(seq_len(n), h)
-    ones_current <- which(current_subsample[okay] == 1)
-    s_i_current <- s_i[, ones_current]
-    # compute norm of sum of s_i_current
-    current_distance <- distance_function(s_i_current)
-    # transform (e.g., exponentiate) "distance"
-    current_distance_prob <- transform_function(current_distance)
-  } else if (distance_method == 5) {
-    # TODO: is it possible to use compute_xi_i?
-    s_i <- vector("list", length = n)
-    for (i in seq_len(n)) {
-      if (is.element(i, h)) {
-        s_i[[i]] <- 0 # if index i is in active basis, set xi to be 0
-      } else {
-        # NOTE: beta_Phi should be 0
-        const <- (tau - as.numeric(Y_tilde[i] - X[i, ] %*% beta_X_proposal < 0))
-        s_i[[i]] <- const * design[i, ] %*% designh_inv
-      }
-    }
-    s <- do.call(rbind, s_i) # n rows
-    stopifnot(ncol(s) == length(h))
-    stopifnot(nrow(s) == n)
-
-    distance_function <- function(x) {
-      sum_cols <- rep(1, m) %*% x # TODO: double-check this
-      left <- - tau - sum_cols
-      right <- sum_cols - (1 - tau)
-      max_result <- vector("double", length(h))
-      for (entry in seq_along(h)) {
-        left_entry <- left[[entry]]
-        right_entry <- right[[entry]]
-        # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
-        # => max{...} = 0 => we satisfy FOC
-        max_result[[entry]] <- max(left_entry, right_entry, 0)
-      }
-      tmp <- sum(abs(max_result)^l_norm) ^ (1 / l_norm)
-    }
-
-    curr_s <- s[current_subsample == 1, ]
-    current_distance <- distance_function(curr_s)
-    current_distance_prob <- transform_function(current_distance)
-  }
-
-  set.seed(seed)
-  u_vec <- runif(iter)
-  out_subsample <- vector("list", iter)
-  out_distance <- vector("list", iter)
-  out_distance_prob <- vector("list", iter)
-  out_a_log <- vector("double", iter)
-  out_record <- vector("double", iter)
-  for (i in seq_len(iter)) {
-    u <- u_vec[[i]]
-
-    # choose k
-    # if (k_method == "random") {
-    #   # Q: how do we choose k randomly?
-    #   # Q: how do we compute proposal_prob? choose(m-p, k) * choose(n - m, k)?
-    # }
-    if (k_method == "constant") {
-      # ensure proposal_prob / current_prob = 1
-      proposal_prob <- current_prob
-    }
-
-    # random walk: switch k 1's with k 0's
-    ones <- setdiff(which(current_subsample == 1), h)
-    # print(which(current_subsample == 1))
-    # print(ones)
-    # print(h)
-    zeros <- setdiff(which(current_subsample == 0), h)
-    switch_ones_to_zeros <- sample(x = ones, size = k)
-    switch_zeros_to_ones <- sample(x = zeros, size = k)
-    proposal_subsample <- current_subsample
-    proposal_subsample[switch_ones_to_zeros] <- 0
-    proposal_subsample[switch_zeros_to_ones] <- 1
-
-    # compute distance of proposal subsample
-    if (distance_method == 1) {
-      proposal_s <- s[proposal_subsample == 1, ]
-      proposal_distance <- distance_function(matrix(1, nrow = 1, ncol = nrow(proposal_s)) %*% proposal_s)
-      proposal_distance_prob <- transform_function(proposal_distance)
-    } else if (distance_method == 2) {
-      proposal_distance <- distance_function(proposal_subsample)
-      proposal_distance_prob <- transform_function(proposal_distance)
-    } else if (distance_method == "simple_random_walk") {
-      proposal_distance <- NA
-      proposal_distance_prob <- 1
-    } else if (distance_method == 3) {
-      okay <- setdiff(seq_len(n), h)
-      ones_proposal <- which(proposal_subsample[okay] == 1)
-      s_i_proposal <- s_i[, ones_proposal]
-      # compute norm of sum of s_i_proposal
-      proposal_distance <- distance_function(s_i_proposal)
-      # transform (e.g., exponentiate) "distance"
-      proposal_distance_prob <- transform_function(proposal_distance)
-    } else if (distance_method == 4) {
-      okay <- setdiff(seq_len(n), h)
-      ones_proposal <- which(proposal_subsample[okay] == 1)
-      s_i_proposal <- s_i[, ones_proposal]
-      # compute norm of sum of s_i_proposal
-      proposal_distance <- distance_function(s_i_proposal)
-      # transform (e.g., exponentiate) "distance"
-      proposal_distance_prob <- transform_function(proposal_distance)
-    } else if (distance_method == 5) {
-      proposal_s <- s[proposal_subsample == 1, ]
-      proposal_distance <- distance_function(proposal_s)
-      proposal_distance_prob <- transform_function(proposal_distance)
-    }
-
-    # compute acceptance probability
-    # print(proposal_distance_prob) # DEBUG:
-    # print(current_distance_prob) # DEBUG:
-    # print(proposal_prob) # DEBUG:
-    # print(current_prob) # DEBUG:
-    # print(i) # DEBUG:
-
-    accept_bool <- tryCatch({
-      a_log <- log(proposal_distance_prob) - log(current_distance_prob) + log(proposal_prob) - log(current_prob)
-      out_a_log[[i]] <- a_log
-      bool <- log(u) < a_log
-      # print(bool) # DEBUG:
-      stopifnot(is.logical(bool) & !is.na(bool))
-      list(
-        status = "OKAY",
-        bool = bool
-      )
-    }, error = function(e) {
-      list(
-        status = "ERROR",
-        status_message = e,
-        bool = bool,
-        a_log = a_log,
-        s_i_current = s_i_current,
-        s_i_proposal = s_i_proposal,
-        proposal_distance = proposal_distance,
-        current_distance = current_distance,
-        proposal_distance_prob = proposal_distance_prob,
-        current_distance_prob = current_distance_prob
-      )
-    })
-    if (accept_bool$status == "ERROR") {
-      return(accept_bool)
-    }
-
-    accept_bool <- accept_bool$bool
-    if (accept_bool) { # accept
-      current_subsample <- proposal_subsample
-      current_distance <- proposal_distance
-      current_distance_prob <- proposal_distance_prob
-      out_record[[i]] <- 1
-    } else {
-      out_record[[i]] <- 0
-    }
-    if (!save_memory) {
-      out_subsample[[i]] <- current_subsample
-    }
-    out_distance[[i]] <- current_distance
-    out_distance_prob[[i]] <- current_distance_prob
-  }
-
-  # TODO: compute foc_membership?
-
-  out <- list(
-    status = "OKAY",
-    a_log = out_a_log,
-    subsample = ifelse(save_memory, "`save_memory` is `TRUE`", out_subsample),
-    distance = out_distance,
-    distance_prob = out_distance_prob, # use in main MCMC
-    record = out_record
+  # Initialize MCMC
+  D_current <- initial_subsample
+  dist_current <- distance_function(
+    h = h,
+    subsample = D_current,
+    tau = tau,
+    xi_mat = xi_mat,
+    params = distance_params
   )
+  P_current <- transform_function(dist_current, transform_params)
+  membership_current <- all.equal(dist_current, 0)
 
-  # save foc membership if `distance_method == 5`
-  if (distance_method == 5) {
-    out$foc_membership <- sapply(out_distance, function(i) {
-      isTRUE(all.equal(i, 0))
-    })
+  aux_current <- initial_aux
+  dist_aux_current <- distance_function(
+    h = h_aux,
+    subsample = aux_current,
+    tau = tau,
+    xi_mat = xi_mat_aux,
+    params = distance_params
+  )
+  Q_aux_current <- transform_function(dist_aux_current, transform_params)
+  membership_aux_current <- all.equal(dist_aux_current, 0)
+  tmp <- distance_function(
+    h = h,
+    subsample = aux_current,
+    tau = tau,
+    xi_mat = xi_mat,
+    params = distance_params
+  )
+  P_aux_current <- transform_function(tmp, transform_params)
+
+  # collect draws from uniform distribution
+  u_vec <- runif(n = iterations)
+  u_vec_aux <- runif(n = iterations)
+
+  # pre-allocate results
+  result_record <- vector("double", iterations)
+  result_P <- vector("double", iterations)
+  result_distance <- vector("double", iterations)
+  result_membership <- vector("double", iterations)
+
+  result_record_aux <- vector("double", iterations)
+  result_Q_aux <- vector("double", iterations)
+  result_P_aux <- vector("double", iterations)
+  result_distance_aux <- vector("double", iterations)
+  result_membership_aux <- vector("double", iterations)
+
+  for (mcmc_idx in seq_len(iterations)) {
+    record <- 0
+    record_aux <- 0
+    u <- u_vec[[mcmc_idx]]
+    u_aux <- u_vec_aux[[mcmc_idx]]
+
+    # Get proposals
+    ones <- setdiff(which(D_current == 1), h)
+    zeros <- setdiff(which(D_current == 0), h)
+    one_to_zero <- sample(ones, 1, replace = FALSE)
+    zero_to_one <- sample(zeros, 1, replace = FALSE)
+    D_star <- D_current
+    D_star[one_to_zero] <- 0
+    D_star[zero_to_one] <- 1
+
+    ones <- setdiff(which(aux_current == 1), h_aux)
+    zeros <- setdiff(which(aux_current == 0), h_aux)
+    one_to_zero <- sample(ones, 1, replace = FALSE)
+    zero_to_one <- sample(zeros, 1, replace = FALSE)
+    aux_star <- aux_current
+    aux_star[one_to_zero] <- 0
+    aux_star[zero_to_one] <- 1
+
+    # Compute P_star
+    dist_star <- distance_function(
+      h = h,
+      subsample = D_star,
+      tau = tau,
+      xi_mat = xi_mat,
+      params = distance_params
+    )
+    P_star <- transform_function(dist_star, transform_params)
+
+    dist_aux_star <- distance_function(
+      h = h_aux,
+      subsample = aux_star,
+      tau = tau,
+      xi_mat = xi_mat_aux,
+      params = distance_params
+    )
+    Q_aux_star <- transform_function(dist_aux_star, transform_params)
+
+    # Compute acceptance probabilities and accept/reject
+    acc_prob <- P_star / P_current
+    if (u < acc_prob) {
+      D_current <- D_star
+      P_current <- P_star
+      dist_current <- dist_star
+      record <- 1
+      membership_current <- all.equal(dist_current, 0)
+    }
+    result_record[[mcmc_idx]] <- record
+    result_P[[mcmc_idx]] <- P_current
+    result_distance[[mcmc_idx]] <- dist_current
+    result_membership[[mcmc_idx]] <- membership_current
+
+    acc_prob_aux <- Q_aux_star / Q_aux_current
+    if (u_aux < acc_prob_aux) {
+      aux_current <- aux_star
+      Q_aux_current <- Q_aux_star
+      dist_aux_current <- dist_aux_star
+      record_aux <- 1
+      membership_aux_current <- all.equal(dist_current, 0)
+
+      # compute P(x | beta_star)
+      tmp <- distance_function(
+        h = h,
+        subsample = aux_current,
+        tau = tau,
+        xi_mat = xi_mat,
+        params = distance_params
+      )
+      P_aux_current <- transform_function(tmp, transform_params)
+    }
+    result_record_aux[[mcmc_idx]] <- record_aux
+    result_Q_aux[[mcmc_idx]] <- Q_aux_current
+    result_P_aux[[mcmc_idx]] <- P_aux_current
+    result_distance_aux[[mcmc_idx]] <- dist_aux_current
+    result_membership_aux[[mcmc_idx]] <- membership_aux_current
   }
 
-  out
+  list(
+    record = result_record,
+    P = result_P,
+    distance = result_distance,
+    membership = result_membership,
+    record_aux = result_record_aux,
+    Q_aux = result_Q_aux,
+    P_aux = result_P_aux,
+    distance_aux = result_distance_aux,
+    membership_aux = result_membership_aux,
+  )
 }
