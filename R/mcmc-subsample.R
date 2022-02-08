@@ -21,7 +21,7 @@ foc_violation <- function(
 
 # transform distance
 exp_dist <- function(distance, params) {
-  exp(-params$gamma * distance^params$l_power)
+  exp(-1 * params$gamma * distance^params$l_power)
 }
 
 # Main -------------------------------------------------------------------------
