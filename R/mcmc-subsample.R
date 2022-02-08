@@ -27,6 +27,9 @@ exp_dist <- function(distance, params) {
 # Main -------------------------------------------------------------------------
 
 # run random walk for main and auxiliary variables
+#' @param label_function Function of the MCMC index; used with `label_frequency`
+#' @param label_skip Call `label_function` every `label_skip` iterations
+#' @param label_bool If TRUE, use `label_function` and `label_skip` to keep track of MCMC
 rwalk_subsample <- function(
   h,
   Y, X, D, Phi,
@@ -37,7 +40,12 @@ rwalk_subsample <- function(
   distance_function = foc_violation,
   distance_params,
   transform_function = exp_dist,
-  transform_params # parameters to pass to `transform_function`
+  transform_params,
+  label_function = function(idx) {
+    print(paste("RWALK IDX:", idx, "/", iterations))
+  },
+  label_skip = floor(iterations / 5),
+  label_bool = TRUE
 ) {
   # Q: proposal of subsamples/aux variables negate each other, right?
 
@@ -105,6 +113,8 @@ rwalk_subsample <- function(
   for (mcmc_idx in seq_len(iterations)) {
     record <- 0
     u <- u_vec[[mcmc_idx]]
+
+    if (label_bool && mcmc_idx %% label_skip == 0) label_function(mcmc_idx)
 
     # Get proposals
     ones <- setdiff(which(D_current == 1), h)
