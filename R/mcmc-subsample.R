@@ -72,7 +72,7 @@ rwalk_subsample <- function(
     params = distance_params
   )
   P_current <- transform_function(dist_current, transform_params)
-  membership_current <- all.equal(dist_current, 0)
+  membership_current <- isTRUE(all.equal(dist_current, 0))
 
   if (!is.null(h_alt)) {
     dist_alt_current <- distance_function(
@@ -83,7 +83,7 @@ rwalk_subsample <- function(
       params = distance_params
     )
     P_alt_current <- transform_function(dist_alt_current, transform_params)
-    membership_alt_current <- all.equal(dist_alt_current, 0)
+    membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
   } else {
     dist_alt_current <- NA
     P_alt_current <- NA
