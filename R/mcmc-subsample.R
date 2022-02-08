@@ -1,3 +1,5 @@
+# Helpers ----------------------------------------------------------------------
+
 # measures norm of the FOC violation in each of the `p` entries of xi_vec
 # - tau < x < 1 - tau => - tau - x < 0 & x - (1 - tau) < 0
 # => max{...} = 0 => we satisfy FOC
@@ -21,6 +23,8 @@ foc_violation <- function(
 exp_dist <- function(distance, params) {
   exp(-params$gamma * distance^params$l_power)
 }
+
+# Main -------------------------------------------------------------------------
 
 # run random walk for main and auxiliary variables
 rwalk_subsample <- function(
