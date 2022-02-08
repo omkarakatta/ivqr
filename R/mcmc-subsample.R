@@ -161,6 +161,6 @@ rwalk_subsample <- function(
     distance = result_distance,
     membership = result_membership,
     P_alt = result_P_alt,
-    distance_alt = result_distance_alt,
+    distance_alt = result_distance_alt
   )
 }
