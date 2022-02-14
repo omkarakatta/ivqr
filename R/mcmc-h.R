@@ -145,8 +145,8 @@ mcmc_h <- function(
   beta_current <- beta_opt
   h_current <- h_opt
   weights <- weight_indices(residuals_opt, theta)
-  Q_current <- proposal_h(weights, h_current)
-  P_current <- target_h(beta_current, beta_opt, varcov_mat)
+  log_Q_current <- log(proposal_h(weights, h_current))
+  log_P_current <- log(target_h(beta_current, beta_opt, varcov_mat))
 
   # pre-allocate results
   result_beta <- vector("list", iterations)
@@ -158,34 +158,34 @@ mcmc_h <- function(
   u_vec <- runif(n = iterations)
   for (mcmc_idx in seq_len(iterations)) {
     record <- 0
-    u <- u_vec[[mcmc_idx]]
+    log_u <- log(u_vec[[mcmc_idx]])
 
     # Step 1: Propose active basis
     # TODO: can we vectorize this as we do with u_vec?
     # `rmultinom` is not vectorized, is it?
     h_star <- as.numeric(draw_proposal_h(weights, p, num_draws = 1)[1, ])
-    Q_star <- proposal_h(weights, h_star)
+    log_Q_star <- log(proposal_h(weights, h_star))
 
     # Step 2: Compute coefficients
     beta_full <- h_to_beta(h = h_star, Y = Y, X = X, D = D, Phi = Phi)
     beta_star <- c(beta_full$beta_D, beta_full$beta_X)
-    P_star <- target_h(beta_star, beta_opt, varcov_mat)
+    log_P_star <- log(target_h(beta_star, beta_opt, varcov_mat))
 
     # Step 3: Compute acceptance probability
-    acc_prob <- (P_star / P_current) * (Q_current / Q_star)
+    log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
 
     # Step 4: Accept/Reject
-    if (u < acc_prob) {
+    if (log_u < log_acc_prob) {
       beta_current <- beta_star
       h_current <- h_star
-      P_current <- P_star
-      Q_current <- Q_star
+      log_P_current <- log_P_star
+      log_Q_current <- log_Q_star
       record <- 1
     }
     result_beta[[mcmc_idx]] <- beta_current
     result_h[[mcmc_idx]] <- h_current
     result_record[[mcmc_idx]] <- record
-    result_P[[mcmc_idx]] <- P_current
+    result_P[[mcmc_idx]] <- exp(log_P_current)
   }
 
   # each row is the information returned by a single iteration of the MCMC
