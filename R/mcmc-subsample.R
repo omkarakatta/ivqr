@@ -29,7 +29,8 @@ exp_dist <- function(distance, params) {
 # run random walk for main and auxiliary variables
 #' @param label_function Function of the MCMC index; used with `label_frequency`
 #' @param label_skip Call `label_function` every `label_skip` iterations
-#' @param label_bool If TRUE, use `label_function` and `label_skip` to keep track of MCMC
+#' @param label_bool If TRUE, use `label_function` and `label_skip` to keep
+#'  track of MCMC
 rwalk_subsample <- function(
   h,
   Y, X, D, Phi,
@@ -79,7 +80,7 @@ rwalk_subsample <- function(
     xi_mat = xi_mat,
     params = distance_params
   )
-  P_current <- transform_function(dist_current, transform_params)
+  log_P_current <- log(transform_function(dist_current, transform_params))
   membership_current <- isTRUE(all.equal(dist_current, 0))
 
   if (!is.null(h_alt)) {
@@ -112,7 +113,7 @@ rwalk_subsample <- function(
 
   for (mcmc_idx in seq_len(iterations)) {
     record <- 0
-    u <- u_vec[[mcmc_idx]]
+    log_u <- log(u_vec[[mcmc_idx]])
 
     if (label_bool && mcmc_idx %% label_skip == 0) label_function(mcmc_idx)
 
@@ -133,13 +134,13 @@ rwalk_subsample <- function(
       xi_mat = xi_mat,
       params = distance_params
     )
-    P_star <- transform_function(dist_star, transform_params)
+    log_P_star <- log(transform_function(dist_star, transform_params))
 
     # Compute acceptance probabilities and accept/reject
-    acc_prob <- P_star / P_current
-    if (u < acc_prob) {
+    log_acc_prob <- log_P_star - log_P_current
+    if (log_u < log_acc_prob) {
       D_current <- D_star
-      P_current <- P_star
+      log_P_current <- log_P_star
       dist_current <- dist_star
       record <- 1
       membership_current <- isTRUE(all.equal(dist_current, 0))
@@ -157,7 +158,7 @@ rwalk_subsample <- function(
       }
     }
     result_record[[mcmc_idx]] <- record
-    result_P[[mcmc_idx]] <- P_current
+    result_P[[mcmc_idx]] <- exp(log_P_current)
     result_distance[[mcmc_idx]] <- dist_current
     result_distance_alt[[mcmc_idx]] <- dist_alt_current
     result_membership[[mcmc_idx]] <- membership_current
