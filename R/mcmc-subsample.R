@@ -117,11 +117,12 @@ rwalk_subsample <- function(
 
     if (label_bool && mcmc_idx %% label_skip == 0) label_function(mcmc_idx)
 
+    ones <- setdiff(which(D_current == 1), h)
+    zeros <- setdiff(which(D_current == 0), h)
+
     while_bool <- TRUE
     while (while_bool) {
       # Get proposals
-      ones <- setdiff(which(D_current == 1), h)
-      zeros <- setdiff(which(D_current == 0), h)
       one_to_zero <- sample(ones, 1, replace = FALSE)
       zero_to_one <- sample(zeros, 1, replace = FALSE)
       D_star <- D_current
@@ -137,43 +138,48 @@ rwalk_subsample <- function(
         params = distance_params
       )
       log_P_star <- log(transform_function(dist_star, transform_params))
+      # go to next iteration of while loop if log_P_star is infinite
+      if (is.infinite(log_P_star)) {
+        next
+      }
 
       # Compute acceptance probabilities and accept/reject
       log_acc_prob <- log_P_star - log_P_current
       accept_reject_bool <- log_u < log_acc_prob
-      if (is.na(accept_reject_bool)) {
-        next
-      } else {
+
+      # exit while loop if there are no numerical issues
+      if (!is.na(accept_reject_bool)) {
         while_bool <- FALSE
       }
-      if (accept_reject_bool) {
-        D_current <- D_star
-        log_P_current <- log_P_star
-        dist_current <- dist_star
-        record <- 1
-        membership_current <- isTRUE(all.equal(dist_current, 0))
-
-        if (!is.null(h_alt)) {
-          dist_alt_current <- distance_function(
-            h = h_alt,
-            subsample = D_current,
-            tau = tau,
-            xi_mat = xi_mat_alt,
-            params = distance_params
-          )
-          P_alt_current <- transform_function(dist_alt_current,
-                                              transform_params)
-          membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
-        }
-      }
-      result_record[[mcmc_idx]] <- record
-      result_P[[mcmc_idx]] <- exp(log_P_current)
-      result_distance[[mcmc_idx]] <- dist_current
-      result_distance_alt[[mcmc_idx]] <- dist_alt_current
-      result_membership[[mcmc_idx]] <- membership_current
-      result_membership_alt[[mcmc_idx]] <- membership_alt_current
-      result_P_alt[[mcmc_idx]] <- P_alt_current
     } # exit while loop
+
+    if (accept_reject_bool) {
+      D_current <- D_star
+      log_P_current <- log_P_star
+      dist_current <- dist_star
+      record <- 1
+      membership_current <- isTRUE(all.equal(dist_current, 0))
+
+      if (!is.null(h_alt)) {
+        dist_alt_current <- distance_function(
+          h = h_alt,
+          subsample = D_current,
+          tau = tau,
+          xi_mat = xi_mat_alt,
+          params = distance_params
+        )
+        P_alt_current <- transform_function(dist_alt_current,
+                                            transform_params)
+        membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
+      }
+    }
+    result_record[[mcmc_idx]] <- record
+    result_P[[mcmc_idx]] <- exp(log_P_current)
+    result_distance[[mcmc_idx]] <- dist_current
+    result_distance_alt[[mcmc_idx]] <- dist_alt_current
+    result_membership[[mcmc_idx]] <- membership_current
+    result_membership_alt[[mcmc_idx]] <- membership_alt_current
+    result_P_alt[[mcmc_idx]] <- P_alt_current
   } # exit for loop
 
   list(
