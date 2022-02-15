@@ -20,8 +20,10 @@ foc_violation <- function(
 }
 
 # transform distance
+# params$min_prob: smallest acceptable value for the probability (set to -Inf
+# (or any negative number) to make this ineffective)
 exp_dist <- function(distance, params) {
-  exp(-1 * params$gamma * distance^params$l_power)
+  max(exp(-1 * params$gamma * distance^params$l_power), params$min_prob)
 }
 
 # Main -------------------------------------------------------------------------
