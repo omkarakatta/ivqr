@@ -55,7 +55,8 @@ rwalk_subsample <- function(
   # Subsamples -----------------------------------------------------------------
 
   # preliminaries
-  xi_mat <- compute_foc_conditions(h,
+  xi_mat <- compute_foc_conditions(
+    h,
     Y = Y,
     X = X,
     D = D,
