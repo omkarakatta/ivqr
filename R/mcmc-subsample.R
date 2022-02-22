@@ -33,6 +33,8 @@ exp_dist <- function(distance, params) {
 #' @param label_skip Call `label_function` every `label_skip` iterations
 #' @param label_bool If TRUE, use `label_function` and `label_skip` to keep
 #'  track of MCMC
+#' @param profile_bool If TRUE, save elapsed time of each step in rwalk
+#'  subsample
 rwalk_subsample <- function(
   h,
   Y, X, D, Phi,
@@ -48,13 +50,19 @@ rwalk_subsample <- function(
     print(paste("RWALK IDX:", idx, "/", iterations))
   },
   label_skip = floor(iterations / 5),
-  label_bool = TRUE
+  label_bool = TRUE,
+  profile_bool = FALSE
 ) {
   # Q: proposal of subsamples/aux variables negate each other, right?
 
+  if (profile_bool) time <- list()
+
   # Subsamples -----------------------------------------------------------------
 
+  if (profile_bool) overall_start_time <- Sys.time()
+
   # preliminaries
+  if (profile_bool) start_time <- Sys.time()
   xi_mat <- compute_foc_conditions(
     h,
     Y = Y,
@@ -63,6 +71,8 @@ rwalk_subsample <- function(
     Phi = Phi,
     tau = tau
   )
+  if (profile_bool) time$xi_mat <- difftime(Sys.time(), start_time)
+  if (profile_bool) start_time <- Sys.time()
   if (!is.null(h_alt)) {
     xi_mat_alt <- compute_foc_conditions(
       h_alt,
@@ -73,8 +83,10 @@ rwalk_subsample <- function(
       tau = tau
     )
   }
+  if (profile_bool) time$xi_mat_alt <- difftime(Sys.time(), start_time)
 
   # Initialize MCMC
+  if (profile_bool) start_time <- Sys.time()
   D_current <- initial_subsample
   dist_current <- distance_function(
     h = h,
@@ -85,7 +97,9 @@ rwalk_subsample <- function(
   )
   log_P_current <- log(transform_function(dist_current, transform_params))
   membership_current <- isTRUE(all.equal(dist_current, 0))
+  if (profile_bool) time$initialization <- difftime(Sys.time(), start_time)
 
+  if (profile_bool) start_time <- Sys.time()
   if (!is.null(h_alt)) {
     dist_alt_current <- distance_function(
       h = h_alt,
@@ -101,6 +115,7 @@ rwalk_subsample <- function(
     P_alt_current <- NA
     membership_alt_current <- NA
   }
+  if (profile_bool) time$initialization_alt <- difftime(Sys.time(), start_time)
 
   # collect draws from uniform distribution
   u_vec <- runif(n = iterations)
@@ -114,6 +129,8 @@ rwalk_subsample <- function(
   result_distance_alt <- vector("double", iterations) # FOC(beta_hat) violation
   result_membership_alt <- vector("double", iterations) # x \in FOC(beta_hat)
 
+  if (profile_bool) time$iterations <- vector("list", iterations)
+
   for (mcmc_idx in seq_len(iterations)) {
     record <- 0
     log_u <- log(u_vec[[mcmc_idx]])
@@ -123,15 +140,26 @@ rwalk_subsample <- function(
     ones <- setdiff(which(D_current == 1), h)
     zeros <- setdiff(which(D_current == 0), h)
 
+    if (profile_bool) while_start_time <- Sys.time()
+
+    while_counter <- 0
     while_bool <- TRUE
     while (while_bool) {
+      while_counter <- while_counter + 1
+
+      if (profile_bool) start_time <- Sys.time()
       # Get proposals
       one_to_zero <- sample(ones, 1, replace = FALSE)
       zero_to_one <- sample(zeros, 1, replace = FALSE)
       D_star <- D_current
       D_star[one_to_zero] <- 0
       D_star[zero_to_one] <- 1
+      if (profile_bool) {
+        time$iterations[[mcmc_idx]]$get_D_star <- difftime(Sys.time(),
+                                                           start_time)
+      }
 
+      if (profile_bool) start_time <- Sys.time()
       # Compute P_star
       dist_star <- distance_function(
         h = h,
@@ -141,20 +169,35 @@ rwalk_subsample <- function(
         params = distance_params
       )
       log_P_star <- log(transform_function(dist_star, transform_params))
+      if (profile_bool) {
+        time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
+                                                                  start_time)
+      }
       # go to next iteration of while loop if log_P_star is infinite
       if (is.infinite(log_P_star)) {
         next
       }
 
+      if (profile_bool) start_time <- Sys.time()
       # Compute acceptance probabilities and accept/reject
       log_acc_prob <- log_P_star - log_P_current
       accept_reject_bool <- log_u < log_acc_prob
+      if (profile_bool) {
+        time$iterations[[mcmc_idx]]$compute_acc_prob <- difftime(Sys.time(),
+                                                                 start_time)
+      }
 
       # exit while loop if there are no numerical issues
       if (!is.na(accept_reject_bool)) {
         while_bool <- FALSE
       }
     } # exit while loop
+
+    if (profile_bool) {
+      time$iterations[[mcmc_idx]]$while_loop <- difftime(Sys.time(),
+                                                         while_start_time)
+      time$iterations[[mcmc_idx]]$while_counter <- while_counter
+    }
 
     if (accept_reject_bool) {
       D_current <- D_star
@@ -185,12 +228,17 @@ rwalk_subsample <- function(
     result_P_alt[[mcmc_idx]] <- P_alt_current
   } # exit for loop
 
+  if (profile_bool) time$overall <- difftime(Sys.time(), overall_start_time)
+
+  if (!profile_bool) time <- NA
+
   list(
     record = result_record,
     P = result_P,
     distance = result_distance,
     membership = result_membership,
     P_alt = result_P_alt,
-    distance_alt = result_distance_alt
+    distance_alt = result_distance_alt,
+    profile = time
   )
 }
