@@ -71,7 +71,8 @@ rwalk_subsample <- function(
     Phi = Phi,
     tau = tau
   )
-  if (profile_bool) time$xi_mat <- difftime(Sys.time(), start_time)
+  if (profile_bool) time$xi_mat <- difftime(Sys.time(), start_time,
+                                            units = "secs")
   if (profile_bool) start_time <- Sys.time()
   if (!is.null(h_alt)) {
     xi_mat_alt <- compute_foc_conditions(
@@ -83,7 +84,8 @@ rwalk_subsample <- function(
       tau = tau
     )
   }
-  if (profile_bool) time$xi_mat_alt <- difftime(Sys.time(), start_time)
+  if (profile_bool) time$xi_mat_alt <- difftime(Sys.time(), start_time,
+                                                units = "secs")
 
   # Initialize MCMC
   if (profile_bool) start_time <- Sys.time()
@@ -97,7 +99,8 @@ rwalk_subsample <- function(
   )
   log_P_current <- log(transform_function(dist_current, transform_params))
   membership_current <- isTRUE(all.equal(dist_current, 0))
-  if (profile_bool) time$initialization <- difftime(Sys.time(), start_time)
+  if (profile_bool) time$initialization <- difftime(Sys.time(), start_time,
+                                                    units = "secs")
 
   if (profile_bool) start_time <- Sys.time()
   if (!is.null(h_alt)) {
@@ -115,7 +118,8 @@ rwalk_subsample <- function(
     P_alt_current <- NA
     membership_alt_current <- NA
   }
-  if (profile_bool) time$initialization_alt <- difftime(Sys.time(), start_time)
+  if (profile_bool) time$initialization_alt <- difftime(Sys.time(), start_time,
+                                                        units = "secs")
 
   # collect draws from uniform distribution
   u_vec <- runif(n = iterations)
@@ -156,7 +160,8 @@ rwalk_subsample <- function(
       D_star[zero_to_one] <- 1
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$get_D_star <- difftime(Sys.time(),
-                                                           start_time)
+                                                           start_time,
+                                                           units = "secs")
       }
 
       if (profile_bool) start_time <- Sys.time()
@@ -171,7 +176,8 @@ rwalk_subsample <- function(
       log_P_star <- log(transform_function(dist_star, transform_params))
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
-                                                                  start_time)
+                                                                  start_time,
+                                                                  units = "secs") #nolint
       }
       # go to next iteration of while loop if log_P_star is infinite
       if (is.infinite(log_P_star)) {
@@ -184,7 +190,8 @@ rwalk_subsample <- function(
       accept_reject_bool <- log_u < log_acc_prob
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_acc_prob <- difftime(Sys.time(),
-                                                                 start_time)
+                                                                 start_time,
+                                                                 units = "secs")
       }
 
       # exit while loop if there are no numerical issues
@@ -195,7 +202,8 @@ rwalk_subsample <- function(
 
     if (profile_bool) {
       time$iterations[[mcmc_idx]]$while_loop <- difftime(Sys.time(),
-                                                         while_start_time)
+                                                         while_start_time,
+                                                         units = "secs")
       time$iterations[[mcmc_idx]]$while_counter <- while_counter
     }
 
@@ -228,7 +236,8 @@ rwalk_subsample <- function(
     result_P_alt[[mcmc_idx]] <- P_alt_current
   } # exit for loop
 
-  if (profile_bool) time$overall <- difftime(Sys.time(), overall_start_time)
+  if (profile_bool) time$overall <- difftime(Sys.time(), overall_start_time,
+                                             units = "secs")
 
   if (!profile_bool) time <- NA
 
