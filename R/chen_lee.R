@@ -122,7 +122,7 @@ chen_lee <- function(n = 500,
   # Step 5: Define Y (outcome variable)
   beta_D <- rep(1, actual_p) # coefficients on endogeneous variables!
   if (is.null(beta_D_errors)) {
-    beta_D_errors <- c(1, 0.25, 0.15, seq(0.1, 1, length.out = p_D - 3))
+    beta_D_errors <- c(0.2, 0.25, 0.15, seq(0.1, 1, length.out = p_D - 3))
   }
   beta_D_errors <- beta_D_errors[seq_len(actual_p)] # remove extra if p_D < 3
   X <- matrix(rep(1, n), ncol = 1)
