@@ -8,15 +8,26 @@ foc_violation <- function(
   subsample,
   tau,
   xi_mat,
+  xi_vec = NULL,
+  minus_index = NULL,
+  plus_index = NULL,
   params # l_norm
 ) {
   # p by m matrix multiplied by m-vector of 1's
-  subsample_indices <- which(subsample > 0)
-  xi_vec <- xi_mat[, subsample_indices] %*% rep(1, length(subsample_indices))
+  if (is.null(xi_vec)) {
+    subsample_indices <- which(subsample > 0)
+    xi_vec <- xi_mat[, subsample_indices] %*% rep(1, length(subsample_indices))
+  } else {
+    xi_vec <- xi_vec - xi_mat[, minus_index] + xi_mat[, plus_index]
+  }
+
   left <- -1 * tau - xi_vec
   right <- xi_vec - (1 - tau)
   violation <- pmax(left, right, rep(0, length(h))) # p by 1
-  sum(abs(violation) ^ params$l_norm) ^ (1 / params$l_norm)
+  list(
+    dist = sum(abs(violation) ^ params$l_norm) ^ (1 / params$l_norm),
+    xi_vec = xi_vec
+  )
 }
 
 # transform distance
@@ -90,13 +101,15 @@ rwalk_subsample <- function(
   # Initialize MCMC
   if (profile_bool) start_time <- Sys.time()
   D_current <- initial_subsample
-  dist_current <- distance_function(
+  dist_current_info <- distance_function(
     h = h,
     subsample = D_current,
     tau = tau,
     xi_mat = xi_mat,
     params = distance_params
   )
+  dist_current <- dist_current_info$dist
+  xi_vec_current <- dist_current_info$xi_vec
   log_P_current <- log(transform_function(dist_current, transform_params))
   membership_current <- isTRUE(all.equal(dist_current, 0))
   if (profile_bool) time$initialization <- difftime(Sys.time(), start_time,
@@ -110,7 +123,7 @@ rwalk_subsample <- function(
       tau = tau,
       xi_mat = xi_mat_alt,
       params = distance_params
-    )
+    )$dist
     P_alt_current <- transform_function(dist_alt_current, transform_params)
     membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
   } else {
@@ -166,13 +179,18 @@ rwalk_subsample <- function(
 
       if (profile_bool) start_time <- Sys.time()
       # Compute P_star
-      dist_star <- distance_function(
+      dist_star_info <- distance_function(
         h = h,
         subsample = D_star,
         tau = tau,
         xi_mat = xi_mat,
+        xi_vec = xi_vec_current,
+        minus_index = one_to_zero,
+        plus_index = zero_to_one,
         params = distance_params
       )
+      dist_star <- dist_star_info$dist
+      xi_vec_star <- dist_star_info$xi_vec
       log_P_star <- log(transform_function(dist_star, transform_params))
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
@@ -211,6 +229,7 @@ rwalk_subsample <- function(
       D_current <- D_star
       log_P_current <- log_P_star
       dist_current <- dist_star
+      xi_vec_current <- xi_vec_star
       record <- 1
       membership_current <- isTRUE(all.equal(dist_current, 0))
 
@@ -221,7 +240,7 @@ rwalk_subsample <- function(
           tau = tau,
           xi_mat = xi_mat_alt,
           params = distance_params
-        )
+        )$dist
         P_alt_current <- transform_function(dist_alt_current,
                                             transform_params)
         membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
