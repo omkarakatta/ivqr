@@ -65,25 +65,31 @@ draw_proposal_h <- function(weights,
                             p,
                             num_draws,
                             label_bool = FALSE,
-                            label_skip = 5) {
+                            label_skip = 5,
+                            existing_h = c()) {
   # Choose `p` balls from `n` urns, where `n := length(residuals)`.
   # We are more likely to pick balls from urns with larger entries in `weights`.
   # It's possible to pick two balls from the same bin.
   # Hence, I will keep drawing `p` balls until all balls are drawn from
   # different bins.
-  while_bool <- TRUE
-  while (while_bool) {
-    draws <- lapply(seq_len(num_draws), function(draw) {
-      if (label_bool && draw %% label_skip == 0) print(paste(draw, "out of", num_draws))
-      rmultinom(n = 1, size = p, prob = weights)
-    })
-    if (identical(sort(unique(unlist(draws))), c(0L, 1L))) {
-      while_bool <- FALSE
-    }
+  tmp <- function(x) identical(as.numeric(sort(unique(x))), c(0, 1))
+  draws_raw <- rmultinom(n = num_draws, size = p, prob = weights)
+  valid <- apply(draws_raw, 2, tmp)
+  if (sum(valid) == 0) {
+    num_draws_remaining <- num_draws
+  } else {
+    draws_filter <- draws_raw[, valid, drop = FALSE]
+    draws_h <- t(apply(draws_filter, 2, function(draw) which(draw == 1)))
+    num_draws_remaining <- num_draws - nrow(draws_h)
+    existing_h <- rbind(existing_h, draws_h)
   }
-
-  # each row is an active basis
-  do.call(rbind, lapply(draws, function(draw) which(draw == 1)))
+  if (num_draws_remaining > 0) {
+    draw_proposal_h(weights, p, num_draws_remaining,
+                    label_bool, label_skip,
+                    existing_h)
+  } else {
+    return(existing_h)
+  }
 }
 
 #' Evaluate target density in the MCMC Sampler of the proposal coefficients
