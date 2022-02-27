@@ -61,7 +61,11 @@ proposal_h <- function(weights, h) {
 #' @param num_draws Number of draws from proposal distribution of active basis
 #'
 #' @return indices in the active basis
-draw_proposal_h <- function(weights, p, num_draws) {
+draw_proposal_h <- function(weights,
+                            p,
+                            num_draws,
+                            label_bool = FALSE,
+                            label_skip = 5) {
   # Choose `p` balls from `n` urns, where `n := length(residuals)`.
   # We are more likely to pick balls from urns with larger entries in `weights`.
   # It's possible to pick two balls from the same bin.
@@ -70,6 +74,7 @@ draw_proposal_h <- function(weights, p, num_draws) {
   while_bool <- TRUE
   while (while_bool) {
     draws <- lapply(seq_len(num_draws), function(draw) {
+      if (label_bool && draw %% label_skip == 0) print(paste(draw, "out of", num_draws))
       rmultinom(n = 1, size = p, prob = weights)
     })
     if (identical(sort(unique(unlist(draws))), c(0L, 1L))) {
@@ -137,7 +142,12 @@ mcmc_h <- function(
   varcov_mat,
   Y, X, D, Phi,
   discard_burnin,
-  manual_burnin = 1
+  manual_burnin = 1,
+  label_function = function(idx) {
+    print(paste("MCMC-H IDX:", idx, "/", iterations))
+  },
+  label_skip = floor(iterations / 5),
+  label_bool = TRUE
 ) {
   # preliminaries
   p <- length(beta_D_opt) + length(beta_X_opt)
@@ -159,6 +169,9 @@ mcmc_h <- function(
   for (mcmc_idx in seq_len(iterations)) {
     record <- 0
     log_u <- log(u_vec[[mcmc_idx]])
+
+
+    if (label_bool && mcmc_idx %% label_skip == 0) label_function(mcmc_idx)
 
     # Step 1: Propose active basis
     # TODO: can we vectorize this as we do with u_vec?
