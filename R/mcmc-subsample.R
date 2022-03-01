@@ -15,8 +15,7 @@ foc_violation <- function(
 ) {
   # p by m matrix multiplied by m-vector of 1's
   if (is.null(xi_vec)) {
-    subsample_indices <- which(subsample > 0)
-    xi_vec <- xi_mat[, subsample_indices] %*% rep(1, length(subsample_indices))
+    xi_vec <- xi_mat %*% as.matrix(subsample, ncol = 1)
   } else {
     xi_vec <- xi_vec - xi_mat[, minus_index] + xi_mat[, plus_index]
   }
