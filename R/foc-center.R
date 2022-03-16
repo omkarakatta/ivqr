@@ -30,8 +30,8 @@ find_continuous_center <- function(omega, n, h) {
 
 # foc_center -------------------------------------------------------------------
 
-# Either `h` is NULL, or `beta_D` and `beta_X` are NULL
-# Latter is the default.
+# If beta_D is NULL, we will compute it from `h`
+# `h` needs to be in terms of the data arguments
 foc_center <- function(
   h,
   beta_D = NULL,
@@ -169,14 +169,9 @@ foc_center <- function(
   omega_mod[which(omega_mod < 1)] <- 0
   omega_mod <- round(omega_mod, 0) # ensure they are integral
 
-  if (!is.null(h)) {
-    # find rounded and continuous center
-    rounded_center <- find_rounded_center(omega_mod, n, h)
-    cts_center <- find_continuous_center(omega, n, h)
-  } else {
-    rounded_center <- NULL
-    cts_center <- NULL
-  }
+  # find rounded and continuous center
+  rounded_center <- find_rounded_center(omega_mod, n, h)
+  cts_center <- find_continuous_center(omega, n, h)
 
   list(
     model = model,

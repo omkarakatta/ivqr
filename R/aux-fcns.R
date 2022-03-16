@@ -209,7 +209,7 @@ compute_foc_conditions <- function(
   Y, X, D, Phi,
   tau
 ) {
-  if (!is.null(h)) {
+  if (is.null(beta_D)) {
     coef_full <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
     beta_D <- coef_full$beta_D
     beta_X <- coef_full$beta_X
