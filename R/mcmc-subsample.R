@@ -100,6 +100,9 @@ rwalk_subsample <- function(
   # Initialize MCMC
   if (profile_bool) start_time <- Sys.time()
   D_current <- initial_subsample
+  # ensure subsample includes active basis (useful if `initial_subsample` was
+  # obtained with `foc_center` where `h` was NULL)
+  D_current[h] <- 1
   dist_current_info <- distance_function(
     h = h,
     subsample = D_current,

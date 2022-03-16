@@ -9,10 +9,33 @@ foc_center_method <- function(FUN, ...) {
   FUN(...)
 }
 
+# find_rounded_center ----------------------------------------------------------
+
+#' @param omega_mod See `omega_mod` from output of `foc_center`
+find_rounded_center <- function(omega_mod, n, h) {
+  rounded_center_indices <- setdiff(seq_len(n), h)[which(omega_mod == 1)]
+  rounded_center <- vector("integer", n)
+  rounded_center[rounded_center_indices] <- 1
+  rounded_center[h] <- 1
+}
+
+# find_continuous_center -------------------------------------------------------
+
+find_continuous_center <- function(omega, n, h) {
+  cts_center_indices <- setdiff(seq_len(n), h)[which(omega > 0)]
+  cts_center <- vector("integer", n)
+  cts_center[cts_center_indices] <- omega[which(omega > 0)]
+  cts_center[h] <- 1
+}
+
 # foc_center -------------------------------------------------------------------
 
+# Either `h` is NULL, or `beta_D` and `beta_X` are NULL
+# Latter is the default.
 foc_center <- function(
   h,
+  beta_D = NULL,
+  beta_X = NULL,
   subsample_size,
   Y, X, D, Phi,
   tau,
@@ -25,7 +48,8 @@ foc_center <- function(
     stop("`facet_center` denominator must be positive; we need n - p - 1 > 0.")
   }
 
-  tmp <- compute_foc_conditions(h, Y = Y, X = X, D = D, Phi = Phi, tau = tau)
+  tmp <- compute_foc_conditions(h, beta_D, beta_X,
+                                Y = Y, X = X, D = D, Phi = Phi, tau = tau)
   xi_mat <- tmp[, setdiff(seq_len(n), h), drop = FALSE]
 
   # Decision variables in order from left/top to right/bottom
@@ -145,17 +169,14 @@ foc_center <- function(
   omega_mod[which(omega_mod < 1)] <- 0
   omega_mod <- round(omega_mod, 0) # ensure they are integral
 
-  # find rounded center
-  rounded_center_indices <- setdiff(seq_len(n), h)[which(omega_mod == 1)]
-  rounded_center <- vector("integer", n)
-  rounded_center[rounded_center_indices] <- 1
-  rounded_center[h] <- 1
-
-  # find continuous center
-  cts_center_indices <- setdiff(seq_len(n), h)[which(omega > 0)]
-  cts_center <- vector("integer", n)
-  cts_center[cts_center_indices] <- omega[which(omega > 0)]
-  cts_center[h] <- 1
+  if (!is.null(h)) {
+    # find rounded and continuous center
+    rounded_center <- find_rounded_center(omega_mod, n, h)
+    cts_center <- find_continuous_center(omega, n, h)
+  } else {
+    rounded_center <- NULL
+    cts_center <- NULL
+  }
 
   list(
     model = model,

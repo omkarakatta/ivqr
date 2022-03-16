@@ -204,11 +204,17 @@ p_val_interpolation <- function(old_p_val,
 #' @return A p by n matrix
 compute_foc_conditions <- function(
   h,
+  beta_D = NULL,
+  beta_X = NULL,
   Y, X, D, Phi,
   tau
 ) {
-  coef_full <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
-  residuals <- Y - D %*% coef_full$beta_D - X %*% coef_full$beta_X
+  if (!is.null(h)) {
+    coef_full <- h_to_beta(h, Y = Y, X = X, D = D, Phi = Phi)
+    beta_D <- coef_full$beta_D
+    beta_X <- coef_full$beta_X
+  }
+  residuals <- Y - D %*% beta_D - X %*% beta_X
   design <- cbind(X, Phi)
   designh_inv <- solve(design[h, , drop = FALSE])
 
