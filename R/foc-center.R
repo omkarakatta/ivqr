@@ -17,6 +17,7 @@ find_rounded_center <- function(omega_mod, n, h) {
   rounded_center <- vector("integer", n)
   rounded_center[rounded_center_indices] <- 1
   rounded_center[h] <- 1
+  rounded_center
 }
 
 # find_continuous_center -------------------------------------------------------
@@ -26,6 +27,7 @@ find_continuous_center <- function(omega, n, h) {
   cts_center <- vector("integer", n)
   cts_center[cts_center_indices] <- omega[which(omega > 0)]
   cts_center[h] <- 1
+  cts_center
 }
 
 # foc_center -------------------------------------------------------------------
