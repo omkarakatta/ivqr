@@ -130,6 +130,15 @@ target_h <- function(...) {
 #' @param Y,X,D,Phi Data
 #' @param discard_burnin If TRUE, remove first few samples that have the same
 #'  coefficients
+#' @param unique_beta_quota Vector of length p_D; minimum number of unique beta
+#'  (defaults to 0)
+#' @param largest_min Vector of length p_D; sample from MCMC must contain
+#'  beta_D below corresponding value of `largest_min`; defaults to Inf
+#' @param smallest_max Vector of length p_D; sample from MCMC must contain
+#'  beta_D above corresponding value of `smallest_max`; defaults to -Inf
+#' @param max_iterations Total number of iterations before stopping the
+#'  program; defaults to Inf, but set to a lower number when using `largest_min`
+#'  or `smallest_max`
 #'
 #' @return named list
 #'  1. `beta`: data frame where each row is a vector of coefficients (one
@@ -149,8 +158,12 @@ mcmc_h <- function(
   Y, X, D, Phi,
   discard_burnin,
   manual_burnin = 1,
-  label_function = function(idx) {
-    print(paste("MCMC-H IDX:", idx, "/", iterations))
+  unique_beta_quota = rep(0, ncol(D)),
+  largest_min = rep(Inf, ncol(D)),
+  smallest_max = rep(-Inf, ncol(D)),
+  max_iterations = Inf,
+  label_function = function(idx, total = iterations) {
+    print(paste("MCMC-H IDX:", idx, "/", total))
   },
   label_skip = floor(iterations / 5),
   label_bool = TRUE
@@ -171,41 +184,71 @@ mcmc_h <- function(
   result_P <- vector("double", iterations)
 
   # run MCMC
-  u_vec <- runif(n = iterations)
-  for (mcmc_idx in seq_len(iterations)) {
-    record <- 0
-    log_u <- log(u_vec[[mcmc_idx]])
+  while_bool <- TRUE
+  iterations_vec <- seq_len(iterations)
+  u_vec <- runif(n = length(iterations_vec))
+  while (while_bool) {
+    for (mcmc_idx in iterations_vec) {
+      record <- 0
+      log_u <- log(u_vec[[mcmc_idx]])
 
+      if (label_bool && mcmc_idx %% label_skip == 0) {
+        label_function(mcmc_idx, max(iterations_vec))
+      }
 
-    if (label_bool && mcmc_idx %% label_skip == 0) label_function(mcmc_idx)
+      # Step 1: Propose active basis
+      # TODO: can we vectorize this as we do with u_vec?
+      # `rmultinom` is not vectorized, is it?
+      h_star <- as.numeric(draw_proposal_h(weights, p, num_draws = 1)[1, ])
+      log_Q_star <- log(proposal_h(weights, h_star))
 
-    # Step 1: Propose active basis
-    # TODO: can we vectorize this as we do with u_vec?
-    # `rmultinom` is not vectorized, is it?
-    h_star <- as.numeric(draw_proposal_h(weights, p, num_draws = 1)[1, ])
-    log_Q_star <- log(proposal_h(weights, h_star))
+      # Step 2: Compute coefficients
+      beta_full <- h_to_beta(h = h_star, Y = Y, X = X, D = D, Phi = Phi)
+      beta_star <- c(beta_full$beta_D, beta_full$beta_X)
+      log_P_star <- log(target_h(beta_star, beta_opt, varcov_mat))
 
-    # Step 2: Compute coefficients
-    beta_full <- h_to_beta(h = h_star, Y = Y, X = X, D = D, Phi = Phi)
-    beta_star <- c(beta_full$beta_D, beta_full$beta_X)
-    log_P_star <- log(target_h(beta_star, beta_opt, varcov_mat))
+      # Step 3: Compute acceptance probability
+      log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
 
-    # Step 3: Compute acceptance probability
-    log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
-
-    # Step 4: Accept/Reject
-    if (log_u < log_acc_prob) {
-      beta_current <- beta_star
-      h_current <- h_star
-      log_P_current <- log_P_star
-      log_Q_current <- log_Q_star
-      record <- 1
+      # Step 4: Accept/Reject
+      if (log_u < log_acc_prob) {
+        beta_current <- beta_star
+        h_current <- h_star
+        log_P_current <- log_P_star
+        log_Q_current <- log_Q_star
+        record <- 1
+      }
+      result_beta[[mcmc_idx]] <- beta_current
+      result_h[[mcmc_idx]] <- h_current
+      result_record[[mcmc_idx]] <- record
+      result_P[[mcmc_idx]] <- exp(log_P_current)
     }
-    result_beta[[mcmc_idx]] <- beta_current
-    result_h[[mcmc_idx]] <- h_current
-    result_record[[mcmc_idx]] <- record
-    result_P[[mcmc_idx]] <- exp(log_P_current)
-  }
+
+    if (mcmc_idx > max_iterations) {
+      break
+    }
+
+    max_beta <- vector("double", ncol(D))
+    min_beta <- vector("double", ncol(D))
+    for (beta_D_index in seq_len(ncol(D))) {
+      beta <- sapply(result_beta, function(i) { i[[beta_D_index]] })
+      n_beta <- length(unique(beta))
+      remaining <- unique_beta_quota[[beta_D_index]] - n_beta
+      max_beta[[beta_D_index]] <- max(beta)
+      min_beta[[beta_D_index]] <- min(beta)
+      if (remaining > 0) {
+        break
+      }
+    }
+    if (remaining > 0) {
+      iterations_vec <- seq_len(remaining) + mcmc_idx
+      while_bool <- TRUE
+    } else {
+      iterations_vec <- seq_len(100) + mcmc_idx
+      while_bool <- any(max_beta < smallest_max) | any(min_beta > largest_min)
+    }
+    u_vec <- c(u_vec, runif(n = length(iterations_vec)))
+  } # end of for loop
 
   # each row is the information returned by a single iteration of the MCMC
   beta_df <- do.call(rbind, result_beta)
