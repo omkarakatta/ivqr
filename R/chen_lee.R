@@ -80,7 +80,7 @@ chen_lee <- function(n = 500,
   actual_p <- p_D
   if (p_D < 3) {
     p_D <- 3 # actual_p != p_D iff p_D < 3
-    warning("p_D is less than 3")
+    # warning("p_D is less than 3")
   }
 
   msg <- "n must be a positive integer."
