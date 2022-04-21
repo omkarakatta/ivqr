@@ -139,6 +139,8 @@ target_h <- function(...) {
 #' @param max_iterations Total number of iterations before stopping the
 #'  program; defaults to Inf, but set to a lower number when using `largest_min`
 #'  or `smallest_max`
+#' @param always_accept If FALSE (default), sample from `proposal_h`. Else,
+#'  sample from `target_h`.
 #'
 #' @return named list
 #'  1. `beta`: data frame where each row is a vector of coefficients (one
@@ -166,7 +168,8 @@ mcmc_h <- function(
     print(paste("MCMC-H IDX:", idx, "/", total))
   },
   label_skip = floor(iterations / 5),
-  label_bool = TRUE
+  label_bool = TRUE,
+  always_accept = FALSE
 ) {
   # preliminaries
   p <- length(beta_D_opt) + length(beta_X_opt)
@@ -176,6 +179,9 @@ mcmc_h <- function(
   weights <- weight_indices(residuals_opt, theta)
   log_Q_current <- log(proposal_h(weights, h_current))
   log_P_current <- log(target_h(beta_current, beta_opt, varcov_mat))
+  if (always_accept) {
+    log_P_current <- log_Q_current
+  }
 
   # pre-allocate results
   result_beta <- vector("list", iterations)
@@ -208,6 +214,9 @@ mcmc_h <- function(
       log_P_star <- log(target_h(beta_star, beta_opt, varcov_mat))
 
       # Step 3: Compute acceptance probability
+      if (always_accept) {
+        log_P_star <- log_Q_star
+      }
       log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
 
       # Step 4: Accept/Reject
@@ -277,6 +286,7 @@ mcmc_h <- function(
     "h" = h_df,
     "record" = result_record,
     "stationary_begin" = stationary_begin,
-    "target_density" = result_P
+    "target_density" = result_P,
+    "always_accept" = always_accept
   )
 }
