@@ -105,6 +105,8 @@ rwalk_subsample <- function(
   # ensure subsample includes active basis (useful if `initial_subsample` was
   # obtained with `foc_center` where `h` was NULL)
   D_current[h] <- 1
+  switch_to_zero <- sum(D_current) - sum(initial_subsample)
+  D_current[sample(setdiff(which(D_current == 1), h), switch_to_zero)] <- 0
   dist_current_info <- distance_function(
     h = h,
     subsample = D_current,
