@@ -45,6 +45,7 @@ exp_dist <- function(distance, params) {
 #'  track of MCMC
 #' @param profile_bool If TRUE, save elapsed time of each step in rwalk
 #'  subsample
+#' @param save_subsamples If TRUE, save subsamples in a list
 rwalk_subsample <- function(
   h,
   Y, X, D, Phi,
@@ -61,7 +62,8 @@ rwalk_subsample <- function(
   },
   label_skip = floor(iterations / 5),
   label_bool = TRUE,
-  profile_bool = FALSE
+  profile_bool = FALSE,
+  save_subsamples = FALSE
 ) {
   # Q: proposal of subsamples/aux variables negate each other, right?
 
@@ -147,6 +149,7 @@ rwalk_subsample <- function(
   result_P_alt <- vector("double", iterations) # Q(x | beta_hat)
   result_distance_alt <- vector("double", iterations) # FOC(beta_hat) violation
   result_membership_alt <- vector("double", iterations) # x \in FOC(beta_hat)
+  result_D <- vector("list", iterations) # subsample
 
   if (profile_bool) time$iterations <- vector("list", iterations)
 
@@ -255,6 +258,9 @@ rwalk_subsample <- function(
     result_membership[[mcmc_idx]] <- membership_current
     result_membership_alt[[mcmc_idx]] <- membership_alt_current
     result_P_alt[[mcmc_idx]] <- P_alt_current
+    if (save_subsamples) {
+      result_D[[mcmc_idx]] <- D_current
+    }
   } # exit for loop
 
   if (profile_bool) time$overall <- difftime(Sys.time(), overall_start_time,
@@ -262,11 +268,14 @@ rwalk_subsample <- function(
 
   if (!profile_bool) time <- NA
 
+  if (!save_subsamples) result_D <- NA
+
   list(
     record = result_record,
     P = result_P,
     distance = result_distance,
     membership = result_membership,
+    subsamples = result_D,
     P_alt = result_P_alt,
     distance_alt = result_distance_alt,
     profile = time
