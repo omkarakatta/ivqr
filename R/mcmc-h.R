@@ -188,6 +188,7 @@ mcmc_h <- function(
   result_h <- vector("list", iterations)
   result_record <- vector("double", iterations)
   result_P <- vector("double", iterations)
+  result_acc_prob <- vector("double", iterations)
 
   # run MCMC
   while_bool <- TRUE
@@ -218,6 +219,7 @@ mcmc_h <- function(
         log_P_star <- log_Q_star
       }
       log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
+      result_acc_prob[[mcmc_idx]] <- exp(log_acc_prob)
 
       # Step 4: Accept/Reject
       if (log_u < log_acc_prob) {
@@ -280,6 +282,7 @@ mcmc_h <- function(
   h_df <- h_df[stationary_begin:nrow(h_df), ]
   result_record <- result_record[stationary_begin:length(result_record)]
   result_P <- result_P[stationary_begin:length(result_P)]
+  result_acc_prob <- result_acc_prob[stationary_begin:length(result_P)]
 
   list(
     "beta" = beta_df,
@@ -287,6 +290,7 @@ mcmc_h <- function(
     "record" = result_record,
     "stationary_begin" = stationary_begin,
     "target_density" = result_P,
+    "acc_prob" = result_acc_prob,
     "always_accept" = always_accept
   )
 }
