@@ -11,7 +11,8 @@ foc_violation <- function(
   xi_vec = NULL,
   minus_index = NULL,
   plus_index = NULL,
-  params # l_norm
+  params, # l_norm
+  reference_subsample = NULL
 ) {
   # p by m matrix multiplied by m-vector of 1's
   if (is.null(xi_vec)) {
@@ -25,6 +26,23 @@ foc_violation <- function(
   violation <- pmax(left, right, rep(0, length(h))) # p by 1
   list(
     dist = sum(abs(violation) ^ params$l_norm) ^ (1 / params$l_norm),
+    xi_vec = xi_vec
+  )
+}
+
+dist_to_reference_subsample <- function(
+  h,
+  subsample,
+  tau,
+  xi_mat,
+  xi_vec = NULL,
+  minus_index = NULL,
+  plus_index = NULL,
+  params, # l_norm
+  reference_subsample = NULL
+) {
+  list(
+    dist = sum(subsample != reference_subsample),
     xi_vec = xi_vec
   )
 }
@@ -53,7 +71,7 @@ rwalk_subsample <- function(
   initial_subsample, # rounded version of continuous center to FOC
   iterations,
   h_alt = NULL,
-  distance_function = foc_violation,
+  distance_function = foc_violation, # foc_violation, dist_to_reference_subsample #nolint
   distance_params,
   transform_function = exp_dist,
   transform_params,
@@ -63,7 +81,8 @@ rwalk_subsample <- function(
   label_skip = floor(iterations / 5),
   label_bool = TRUE,
   profile_bool = FALSE,
-  save_subsamples = FALSE
+  save_subsamples = FALSE,
+  reference_subsample = NULL
 ) {
   # Q: proposal of subsamples/aux variables negate each other, right?
 
@@ -112,12 +131,24 @@ rwalk_subsample <- function(
     subsample = D_current,
     tau = tau,
     xi_mat = xi_mat,
-    params = distance_params
+    params = distance_params,
+    reference_subsample = reference_subsample
   )
   dist_current <- dist_current_info$dist
   xi_vec_current <- dist_current_info$xi_vec
   log_P_current <- log(transform_function(dist_current, transform_params))
-  membership_current <- isTRUE(all.equal(dist_current, 0))
+  if (identical(distance_function, foc_violation)) {
+    membership_current <- isTRUE(all.equal(dist_current, 0))
+  } else {
+    membership_current <- isTRUE(all.equal(foc_violation(
+      h = h,
+      subsample = D_current,
+      tau = tau,
+      xi_mat = xi_mat,
+      params = distance_params
+    )$dist, 0))
+  }
+
   if (profile_bool) time$initialization <- difftime(Sys.time(), start_time,
                                                     units = "secs")
 
@@ -128,10 +159,21 @@ rwalk_subsample <- function(
       subsample = D_current,
       tau = tau,
       xi_mat = xi_mat_alt,
-      params = distance_params
+      params = distance_params,
+      reference_subsample = reference_subsample
     )$dist
     P_alt_current <- transform_function(dist_alt_current, transform_params)
-    membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
+    if (identical(distance_function, foc_violation)) {
+      membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
+    } else {
+      membership_alt_current <- isTRUE(all.equal(foc_violation(
+        h = h_alt,
+        subsample = D_current,
+        tau = tau,
+        xi_mat = xi_mat_alt,
+        params = distance_params
+      )$dist, 0))
+    }
   } else {
     dist_alt_current <- NA
     P_alt_current <- NA
@@ -194,7 +236,8 @@ rwalk_subsample <- function(
         xi_vec = xi_vec_current,
         minus_index = one_to_zero,
         plus_index = zero_to_one,
-        params = distance_params
+        params = distance_params,
+        reference_subsample = reference_subsample
       )
       dist_star <- dist_star_info$dist
       xi_vec_star <- dist_star_info$xi_vec
@@ -238,7 +281,17 @@ rwalk_subsample <- function(
       dist_current <- dist_star
       xi_vec_current <- xi_vec_star
       record <- 1
-      membership_current <- isTRUE(all.equal(dist_current, 0))
+      if (identical(distance_function, foc_violation)) {
+        membership_current <- isTRUE(all.equal(dist_current, 0))
+      } else {
+        membership_current <- isTRUE(all.equal(foc_violation(
+          h = h,
+          subsample = D_current,
+          tau = tau,
+          xi_mat = xi_mat,
+          params = distance_params
+        )$dist, 0))
+      }
 
       if (!is.null(h_alt)) {
         dist_alt_current <- distance_function(
@@ -246,11 +299,22 @@ rwalk_subsample <- function(
           subsample = D_current,
           tau = tau,
           xi_mat = xi_mat_alt,
-          params = distance_params
+          params = distance_params,
+          reference_subsample = reference_subsample
         )$dist
         P_alt_current <- transform_function(dist_alt_current,
                                             transform_params)
-        membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
+        if (identical(distance_function, foc_violation)) {
+          membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
+        } else {
+          membership_alt_current <- isTRUE(all.equal(foc_violation(
+            h = h_alt,
+            subsample = D_current,
+            tau = tau,
+            xi_mat = xi_mat_alt,
+            params = distance_params
+          )$dist, 0))
+        }
       }
     }
     result_record[[mcmc_idx]] <- record
