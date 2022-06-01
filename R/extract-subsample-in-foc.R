@@ -52,10 +52,13 @@ extract_subsample_in_foc <- function(
     D_subsample = D[subsample == 1, , drop = FALSE],
     Phi_subsample = Phi[subsample == 1, , drop = FALSE],
     tau = tau,
-    beta_D = beta_D
+    beta_D = beta_D,
+    beta_X = beta_X
   )
   if (!membership$status) {
     warning("subsample not in polytope")
+    print("xi_mat:")
+    print(membership$xi)
   }
   list(
     model = model,
