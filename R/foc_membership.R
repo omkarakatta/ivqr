@@ -36,7 +36,12 @@ foc_membership <- function(
                      Y = Y_subsample,
                      X = X_subsample,
                      D = D_subsample,
-                     Phi = Phi_subsample)$beta_D
+                     Phi = Phi_subsample)$beta_D,
+  beta_X = h_to_beta(h,
+                     Y = Y_subsample,
+                     X = X_subsample,
+                     D = D_subsample,
+                     Phi = Phi_subsample)$beta_X
 ) {
   # TODO: the indices of h need to be written in terms of the subsample.
   # e.g.:
@@ -76,9 +81,7 @@ foc_membership <- function(
   stopifnot(ncol(beta_D) == 1)
   y_tilde_subsample <- Y_subsample - D_subsample %*% beta_D
   # assume beta_Phi is 0 => doesn't show up in residuals
-  reg <- quantreg::rq(y_tilde_subsample ~ X_subsample - 1,
-                      tau = tau)
-  resid_subsample <- reg$residuals
+  resid_subsample <- y_tilde_subsample - X_subsample %*% beta_X
 
   # create indices that are not in h
   noth <- setdiff(seq_len(m), h)
