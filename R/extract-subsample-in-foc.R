@@ -38,7 +38,8 @@ extract_subsample_in_foc <- function(
   result <- gurobi::gurobi(model, gurobi_params)
   if (result$status != "OPTIMAL") {
     warning("extract_subsample_in_foc() -> not optimal program")
-    return(result)
+    # Q: what if result is suboptimal or hit a time limit?
+    return(list(result = result))
   }
 
   subsample <- vector("double", n)
