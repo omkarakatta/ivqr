@@ -5,7 +5,7 @@ extract_subsample_in_foc <- function(
   subsample_size,
   Y, X, D, Phi,
   tau,
-  gurobi_params = list(OutputFlag = 0, NumericFocus = 3)
+  gurobi_params = list(OutputFlag = 0, IntFeasTol = 1e-8, FeasibilityTol = 1e-8)
 ) {
   n <- nrow(Y)
   p <- length(h)
