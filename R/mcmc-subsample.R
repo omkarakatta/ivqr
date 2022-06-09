@@ -138,15 +138,17 @@ rwalk_subsample <- function(
   xi_vec_current <- dist_current_info$xi_vec
   log_P_current <- log(transform_function(dist_current, transform_params))
   if (identical(distance_function, foc_violation)) {
-    membership_current <- isTRUE(all.equal(dist_current, 0))
+    foc_violation_dist <- dist_current
+    membership_current <- isTRUE(all.equal(foc_violation_dist, 0))
   } else {
-    membership_current <- isTRUE(all.equal(foc_violation(
+    foc_violation_dist <- foc_violation(
       h = h,
       subsample = D_current,
       tau = tau,
       xi_mat = xi_mat,
       params = distance_params
-    )$dist, 0))
+    )$dist
+    membership_current <- isTRUE(all.equal(foc_violation_dist, 0))
   }
 
   if (profile_bool) time$initialization <- difftime(Sys.time(), start_time,
@@ -188,8 +190,9 @@ rwalk_subsample <- function(
   # pre-allocate results
   result_record <- vector("double", iterations) # accept or reject?
   result_P <- vector("double", iterations) # Q(x | beta_star)
-  result_distance <- vector("double", iterations) # FOC(beta_star) violation
+  result_distance <- vector("double", iterations) # given by distance_function
   result_membership <- vector("double", iterations) # x \in FOC(beta_star)
+  result_foc_violation <- vector("double", iterations) # FOC violation
   result_P_alt <- vector("double", iterations) # Q(x | beta_hat)
   result_distance_alt <- vector("double", iterations) # FOC(beta_hat) violation
   result_membership_alt <- vector("double", iterations) # x \in FOC(beta_hat)
@@ -282,15 +285,17 @@ rwalk_subsample <- function(
       xi_vec_current <- xi_vec_star
       record <- 1
       if (identical(distance_function, foc_violation)) {
-        membership_current <- isTRUE(all.equal(dist_current, 0))
+        foc_violation_dist <- dist_current
+        membership_current <- isTRUE(all.equal(foc_violation_dist, 0))
       } else {
-        membership_current <- isTRUE(all.equal(foc_violation(
+        foc_violation_dist <- foc_violation(
           h = h,
           subsample = D_current,
           tau = tau,
           xi_mat = xi_mat,
           params = distance_params
-        )$dist, 0))
+        )$dist
+        membership_current <- isTRUE(all.equal(foc_violation_dist, 0))
       }
 
       if (!is.null(h_alt)) {
@@ -323,6 +328,7 @@ rwalk_subsample <- function(
     result_distance_alt[[mcmc_idx]] <- dist_alt_current
     result_membership[[mcmc_idx]] <- membership_current
     result_membership_alt[[mcmc_idx]] <- membership_alt_current
+    result_foc_violation[[mcmc_idx]] <- foc_violation_dist
     result_P_alt[[mcmc_idx]] <- P_alt_current
     if (save_subsamples) {
       result_D[[mcmc_idx]] <- D_current
@@ -341,6 +347,7 @@ rwalk_subsample <- function(
     P = result_P,
     distance = result_distance,
     membership = result_membership,
+    foc_violation = result_foc_violation,
     subsamples = result_D,
     P_alt = result_P_alt,
     distance_alt = result_distance_alt,
