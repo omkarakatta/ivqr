@@ -184,6 +184,9 @@ rwalk_subsample <- function(
   if (profile_bool) time$initialization_alt <- difftime(Sys.time(), start_time,
                                                         units = "secs")
 
+  n <- length(initial_subsample)
+  m <- sum(initial_subsample)
+
   # collect draws from uniform distribution
   u_vec <- runif(n = iterations)
 
@@ -209,6 +212,27 @@ rwalk_subsample <- function(
     ones <- setdiff(which(D_current == 1), h)
     zeros <- setdiff(which(D_current == 0), h)
 
+    if (!is.null(reference_subsample)) {
+      common_ones <- intersect(which(reference_subsample == 1), which(D_current == 1)) #nolint
+      common_zeros <- intersect(which(reference_subsample == 0), which(D_current == 0)) #nolint
+      different_ones <- intersect(which(reference_subsample == 0), which(D_current == 1)) #nolint
+      different_zeros <- intersect(which(reference_subsample == 1), which(D_current == 0)) #nolint
+      sharing <- length(common_ones)
+      type_vec <- c()
+      num_closer <- (m - sharing)^2
+      num_farther <- sharing * (n - 2 * (m - sharing) - sharing)
+      num_same <- (m - sharing) * (n - 2 * (m - sharing))
+      if (num_closer > 0) {
+        type_vec <- append(type_vec, "closer")
+      }
+      if (num_farther > 0) {
+        type_vec <- append(type_vec, "farther")
+      }
+      if (num_same > 0) {
+        type_vec <- append(type_vec, "same")
+      }
+    }
+
     if (profile_bool) while_start_time <- Sys.time()
 
     while_counter <- 0
@@ -218,8 +242,26 @@ rwalk_subsample <- function(
 
       if (profile_bool) start_time <- Sys.time()
       # Get proposals
-      one_to_zero <- sample(ones, 1, replace = FALSE)
-      zero_to_one <- sample(zeros, 1, replace = FALSE)
+      if (!is.null(reference_subsample)) {
+        type <- sample(type_vec, 1)
+        if (type == "closer") {
+          one_to_zero <- sample(different_ones, 1)
+          zero_to_one <- sample(different_zeros, 1)
+          log_correction <- -log(num_closer)
+        } else if (type == "farther") {
+          one_to_zero <- sample(common_ones, 1)
+          zero_to_one <- sample(common_zeros, 1)
+          log_correction <- -log(num_farther)
+        } else if (type == "same") {
+          one_to_zero <- sample(ones, 1)
+          zero_to_one <- ifelse(one_to_zero %in% common_ones, sample(different_zeros, 1), sample(common_zeros, 1)) #nolint
+          log_correction <- -log(num_same)
+        }
+      } else {
+        one_to_zero <- sample(ones, 1)
+        zero_to_one <- sample(zeros, 1)
+        log_correction <- 0
+      }
       D_star <- D_current
       D_star[one_to_zero] <- 0
       D_star[zero_to_one] <- 1
@@ -244,7 +286,7 @@ rwalk_subsample <- function(
       )
       dist_star <- dist_star_info$dist
       xi_vec_star <- dist_star_info$xi_vec
-      log_P_star <- log(transform_function(dist_star, transform_params))
+      log_P_star <- log(transform_function(dist_star, transform_params)) + log_correction #nolint
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
                                                                   start_time,
