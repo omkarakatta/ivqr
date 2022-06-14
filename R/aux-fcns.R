@@ -7,6 +7,11 @@
 ### Author: Omkar A. Katta
 ###
 
+### alt_sample -------------------------
+# Return `x` if length(x) == 1 instead of resorting to sample.int
+alt_sample <- function(x, ...) {
+  x[sample.int(length(x), ...)]
+}
 
 ### manipulate_qr_residuals -------------------------
 #' Manipulate residuals from a quantile regression

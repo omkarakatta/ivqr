@@ -86,6 +86,11 @@ rwalk_subsample <- function(
 ) {
   # Q: proposal of subsamples/aux variables negate each other, right?
 
+  initial_subsample <- as.integer(initial_subsample)
+  if (!is.null(reference_subsample)) {
+    reference_subsample <- as.integer(reference_subsample)
+  }
+
   if (profile_bool) time <- list()
 
   # Subsamples -----------------------------------------------------------------
@@ -125,7 +130,7 @@ rwalk_subsample <- function(
   # obtained with `foc_center` where `h` was NULL)
   D_current[h] <- 1
   switch_to_zero <- sum(D_current) - sum(initial_subsample)
-  D_current[sample(setdiff(which(D_current == 1), h), switch_to_zero)] <- 0
+  D_current[alt_sample(setdiff(which(D_current == 1), h), switch_to_zero)] <- 0
   dist_current_info <- distance_function(
     h = h,
     subsample = D_current,
@@ -225,7 +230,7 @@ rwalk_subsample <- function(
       common_zeros <- intersect(zeros_reference, zeros_current) #nolint
       different_ones <- intersect(zeros_reference, ones_current) #nolint
       different_zeros <- intersect(ones_reference, zeros_current) #nolint
-      sharing <- length(intersect(which(reference_subsample == 1), which(D_current == 1)))
+      sharing <- length(intersect(which(reference_subsample == 1), which(D_current == 1))) #nolint
       stopifnot(sharing >= p) # we must always share active basis indices
       stopifnot(all(h %in% intersect(which(reference_subsample == 1), which(D_current == 1)))) # we must always share active basis indices #nolint
       type_vec <- c()
@@ -253,29 +258,33 @@ rwalk_subsample <- function(
       if (profile_bool) start_time <- Sys.time()
       # Get proposals
       if (!is.null(reference_subsample)) {
-        type <- sample(type_vec, 1)
+        type <- alt_sample(type_vec, 1)
         if (type == "closer") {
-          one_to_zero <- sample(different_ones, 1)
-          zero_to_one <- sample(different_zeros, 1)
+          one_to_zero <- alt_sample(different_ones, 1)
+          zero_to_one <- alt_sample(different_zeros, 1)
           log_correction <- -log(num_closer)
         } else if (type == "farther") {
-          one_to_zero <- sample(common_ones, 1)
-          zero_to_one <- sample(common_zeros, 1)
+          one_to_zero <- alt_sample(common_ones, 1)
+          zero_to_one <- alt_sample(common_zeros, 1)
           log_correction <- -log(num_farther)
         } else if (type == "same") {
-          one_to_zero <- sample(ones_current, 1)
-          zero_to_one <- ifelse(one_to_zero %in% common_ones, sample(different_zeros, 1), sample(common_zeros, 1)) #nolint
+          one_to_zero <- alt_sample(ones_current, 1)
+          zero_to_one <- ifelse(one_to_zero %in% common_ones, alt_sample(different_zeros, 1), alt_sample(common_zeros, 1)) #nolint
           log_correction <- -log(num_same)
         }
       } else {
         type <- NA
-        one_to_zero <- sample(ones_current, 1)
-        zero_to_one <- sample(zeros_current, 1)
+        one_to_zero <- alt_sample(ones_current, 1)
+        zero_to_one <- alt_sample(zeros_current, 1)
         log_correction <- 0
       }
       D_star <- D_current
-      D_star[one_to_zero] <- 0
-      D_star[zero_to_one] <- 1
+      stopifnot(D_current[one_to_zero] == 1)
+      stopifnot(D_current[zero_to_one] == 0L)
+      D_star[one_to_zero] <- 0L
+      D_star[zero_to_one] <- 1L
+      stopifnot(sum(D_current) == m)
+      stopifnot(sum(D_star) == m)
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$get_D_star <- difftime(Sys.time(),
                                                            start_time,
