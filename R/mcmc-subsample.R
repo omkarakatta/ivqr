@@ -201,6 +201,8 @@ rwalk_subsample <- function(
   result_membership_alt <- vector("double", iterations) # x \in FOC(beta_hat)
   result_D <- vector("list", iterations) # subsample
 
+  result_P_star <- vector("double", iterations) # Q(x_star | beta_star)
+
   if (profile_bool) time$iterations <- vector("list", iterations)
 
   for (mcmc_idx in seq_len(iterations)) {
@@ -258,6 +260,7 @@ rwalk_subsample <- function(
           log_correction <- -log(num_same)
         }
       } else {
+        type <- NA
         one_to_zero <- sample(ones, 1)
         zero_to_one <- sample(zeros, 1)
         log_correction <- 0
@@ -366,6 +369,7 @@ rwalk_subsample <- function(
     }
     result_record[[mcmc_idx]] <- record
     result_P[[mcmc_idx]] <- exp(log_P_current)
+    result_P_star[[mcmc_idx]] <- exp(log_P_star)
     result_distance[[mcmc_idx]] <- dist_current
     result_distance_alt[[mcmc_idx]] <- dist_alt_current
     result_membership[[mcmc_idx]] <- membership_current
@@ -387,6 +391,7 @@ rwalk_subsample <- function(
   list(
     record = result_record,
     P = result_P,
+    P_star = result_P_star,
     distance = result_distance,
     membership = result_membership,
     foc_violation = result_foc_violation,
