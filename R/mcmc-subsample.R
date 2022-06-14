@@ -136,7 +136,8 @@ rwalk_subsample <- function(
   )
   dist_current <- dist_current_info$dist
   xi_vec_current <- dist_current_info$xi_vec
-  log_P_current <- log(transform_function(dist_current, transform_params))
+  # log_P_current <- log(transform_function(dist_current, transform_params))
+  log_P_current <- -Inf # this will ensure we move in the first step # Q: is this okay?
   if (identical(distance_function, foc_violation)) {
     foc_violation_dist <- dist_current
     membership_current <- isTRUE(all.equal(foc_violation_dist, 0))
