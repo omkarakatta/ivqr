@@ -187,6 +187,7 @@ rwalk_subsample <- function(
 
   n <- length(initial_subsample)
   m <- sum(initial_subsample)
+  p <- length(h)
 
   # collect draws from uniform distribution
   u_vec <- runif(n = iterations)
@@ -204,6 +205,10 @@ rwalk_subsample <- function(
 
   result_P_star <- vector("double", iterations) # Q(x_star | beta_star)
 
+
+  ones_reference <- setdiff(which(reference_subsample == 1), h)
+  zeros_reference <- setdiff(which(reference_subsample == 0), h)
+
   if (profile_bool) time$iterations <- vector("list", iterations)
 
   for (mcmc_idx in seq_len(iterations)) {
@@ -212,19 +217,21 @@ rwalk_subsample <- function(
 
     if (label_bool && mcmc_idx %% label_skip == 0) label_function(mcmc_idx)
 
-    ones <- setdiff(which(D_current == 1), h)
-    zeros <- setdiff(which(D_current == 0), h)
+    ones_current <- setdiff(which(D_current == 1), h)
+    zeros_current <- setdiff(which(D_current == 0), h)
 
     if (!is.null(reference_subsample)) {
-      common_ones <- intersect(which(reference_subsample == 1), which(D_current == 1)) #nolint
-      common_zeros <- intersect(which(reference_subsample == 0), which(D_current == 0)) #nolint
-      different_ones <- intersect(which(reference_subsample == 0), which(D_current == 1)) #nolint
-      different_zeros <- intersect(which(reference_subsample == 1), which(D_current == 0)) #nolint
-      sharing <- length(common_ones)
+      common_ones <- intersect(ones_reference, ones_current) #nolint
+      common_zeros <- intersect(zeros_reference, zeros_current) #nolint
+      different_ones <- intersect(zeros_reference, ones_current) #nolint
+      different_zeros <- intersect(ones_reference, zeros_current) #nolint
+      sharing <- length(intersect(which(reference_subsample == 1), which(D_current == 1)))
+      stopifnot(sharing >= p) # we must always share active basis indices
+      stopifnot(all(h %in% intersect(which(reference_subsample == 1), which(D_current == 1)))) # we must always share active basis indices #nolint
       type_vec <- c()
       num_closer <- (m - sharing)^2
-      num_farther <- sharing * (n - 2 * (m - sharing) - sharing)
-      num_same <- (m - sharing) * (n - 2 * (m - sharing))
+      num_farther <- (sharing - p) * (n - 2 * (m - sharing) - sharing)
+      num_same <- (m - sharing) * (n - 2 * (m - sharing) - p)
       if (num_closer > 0) {
         type_vec <- append(type_vec, "closer")
       }
@@ -256,14 +263,14 @@ rwalk_subsample <- function(
           zero_to_one <- sample(common_zeros, 1)
           log_correction <- -log(num_farther)
         } else if (type == "same") {
-          one_to_zero <- sample(ones, 1)
+          one_to_zero <- sample(ones_current, 1)
           zero_to_one <- ifelse(one_to_zero %in% common_ones, sample(different_zeros, 1), sample(common_zeros, 1)) #nolint
           log_correction <- -log(num_same)
         }
       } else {
         type <- NA
-        one_to_zero <- sample(ones, 1)
-        zero_to_one <- sample(zeros, 1)
+        one_to_zero <- sample(ones_current, 1)
+        zero_to_one <- sample(zeros_current, 1)
         log_correction <- 0
       }
       D_star <- D_current
