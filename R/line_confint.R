@@ -267,6 +267,8 @@ line_confint <- function(index,
   initial_time <- as.numeric(initial_test_stat$time_elapsed * 60) # time in seconds
   if (initial_rejected) {
     warning("Initial value of beta_null was rejected.")
+    out$lower <- NA
+    out$upper <- NA
     return(out)
     # TODO: do a line search to find a value in the confidence interval
   }
