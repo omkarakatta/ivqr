@@ -160,7 +160,11 @@ get_iqr_objective <- function(beta_D, Y, X, D, Z, tau, ...) {
   if (!is.null(colnames(Z))) {
     names(beta_Z) <- colnames(Z)
   }
-  list(beta_Z = beta_Z, tau = tau, obj = sum(abs(beta_Z)))
+  beta_X <- as.data.frame(stats::coef(qr))[ncol(Z) + seq_len(ncol(X)), ]
+  if (!is.null(colnames(X))) {
+    names(beta_X) <- colnames(X)
+  }
+  list(beta_Z = beta_Z, beta_X = beta_X, tau = tau, obj = sum(abs(beta_Z)))
 }
 
 ### gridsearch -------------------------
@@ -298,7 +302,7 @@ gridsearch_parallel <- function(grid,
   on.exit(parallel::stopCluster(cl))
 
   # name of results
-  cols <- c("iteration", colnames(grid), colnames(Z), "objective")
+  cols <- c("iteration", colnames(grid), colnames(Z), colnames(X), "objective")
 
   message(paste("Evaluating grid..."))
 
@@ -312,7 +316,7 @@ gridsearch_parallel <- function(grid,
     names(beta_D_vec) <- colnames(grid)
 
     tmp <- get_iqr_objective(beta_D_vec, Y, X, D, Z, tau, ...)
-    result <- c(i, beta_D_vec, tmp$beta_Z, objective = tmp$obj)
+    result <- c(i, beta_D_vec, tmp$beta_Z, tmp$beta_X, objective = tmp$obj)
     names(result) <- cols
 
     # store results in log
