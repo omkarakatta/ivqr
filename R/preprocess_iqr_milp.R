@@ -154,7 +154,7 @@ preprocess_iqr_milp <- function(Y,
   counter <- 0
   while (status == "TIME_LIMIT" || obj != 0) {
     counter <- counter + 1
-    message(paste("Iteration", counter))
+    send_note_if(paste("Iteration", counter), show_iterations, message)
     while_start_time <- Sys.time()
     # TODO: Is it possible for two iterations of the while loop to have the same number of fixed variables?
     # Fix the most negative and most positive residuals
