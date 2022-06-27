@@ -275,10 +275,11 @@ gridsearch_parallel <- function(grid,
                                 log_dir = NULL,
                                 log_name = "gridsearch_results.csv",
                                 cores = parallel::detectCores()[1] - 2,
+                                show_progress = FALSE,
                                 ...) {
   # Start clock
   clock_start <- Sys.time()
-  message(paste("Clock started:", clock_start))
+  # message(paste("Clock started:", clock_start))
 
   create_log <- FALSE
   date_time <- format(Sys.time(), "%y%m%d_%H%M%S")
@@ -304,7 +305,7 @@ gridsearch_parallel <- function(grid,
   # name of results
   cols <- c("iteration", colnames(grid), colnames(Z), colnames(X), "objective")
 
-  message(paste("Evaluating grid..."))
+  send_note_if(paste("Evaluating grid..."), show_progress, message)
 
   # find IQR objective for each grid coordinate
   i <- NULL # avoid undefined global variable note in R CMD check results
@@ -341,12 +342,12 @@ gridsearch_parallel <- function(grid,
   }
 
   # print argmin of grid search
-  print(result_with_min_obj[result_with_min_obj$min_obj, ])
+  send_note_if(result_with_min_obj[result_with_min_obj$min_obj, ], show_progress, print) #nolint
 
   # Stop the clock
   clock_end <- Sys.time()
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
-  message(paste("Clock stopped:", clock_end))
+  # message(paste("Clock stopped:", clock_end))
 
   # return results of grid evaluations
   return(invisible(list(result = result_with_min_obj,

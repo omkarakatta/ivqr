@@ -465,7 +465,7 @@ line_confint <- function(index,
     }
   } # end of for loop
 
-  message(paste("leave foreach loop:", TRUE)) # DEBUG: remove later
+  # message(paste("leave foreach loop:", TRUE)) # DEBUG: remove later
 
   # get counter (i.e., number of skipped steps)
   confint_skips <- sapply(confint, function(i) i[[3]]) # get num_skips
