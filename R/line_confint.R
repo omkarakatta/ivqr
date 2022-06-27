@@ -103,6 +103,7 @@ line_confint <- function(index,
                          kernel = "Powell",
                          residuals = NULL,
                          show_progress = TRUE,
+                         print_test_stat_results = TRUE, # TODO: document -- value for `print_results` argument in `test_stat()` #nolint
                          # FUN = preprocess_iqr_milp,
                          initial_TimeLimit = NULL,
                          initial_globalTimeLimit = Inf,
@@ -111,7 +112,7 @@ line_confint <- function(index,
 
   # Start clock
   clock_start <- Sys.time()
-  message(paste("Clock started:", clock_start))
+  send_note_if(paste("Clock started:", clock_start), show_progress, message)
 
   out <- list() # Initialize list of results to return
   out$homoskedasticity <- homoskedasticity
@@ -253,6 +254,7 @@ line_confint <- function(index,
     residuals = residuals,
     TimeLimit = initial_TimeLimit,
     globalTimeLimit = initial_globalTimeLimit,
+    print_results = print_test_stat_results,
     LogFileName = ifelse(save_log,
                          paste0(log_dir, "/", date_time, "_initialTestStat"),
                          ""),
@@ -519,7 +521,7 @@ line_confint <- function(index,
   clock_end <- Sys.time()
   elapsed_time <- difftime(clock_end, clock_start, units = "mins")
   out$time_elapsed <- elapsed_time
-  message(paste("Clock stopped:", clock_end))
+  send_note_if(paste("Clock stopped:", clock_end), show_progress, message)
 
   # save results
   results <- data.frame(index = index,
