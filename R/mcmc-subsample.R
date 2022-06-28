@@ -201,6 +201,7 @@ rwalk_subsample <- function(
   result_record <- vector("double", iterations) # accept or reject?
   result_P <- vector("double", iterations) # Q(x | beta_star)
   result_distance <- vector("double", iterations) # given by distance_function
+  result_distance_star <- vector("double", iterations) # proposed subsample dist
   result_membership <- vector("double", iterations) # x \in FOC(beta_star)
   result_foc_violation <- vector("double", iterations) # FOC violation
   result_P_alt <- vector("double", iterations) # Q(x | beta_hat)
@@ -390,6 +391,7 @@ rwalk_subsample <- function(
     result_P[[mcmc_idx]] <- exp(log_P_current)
     result_P_star[[mcmc_idx]] <- exp(log_P_star)
     result_distance[[mcmc_idx]] <- dist_current
+    result_distance_star[[mcmc_idx]] <- dist_star
     result_distance_alt[[mcmc_idx]] <- dist_alt_current
     result_membership[[mcmc_idx]] <- membership_current
     result_membership_alt[[mcmc_idx]] <- membership_alt_current
@@ -413,6 +415,7 @@ rwalk_subsample <- function(
     P_star = result_P_star,
     proposed_dir = result_proposed_dir,
     distance = result_distance,
+    distance_star = result_distance_star,
     membership = result_membership,
     foc_violation = result_foc_violation,
     subsamples = result_D,
