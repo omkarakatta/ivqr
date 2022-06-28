@@ -209,7 +209,7 @@ rwalk_subsample <- function(
   result_D <- vector("list", iterations) # subsample
 
   result_P_star <- vector("double", iterations) # Q(x_star | beta_star)
-
+  result_proposed_dir <- vector("character", iterations) # closer, farther, same
 
   ones_reference <- setdiff(which(reference_subsample == 1), h)
   zeros_reference <- setdiff(which(reference_subsample == 0), h)
@@ -259,6 +259,7 @@ rwalk_subsample <- function(
       # Get proposals
       if (!is.null(reference_subsample)) {
         type <- alt_sample(type_vec, 1)
+        result_proposed_dir[[mcmc_idx]] <- type
         if (type == "closer") {
           one_to_zero <- alt_sample(different_ones, 1)
           zero_to_one <- alt_sample(different_zeros, 1)
@@ -274,6 +275,7 @@ rwalk_subsample <- function(
         }
       } else {
         type <- NA
+        result_proposed_dir[[mcmc_idx]] <- NA
         one_to_zero <- alt_sample(ones_current, 1)
         zero_to_one <- alt_sample(zeros_current, 1)
         log_correction <- 0
@@ -409,6 +411,7 @@ rwalk_subsample <- function(
     record = result_record,
     P = result_P,
     P_star = result_P_star,
+    proposed_dir = result_proposed_dir,
     distance = result_distance,
     membership = result_membership,
     foc_violation = result_foc_violation,
