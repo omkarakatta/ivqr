@@ -339,6 +339,22 @@ parse_single_log <- function(log_path, information = "incumbent") {
   if ("incumbent" %in% information) {
     incumbent_index <- grepl(pattern = "^(H|\\*)", log)
     incumbent_warmstart_bool <- sum(grepl(pattern = "Loaded user MIP start with objective", log)) > 0
+    if (incumbent_warmstart_bool) { # include the warmstart solution as an incumbent solution
+      # find start of table, then add three rows
+      # first row below start is subheader; second row is empty; third row is warm-start!
+      start_index <- grep(pattern = "Unexpl", log) + 3
+      incumbent_index[start_index] <- TRUE
+    }
+    incumbent_log <- log[incumbent_index]
+    # remove everything before and including last space
+    incumbent_time <- gsub(".*? ", "", incumbent_log)
+    # remove all non-numeric characters
+    incumbent_time_numeric <- as.numeric(gsub("[^0-9]+", "", incumbent_time))
+    result <- incumbent_time_numeric
+  }
+  if ("objective" %in% information) {
+    incumbent_index <- grepl(pattern = "^(H|\\*)", log)
+    incumbent_warmstart_bool <- sum(grepl(pattern = "Loaded user MIP start with objective", log)) > 0
     if (incumbent_warmstart_bool) {
       # find start of table, then add three rows
       # first row below start is subheader; second row is empty; third row is warm-start!
@@ -346,11 +362,11 @@ parse_single_log <- function(log_path, information = "incumbent") {
       incumbent_index[start_index] <- TRUE
     }
     incumbent_log <- log[incumbent_index]
-    # remove everything before and includeing last space
-    incumbent_time <- gsub(".*? ", "", incumbent_log)
-    # remove all non-numeric characters
-    incumbent_time_numeric <- as.numeric(gsub("[^0-9]+", "", incumbent_time))
-    result <- incumbent_time_numeric
+    incumbent_list <- strsplit(incumbent_log, "\\s+")
+    incumbent_objective <- sapply(incumbent_list, function(l) {
+      as.numeric(l[length(l) - 4])
+    })
+    result <- incumbent_objective
   }
   result
 }
