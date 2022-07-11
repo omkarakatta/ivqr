@@ -80,6 +80,8 @@
 #'      multivariate confidence region was projected
 #'    \item homoskedasticity,kernel: indicates estimator of residual density
 #'  }
+#'
+#' @export
 miqcp_proj <- function(projection_index,
                        endogeneous = TRUE,
                        beta_X_indices = NULL,
