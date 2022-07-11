@@ -69,6 +69,8 @@
 #'      endogeneous variable and the erros on the location scale model
 #'  }
 #'
+#' @seealso \code{\link{true_chen_lee}}
+#'
 #' @export
 chen_lee <- function(n = 500,
                      p_D = 3,
@@ -137,4 +139,22 @@ chen_lee <- function(n = 500,
    "beta_D_errors" = beta_D_errors,
    "V" = V
   )
+}
+
+#' Obtain true coefficients on endogeneous variable
+#'
+#' See third display on p. 557 of Chen and Lee (2018)
+#'
+#' @param beta_D_errors coefficients on the interaction of endogeneous
+#'   variables and errors
+#' @param tau quantile between 0 and 1
+#'
+#' @return Vector of true DGP coefficients on endogeneous variables
+#'
+#' @seealso \code{\link{chen_lee}}
+#'
+#' @export
+true_chen_lee <- function(beta_D_errors, tau) {
+  # assumes that errors come from Gaussian mean 0 and variance 0.25
+  1 + beta_D_errors * qnorm(tau, mean = 0, sd = sqrt(0.25))
 }

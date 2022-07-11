@@ -68,3 +68,6 @@ variable and the errors on the location scale model. The closer these
 coefficients are to 0, the less endogeneity we have and the stronger our
 identification is. See \code{error_coefs} argument.
 }
+\seealso{
+\code{\link{true_chen_lee}}
+}
