@@ -21,6 +21,7 @@ iqr_milp(
   sparse = TRUE,
   attributes = list(),
   params = list(FeasibilityTol = 1e-06, LogToConsole = 0),
+  start_method = NULL,
   start = NULL,
   fix = NULL,
   quietly = TRUE,
@@ -80,9 +81,12 @@ defaults to empty list}
 \item{params}{Gurobi parameters, see
 \url{https://www.gurobi.com/documentation/9.1/refman/parameter_descriptions.html}}
 
+\item{start_method}{Feed into \code{compute_warmstart} in the default value
+of \code{start}; defaults to NULL, ignored if \code{start} is not NULL}
+
 \item{start}{Gurobi attribute, see
 \url{https://www.gurobi.com/documentation/9.1/examples/mip_starts.html}; If
-NULL (default), no starting solution will be provided}
+NULL (default), no starting solution will be provided; see \code{compute_warmstart}}
 
 \item{fix}{Fix decision variables; If NULL (default), no starting solution will
 be provided; if NA, the respective decision variable won't be fixed;

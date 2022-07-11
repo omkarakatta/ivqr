@@ -4,13 +4,17 @@
 \alias{chen_lee}
 \title{Simulate data according to Chen and Lee (2017)}
 \usage{
-chen_lee(n = 500, p_D = 3)
+chen_lee(n = 500, p_D = 3, beta_D_errors = NULL)
 }
 \arguments{
 \item{n}{Number of observations; defaults to 500 (numeric)}
 
 \item{p_D}{Number of endogeneous variables; defaults to 3
 (numeric)}
+
+\item{beta_D_errors}{Coefficients on the error terms, one for each
+endogeneous variable (vector of length p_D); If NULL, defaults to the
+values in Chen and Lee (2018)}
 }
 \value{
 A named list:
@@ -22,6 +26,9 @@ A named list:
 \item errors: matrix of errors and shocks (n by (p_D + 1) matrix); first
 column is the vector of errors on the location scale model; all other
 columns are shocks to the instruments when defining D.
+\item V: variance-covariance matrix of the errors/shocks
+\item beta_D_errors: coefficients on the interaction between each
+endogeneous variable and the erros on the location scale model
 }
 }
 \description{
@@ -51,4 +58,13 @@ This design allows for an arbitrary number of endogeneous variables.
 To allow fewer endogeneous variables, say 2 endogeneous variables, we simply
 omit the third endogeneous variable from the original Chen and Lee
 simulation before constructing our outcome variable.
+
+The strength of identification is determined in two ways.
+First: the covariance between the errors on the location scale model and the
+shocks to the instruments when defining D. This is given by the off-diagonal
+entries of \code{V}.
+Second: the coefficients on the interaction between each endogeneous
+variable and the errors on the location scale model. The closer these
+coefficients are to 0, the less endogeneity we have and the stronger our
+identification is. See \code{error_coefs} argument.
 }

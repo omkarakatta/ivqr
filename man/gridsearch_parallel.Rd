@@ -14,6 +14,7 @@ gridsearch_parallel(
   log_dir = NULL,
   log_name = "gridsearch_results.csv",
   cores = parallel::detectCores()[1] - 2,
+  show_progress = FALSE,
   ...
 )
 }

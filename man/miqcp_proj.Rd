@@ -77,10 +77,7 @@ defaults to FALSE (boolean)}
 \item{residuals}{Residuals from IQR MILP program; if NULL (default), use
 naive residuals from quantile regression}
 
-\item{O_neg}{Indices for residuals whose sign is fixed to be negative
-and positive, respectively (vectors)}
-
-\item{O_pos}{Indices for residuals whose sign is fixed to be negative
+\item{O_neg, O_pos}{Indices for residuals whose sign is fixed to be negative
 and positive, respectively (vectors)}
 
 \item{M}{A large number that bounds the absolute value of the residuals

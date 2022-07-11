@@ -32,6 +32,7 @@ line_confint(
   kernel = "Powell",
   residuals = NULL,
   show_progress = TRUE,
+  print_test_stat_results = TRUE,
   initial_TimeLimit = NULL,
   initial_globalTimeLimit = Inf,
   save_log = FALSE,
