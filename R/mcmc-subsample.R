@@ -54,6 +54,21 @@ exp_dist <- function(distance, params) {
   max(exp(-1 * params$gamma * distance^params$l_power), params$min_prob)
 }
 
+# params$min_prob: smallest acceptable value for the probability (set to -Inf
+# (or any negative number) to make this ineffective)
+# params$n: number of observations in original data
+# params$m: number of observations in subsample
+# params$p: number of observations in active basis
+exp_dist_correction <- function(distance, params) {
+  n <- params$n
+  m <- params$m
+  p <- params$p
+  sharing <- m - distance / 2
+  correction <- choose(m - p, sharing - p) * choose(n - m, m - sharing)
+  max(1 / correction * exp(-1 * params$gamma * distance^params$l_power),
+      params$min_prob)
+}
+
 # Main -------------------------------------------------------------------------
 
 # run random walk for main and auxiliary variables
@@ -235,17 +250,21 @@ rwalk_subsample <- function(
       stopifnot(sharing >= p) # we must always share active basis indices
       stopifnot(all(h %in% intersect(which(reference_subsample == 1), which(D_current == 1)))) # we must always share active basis indices #nolint
       type_vec <- c()
+      weight_vec <- c()
       num_closer <- (m - sharing)^2
-      num_farther <- (sharing - p) * (n - 2 * (m - sharing) - sharing)
-      num_same <- (m - sharing) * (n - 2 * (m - sharing) - p)
+      num_farther <- (sharing - p) * (n - 2 * m + sharing)
+      num_same <- (m - sharing) * (n - 2 * (m + sharing) - p)
       if (num_closer > 0) {
         type_vec <- append(type_vec, "closer")
+        weight_vec <- append(weight_vec, num_closer)
       }
       if (num_farther > 0) {
         type_vec <- append(type_vec, "farther")
+        weight_vec <- append(weight_vec, num_farther)
       }
       if (num_same > 0) {
         type_vec <- append(type_vec, "same")
+        weight_vec <- append(weight_vec, num_same)
       }
     }
 
@@ -259,7 +278,7 @@ rwalk_subsample <- function(
       if (profile_bool) start_time <- Sys.time()
       # Get proposals
       if (!is.null(reference_subsample)) {
-        type <- alt_sample(type_vec, 1)
+        type <- alt_sample(type_vec, 1, prob = weight_vec)
         result_proposed_dir[[mcmc_idx]] <- type
         if (type == "closer") {
           one_to_zero <- alt_sample(different_ones, 1)
@@ -309,7 +328,9 @@ rwalk_subsample <- function(
       )
       dist_star <- dist_star_info$dist
       xi_vec_star <- dist_star_info$xi_vec
-      log_P_star <- log(transform_function(dist_star, transform_params)) + log_correction #nolint
+      sharing_star <- m - dist_star / 2
+      log_P_star <- log(transform_function(dist_star, transform_params)) +
+        log_correction
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
                                                                   start_time,
