@@ -256,15 +256,15 @@ rwalk_subsample <- function(
       num_same <- (m - sharing) * (n - 2 * (m + sharing) - p)
       if (num_closer > 0) {
         type_vec <- append(type_vec, "closer")
-        weight_vec <- append(weight_vec, num_closer)
+        weight_vec <- append(weight_vec, 1)
       }
       if (num_farther > 0) {
         type_vec <- append(type_vec, "farther")
-        weight_vec <- append(weight_vec, num_farther)
+        weight_vec <- append(weight_vec, 1)
       }
       if (num_same > 0) {
         type_vec <- append(type_vec, "same")
-        weight_vec <- append(weight_vec, num_same)
+        weight_vec <- append(weight_vec, 1)
       }
     }
 
@@ -283,22 +283,26 @@ rwalk_subsample <- function(
         if (type == "closer") {
           one_to_zero <- alt_sample(different_ones, 1)
           zero_to_one <- alt_sample(different_zeros, 1)
-          log_correction <- -log(num_closer)
+          log_Q_star <- -log(num_closer)
+          log_Q_current <- -log((sharing + 1 - p) * (n - 2 * m + sharing + 1))
         } else if (type == "farther") {
           one_to_zero <- alt_sample(common_ones, 1)
           zero_to_one <- alt_sample(common_zeros, 1)
-          log_correction <- -log(num_farther)
+          log_Q_star <- -log(num_farther)
+          log_Q_current <- -log((m - (sharing - 1))^2)
         } else if (type == "same") {
           one_to_zero <- alt_sample(ones_current, 1)
           zero_to_one <- ifelse(one_to_zero %in% common_ones, alt_sample(different_zeros, 1), alt_sample(common_zeros, 1)) #nolint
-          log_correction <- -log(num_same)
+          log_Q_star <- -log(num_same)
+          log_Q_current <- -log(num_same)
         }
       } else {
         type <- NA
         result_proposed_dir[[mcmc_idx]] <- NA
         one_to_zero <- alt_sample(ones_current, 1)
         zero_to_one <- alt_sample(zeros_current, 1)
-        log_correction <- 0
+        log_Q_star <- 0
+        log_Q_current <- 0
       }
       D_star <- D_current
       stopifnot(D_current[one_to_zero] == 1)
@@ -329,8 +333,7 @@ rwalk_subsample <- function(
       dist_star <- dist_star_info$dist
       xi_vec_star <- dist_star_info$xi_vec
       sharing_star <- m - dist_star / 2
-      log_P_star <- log(transform_function(dist_star, transform_params)) +
-        log_correction
+      log_P_star <- log(transform_function(dist_star, transform_params))
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
                                                                   start_time,
@@ -343,7 +346,7 @@ rwalk_subsample <- function(
 
       if (profile_bool) start_time <- Sys.time()
       # Compute acceptance probabilities and accept/reject
-      log_acc_prob <- log_P_star - log_P_current
+      log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
       accept_reject_bool <- log_u < log_acc_prob
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_acc_prob <- difftime(Sys.time(),
