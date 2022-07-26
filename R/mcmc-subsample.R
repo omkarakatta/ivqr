@@ -50,8 +50,17 @@ dist_to_reference_subsample <- function(
 # transform distance
 # params$min_prob: smallest acceptable value for the probability (set to -Inf
 # (or any negative number) to make this ineffective)
+# returns a named list containing:
+# 1. result: transformed distance with correction
+# 2. mult_correction: multiplicative correction
+# 3. dist_transform: transformed distance without correction
 exp_dist <- function(distance, params) {
-  max(exp(-1 * params$gamma * distance^params$l_power), params$min_prob)
+  d <- exp(-1 * params$gamma * distance^params$l_power)
+  list(
+    result = max(d, params$min_prob),
+    mult_correction = 1,
+    dist_transform = d
+  )
 }
 
 # params$min_prob: smallest acceptable value for the probability (set to -Inf
@@ -59,14 +68,21 @@ exp_dist <- function(distance, params) {
 # params$n: number of observations in original data
 # params$m: number of observations in subsample
 # params$p: number of observations in active basis
+# 1. result: transformed distance with correction
+# 2. mult_correction: multiplicative correction
+# 3. dist_transform: transformed distance without correction
 exp_dist_correction <- function(distance, params) {
   n <- params$n
   m <- params$m
   p <- params$p
   sharing <- m - distance / 2
   correction <- choose(m - p, sharing - p) * choose(n - m, m - sharing)
-  max(1 / correction * exp(-1 * params$gamma * distance^params$l_power),
-      params$min_prob)
+  d <- exp(-1 * params$gamma * distance^params$l_power)
+  list(
+    result = max(1 / correction * d, params$min_prob),
+    mult_correction = 1 / correction,
+    dist_transform = d
+  )
 }
 
 # Main -------------------------------------------------------------------------
@@ -88,7 +104,7 @@ rwalk_subsample <- function(
   h_alt = NULL,
   distance_function = foc_violation, # foc_violation, dist_to_reference_subsample #nolint
   distance_params,
-  transform_function = exp_dist,
+  transform_function = exp_dist, # returns named list with `result` key
   transform_params,
   label_function = function(idx) {
     print(paste("RWALK IDX:", idx, "/", iterations))
@@ -156,8 +172,11 @@ rwalk_subsample <- function(
   )
   dist_current <- dist_current_info$dist
   xi_vec_current <- dist_current_info$xi_vec
-  # log_P_current <- log(transform_function(dist_current, transform_params))
+  # log_P_current <- log(transform_function(dist_current, transform_params)$result) #nolint
   log_P_current <- -Inf # this will ensure we move in the first step # Q: is this okay?
+  current_transformation <- list(result = NA,
+                                 mult_correction = NA,
+                                 dist_transform = NA)
   if (identical(distance_function, foc_violation)) {
     foc_violation_dist <- dist_current
     membership_current <- isTRUE(all.equal(foc_violation_dist, 0))
@@ -185,7 +204,7 @@ rwalk_subsample <- function(
       params = distance_params,
       reference_subsample = reference_subsample
     )$dist
-    P_alt_current <- transform_function(dist_alt_current, transform_params)
+    P_alt_current <- transform_function(dist_alt_current, transform_params)$result
     if (identical(distance_function, foc_violation)) {
       membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
     } else {
@@ -226,6 +245,8 @@ rwalk_subsample <- function(
 
   result_P_star <- vector("double", iterations) # Q(x_star | beta_star)
   result_proposed_dir <- vector("character", iterations) # closer, farther, same
+  result_star_transformation <- vector("list", iterations)
+  result_current_transformation <- vector("list", iterations)
 
   ones_reference <- setdiff(which(reference_subsample == 1), h)
   zeros_reference <- setdiff(which(reference_subsample == 0), h)
@@ -333,7 +354,8 @@ rwalk_subsample <- function(
       dist_star <- dist_star_info$dist
       xi_vec_star <- dist_star_info$xi_vec
       sharing_star <- m - dist_star / 2
-      log_P_star <- log(transform_function(dist_star, transform_params))
+      star_transformation <- transform_function(dist_star, transform_params)
+      log_P_star <- log(star_transformation$result)
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$compute_dist_star <- difftime(Sys.time(),
                                                                   start_time,
@@ -372,6 +394,7 @@ rwalk_subsample <- function(
       log_P_current <- log_P_star
       dist_current <- dist_star
       xi_vec_current <- xi_vec_star
+      current_transformation <- star_transformation
       record <- 1
       if (identical(distance_function, foc_violation)) {
         foc_violation_dist <- dist_current
@@ -397,7 +420,7 @@ rwalk_subsample <- function(
           reference_subsample = reference_subsample
         )$dist
         P_alt_current <- transform_function(dist_alt_current,
-                                            transform_params)
+                                            transform_params)$result
         if (identical(distance_function, foc_violation)) {
           membership_alt_current <- isTRUE(all.equal(dist_alt_current, 0))
         } else {
@@ -415,7 +438,9 @@ rwalk_subsample <- function(
     result_P[[mcmc_idx]] <- exp(log_P_current)
     result_P_star[[mcmc_idx]] <- exp(log_P_star)
     result_distance[[mcmc_idx]] <- dist_current
+    result_current_transformation[[mcmc_idx]] <- current_transformation
     result_distance_star[[mcmc_idx]] <- dist_star
+    result_star_transformation[[mcmc_idx]] <- star_transformation
     result_distance_alt[[mcmc_idx]] <- dist_alt_current
     result_membership[[mcmc_idx]] <- membership_current
     result_membership_alt[[mcmc_idx]] <- membership_alt_current
@@ -440,6 +465,8 @@ rwalk_subsample <- function(
     proposed_dir = result_proposed_dir,
     distance = result_distance,
     distance_star = result_distance_star,
+    star_transformation = result_star_transformation,
+    current_transformation = result_current_transformation,
     membership = result_membership,
     foc_violation = result_foc_violation,
     subsamples = result_D,
