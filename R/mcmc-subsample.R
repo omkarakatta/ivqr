@@ -267,6 +267,7 @@ rwalk_subsample <- function(
       common_zeros <- intersect(zeros_reference, zeros_current) #nolint
       different_ones <- intersect(zeros_reference, ones_current) #nolint
       different_zeros <- intersect(ones_reference, zeros_current) #nolint
+      stopifnot(length(common_ones) + length(common_zeros) + length(different_ones) + length(different_zeros) + length(h) == n)
       sharing <- length(intersect(which(reference_subsample == 1), which(D_current == 1))) #nolint
       stopifnot(sharing >= p) # we must always share active basis indices
       stopifnot(all(h %in% intersect(which(reference_subsample == 1), which(D_current == 1)))) # we must always share active basis indices #nolint
@@ -332,6 +333,7 @@ rwalk_subsample <- function(
       D_star[zero_to_one] <- 1L
       stopifnot(sum(D_current) == m)
       stopifnot(sum(D_star) == m)
+      stopifnot(sum(D_current != D_star) == 2) # ensure D_star is one-step neighbor
       if (profile_bool) {
         time$iterations[[mcmc_idx]]$get_D_star <- difftime(Sys.time(),
                                                            start_time,
