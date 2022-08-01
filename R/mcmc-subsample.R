@@ -102,7 +102,7 @@ rwalk_subsample <- function(
     # Collect information about current subsample.
     current_ones <- setdiff(which(current == 1L), h)
     current_zeros <- which(current == 0L)
-    
+
     # Characterize indices based on their values in `current` and `anchor`.
     # Here is a table to describe them:
     # | name              | value in current  | value in anchor |
@@ -176,7 +176,7 @@ rwalk_subsample <- function(
     )
 
     # Construct acceptance probability ratio.
-    log_acc_prob = log_P_star - log_P_current + log_Q_current - log_Q_star
+    log_acc_prob <- log_P_star - log_P_current + log_Q_current - log_Q_star
 
     # If we accept, update `current` information:
     # `record`
@@ -221,7 +221,7 @@ onestep_cardinalities <- function(n, m, p, r) {
   stopifnot(r >= p)
   c(
     "closer" = (m - r)^2,
-    "same" = (m - r)*(n - 2 * (m + r) - p),
+    "same" = (m - r) * (n - 2 * (m + r) - p),
     "farther" = (r - p) * (n - 2 * m + r)
   )
 }
