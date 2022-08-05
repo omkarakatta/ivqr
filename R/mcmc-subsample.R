@@ -140,7 +140,7 @@ rwalk_subsample <- function(
     # Compute number `r` of shared observations between proposal and anchor.
     if (d == "closer") {
       one_to_zero <- alt_sample(different_ones, 1)
-      zero_to_one <- alt_sample(different_ones, 1)
+      zero_to_one <- alt_sample(different_zeros, 1)
       r_star <- r_current + 1
     } else if (d == "same") {
       one_to_zero <- alt_sample(current_ones, 1)
@@ -159,6 +159,7 @@ rwalk_subsample <- function(
     star <- current
     star[one_to_zero] <- 0L
     star[zero_to_one] <- 1L
+    stopifnot(sum(star) == m)
     # Compute proposal probability of D⋆ given Dᵢ, i.e., log(Q(D⋆|Dᵢ))
     log_Q_star <- log_Q(onestep_current, d)
     # Compute proposal probability of D⋆ given Dᵢ, i.e., Q(Dᵢ|D⋆)
