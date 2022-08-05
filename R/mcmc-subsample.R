@@ -61,25 +61,27 @@ rwalk_subsample <- function(
   anchor_zeros <- which(anchor == 0L)
 
   # Pre-allocate Results -------------------------------------------------------
+  # [x] acceptance record
+  # [ ] distance-to-anchor of proposed subsamples D⋆
+  # [ ] distance-to-anchor of accepted subsamples Dᵢ
+  # [ ] foc membership of proposed subsamples D⋆
+  # [x] foc membership of accepted subsamples Dᵢ
+  # [ ] foc membership violation of proposed subsamples D⋆
+  # [x] foc membership violation of accepted subsamples Dᵢ
+  # [ ] |S(D⋆)| -- #subsamples whose distance-to-anchor is same as that of D⋆
+  # [ ] |S(Dᵢ)| -- #subsamples whose distance-to-anchor is same as that of Dᵢ
+  # [ ] |C₁(Dᵢ)| -- #one-step neighbors of Dᵢ that are closer to anchor than Dᵢ
+  # [ ] |S₁(Dᵢ)| -- #one-step neighbors of Dᵢ that are same to anchor than Dᵢ
+  # [ ] |F₁(Dᵢ)| -- #one-step neighbors of Dᵢ that are farther to anchor than Dᵢ
+  # [ ] |C₁(D⋆)| -- #one-step neighbors of D⋆ that are closer to anchor than D⋆
+  # [ ] |S₁(D⋆)| -- #one-step neighbors of D⋆ that are same to anchor than D⋆
+  # [ ] |F₁(D⋆)| -- #one-step neighbors of D⋆ that are farther to anchor than D⋆
+  # [ ] Proposed direction, denoted d (either "closer", "same", or "farther")
+  # [ ] |d₁(Dᵢ)| -- #one-step neighbors of Dᵢ that were in the direction d
+  # [ ] |¬d₁(D⋆)| -- #one-step neighbors of D⋆ that were in the direction ¬d
   out_record <- vector("double", iterations)
   out_violation_norm <- vector("double", iterations)
   out_membership <- vector("logical", iterations)
-  # acceptance record
-  # distance-to-anchor of proposed subsamples D⋆
-  # distance-to-anchor of accepted subsamples Dᵢ
-  # foc membership of proposed subsamples D⋆
-  # foc membership of accepted subsamples Dᵢ
-  # |S(D⋆)| -- #subsamples whose distance-to-anchor is same as that of D⋆
-  # |S(Dᵢ)| -- #subsamples whose distance-to-anchor is same as that of Dᵢ
-  # |C₁(Dᵢ)| -- #one-step neighbors of Dᵢ that are closer to anchor than Dᵢ
-  # |S₁(Dᵢ)| -- #one-step neighbors of Dᵢ that are same to anchor than Dᵢ
-  # |F₁(Dᵢ)| -- #one-step neighbors of Dᵢ that are farther to anchor than Dᵢ
-  # |C₁(D⋆)| -- #one-step neighbors of D⋆ that are closer to anchor than D⋆
-  # |S₁(D⋆)| -- #one-step neighbors of D⋆ that are same to anchor than D⋆
-  # |F₁(D⋆)| -- #one-step neighbors of D⋆ that are farther to anchor than D⋆
-  # Proposed direction, denoted d (either "closer", "same", or "farther")
-  # |d₁(Dᵢ)| -- #one-step neighbors of Dᵢ that were in the direction d
-  # |¬d₁(D⋆)| -- #one-step neighbors of D⋆ that were in the direction ¬d
 
   # MCMC Initialization --------------------------------------------------------
 
