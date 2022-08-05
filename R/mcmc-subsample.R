@@ -62,7 +62,7 @@ rwalk_subsample <- function(
 
   # Pre-allocate Results -------------------------------------------------------
   out_record <- vector("double", iterations)
-  # out_violation_norm <- # TODO: dimensions?
+  out_violation_norm <- vector("double", iterations)
   out_membership <- vector("logical", iterations)
   # acceptance record
   # distance-to-anchor of proposed subsamples D⋆
@@ -199,11 +199,13 @@ rwalk_subsample <- function(
       membership <- isTRUE(all.equal(violation_info$violation_norm, 0))
     }
     out_record[[mcmc_idx]] <- record
-    out_membership <- membership
+    out_membership[[mcmc_idx]] <- membership
+    out_violation_norm[[mcmc_idx]] <- violation_info$violation_norm
   }
   list(
     record = out_record,
-    membership = out_membership
+    membership = out_membership,
+    violation_norm = out_violation_norm
   )
 }
 
@@ -284,7 +286,7 @@ foc_violation <- function(
   right <- xi_vec - (1 - tau)
   violation <- pmax(left, right, rep(0, length(h))) # p by 1
   list(
-    violation_norm = sum(abs(violation)^l_norm) ^ (1 / l_norm), # Q: dimensions?
+    violation_norm = sum(abs(violation)^l_norm) ^ (1 / l_norm), # length is 1
     xi_vec = xi_vec
   )
 }
