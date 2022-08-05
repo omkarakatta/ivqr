@@ -141,7 +141,6 @@ rwalk_subsample <- function(
     if (d == "closer") {
       one_to_zero <- alt_sample(different_ones, 1)
       zero_to_one <- alt_sample(different_ones, 1)
-      log_Q_star <- -log(onestep_current[["closer"]]) - log(normalization)
       r_star <- r_current + 1
     } else if (d == "same") {
       one_to_zero <- alt_sample(current_ones, 1)
@@ -150,12 +149,10 @@ rwalk_subsample <- function(
         alt_sample(different_zeros, 1),
         alt_sample(common_zeros, 1)
       )
-      log_Q_star <- -log(onestep_current[["same"]]) - log(normalization)
       r_star <- r_current
     } else if (d == "farther") {
       one_to_zero <- alt_sample(common_ones, 1)
       zero_to_one <- alt_sample(common_zeros, 1)
-      log_Q_star <- -log(onestep_current[["farther"]]) - log(normalization)
       r_star <- r_current - 1
     }
     # Construct proposal subsample.
@@ -171,7 +168,7 @@ rwalk_subsample <- function(
     # Construct target probability of proposal.
     # P(D⋆|Dᵦ) = 1/S(D⋆) * exp{-γ * ‖D⋆ - Dᵦ‖}
     log_P_star <- max(
-      log_P(gamma, star, anchor, n, m, p, r),
+      log_P(gamma, star, anchor, n, m, p, r_star),
       zero_prob_tol
     )
 
@@ -286,7 +283,7 @@ foc_violation <- function(
   right <- xi_vec - (1 - tau)
   violation <- pmax(left, right, rep(0, length(h))) # p by 1
   list(
-    violation_norm = sum(abs(violation)^l_norm) ^ (1 / l_norm), # TODO: dimensions?
+    violation_norm = sum(abs(violation)^l_norm) ^ (1 / l_norm), # Q: dimensions?
     xi_vec = xi_vec
   )
 }
