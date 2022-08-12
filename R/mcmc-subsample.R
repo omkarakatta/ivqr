@@ -100,13 +100,8 @@ rwalk_subsample <- function(
 
   # MCMC Initialization --------------------------------------------------------
 
-  # We don't need to initialize `violation_info$violation_norm` because we know
-  # we will accept in the first iteration.
-  # Hence, we will compute the `violation_info$violation_norm` once we accept.
   incumbent <- initial
   log_P_incumbent <- -Inf # accept the proposal in the first iteration
-  violation_info <- list()
-  violation_info$xi_vec <- NULL
 
   # uniform draws
   log_u_vec <- log(runif(n = iterations))
