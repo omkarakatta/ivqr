@@ -138,40 +138,49 @@ rwalk_subsample <- function(
     }
     out_incumbent[[mcmc_idx]] <- incumbent_info
 
-    # Choose a direction uniformly at random.
-    d <- sample(
-      names(incumbent_info$onestep),
-      1,
-      prob = as.numeric(incumbent_info$onestep > 0)
-    )
-    out_info[[mcmc_idx]]$d <- d
+    # # Choose a direction uniformly at random.
+    # d <- sample(
+    #   names(incumbent_info$onestep),
+    #   1,
+    #   prob = as.numeric(incumbent_info$onestep > 0)
+    # )
+    # out_info[[mcmc_idx]]$d <- d
 
-    # Choose a one-step neighbor of `incumbent` uniformly at random in the
-    # direction `d`.
-    # Compute number `r` of shared observations between proposal and anchor.
-    if (d == "closer") {
-      one_to_zero <- alt_sample(incumbent_indices$different_ones, 1)
-      zero_to_one <- alt_sample(incumbent_indices$different_zeros, 1)
-      r_star <- r_incumbent + 1
-    } else if (d == "same") {
-      incumbent_ones <- setdiff(which(incumbent == 1L), h)
-      one_to_zero <- alt_sample(incumbent_ones, 1)
-      zero_to_one <- ifelse(
-        one_to_zero %in% incumbent_indices$common_ones,
-        alt_sample(incumbent_indices$different_zeros, 1),
-        alt_sample(incumbent_indices$common_zeros, 1)
-      )
-      r_star <- r_incumbent
-    } else if (d == "farther") {
-      one_to_zero <- alt_sample(incumbent_indices$common_ones, 1)
-      zero_to_one <- alt_sample(incumbent_indices$common_zeros, 1)
-      r_star <- r_incumbent - 1
-    }
+    # # Choose a one-step neighbor of `incumbent` uniformly at random in the
+    # # direction `d`.
+    # # Compute number `r` of shared observations between proposal and anchor.
+    # if (d == "closer") {
+    #   one_to_zero <- alt_sample(incumbent_indices$different_ones, 1)
+    #   zero_to_one <- alt_sample(incumbent_indices$different_zeros, 1)
+    #   r_star <- r_incumbent + 1
+    # } else if (d == "same") {
+    #   incumbent_ones <- setdiff(which(incumbent == 1L), h)
+    #   one_to_zero <- alt_sample(incumbent_ones, 1)
+    #   zero_to_one <- ifelse(
+    #     one_to_zero %in% incumbent_indices$common_ones,
+    #     alt_sample(incumbent_indices$different_zeros, 1),
+    #     alt_sample(incumbent_indices$common_zeros, 1)
+    #   )
+    #   r_star <- r_incumbent
+    # } else if (d == "farther") {
+    #   one_to_zero <- alt_sample(incumbent_indices$common_ones, 1)
+    #   zero_to_one <- alt_sample(incumbent_indices$common_zeros, 1)
+    #   r_star <- r_incumbent - 1
+    # }
+
+    # Choose subsample uniformly at random
+    incumbent_ones <- setdiff(which(incumbent == 1L), h)
+    incumbent_zeros <- which(incumbent == 0L)
+    one_to_zero <- alt_sample(incumbent_ones, 1)
+    zero_to_one <- alt_sample(incumbent_zeros, 1)
+    log_Q <- function(...) return(1)
+
     # Construct proposal subsample.
     star <- incumbent
     star[one_to_zero] <- 0L
     star[zero_to_one] <- 1L
     stopifnot(sum(star) == m)
+    r_star <- length(intersect(which(star == 1L), which(anchor == 1L))) # uniform proposal of subsamples
 
     proposal_info <- subsample_information(
       subsample = star,
