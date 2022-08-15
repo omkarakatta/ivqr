@@ -191,7 +191,7 @@ rwalk_subsample <- function(
     # P(D⋆|Dᵦ) = 1/S(D⋆) * exp{-γ * ‖D⋆ - Dᵦ‖}
     log_P_star <- max(
       log_P(gamma, star, anchor, proposal_info$global_cardinality),
-      zero_prob_tol
+      log(zero_prob_tol)
     )
 
     # Construct acceptance probability ratio.
@@ -390,7 +390,7 @@ rwalk_subsample_uniform <- function(
     # P(D⋆|Dᵦ) = 1/S(D⋆) * exp{-γ * ‖D⋆ - Dᵦ‖}
     log_P_star <- max(
       log_P(gamma, star, anchor, proposal_info$global_cardinality),
-      zero_prob_tol
+      log(zero_prob_tol)
     )
 
     # Construct acceptance probability ratio.
