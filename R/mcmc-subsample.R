@@ -17,7 +17,12 @@
 #' @param gamma Tuning parameter on target probability
 #' @param zero_prob_tol smallest possible value for the target probability
 #'
-#' @return
+#' @return A named list with the following components:
+#'   - incumbent: list of details about each iteration's incumbent subsample
+#'   - proposal: list of details about each iteration's proposal subsample
+#'   - accepted: list of details about each iteration's accepted subsample
+#'   - info: list of iteration-specific information, e.g., components of
+#'   - acceptance probability ratio
 rwalk_subsample <- function(
   h,
   Y, X, D, Phi,
@@ -33,7 +38,6 @@ rwalk_subsample <- function(
   initial <- as.integer(initial)
   n <- length(anchor) # number of observations in original data set
   m <- sum(anchor)    # number of observations in subsample
-  p <- length(h)      # number of indices in active basis
   xi_mat <- compute_foc_conditions(
     h,
     Y = Y,
