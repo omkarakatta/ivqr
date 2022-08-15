@@ -239,6 +239,205 @@ rwalk_subsample <- function(
   )
 }
 
+# Propose one-step neighbors uniformly at random.
+rwalk_subsample_uniform <- function(
+  h,
+  Y, X, D, Phi,
+  tau,
+  anchor,
+  initial,
+  iterations,
+  gamma,
+  zero_prob_tol # TODO: need to add this to the note
+) {
+  # Setup-level Information, e.g., size of problem, foc conditions, etc. -------
+  anchor <- as.integer(anchor)
+  initial <- as.integer(initial)
+  n <- length(anchor) # number of observations in original data set
+  m <- sum(anchor)    # number of observations in subsample
+  xi_mat <- compute_foc_conditions(
+    h,
+    Y = Y,
+    X = X,
+    D = D,
+    Phi = Phi,
+    tau = tau
+  )
+
+  # Sanity Checks --------------------------------------------------------------
+
+  # Subsamples can only contain 0's and 1's.
+  stopifnot(sort(unique(anchor)) == c(0L, 1L))
+  stopifnot(sort(unique(initial)) == c(0L, 1L))
+  # Subsamples must be n-long vectors with m 1's.
+  stopifnot(length(initial) == n)
+  stopifnot(sum(initial) == m)
+  # Subsamples must have 1's in the active basis indices.
+  stopifnot(unique(anchor[h]) == 1)
+  stopifnot(unique(initial[h]) == 1)
+
+  # Pre-allocate Results -------------------------------------------------------
+
+  # At each iteration, we will need to keep track of the information for three
+  # types of subsamples:
+  #   1. incumbent subsample
+  #   2. proposed subsample
+  #   3. accepted subsample
+  # If we reject the proposal, then the accepted subsample is the same as the
+  # incumbent subsample.
+  # If we accept, then the accepted subsample is the same as the proposed
+  # subsample, and the proposed subsample becomes the new incumbent.
+  #
+  # Note that info for incumbent subsample will be calculated in the previous
+  # iteration but saved in the current iteration. Meanwhile, info for the
+  # proposed subsample will be calculated and saved in the middle of the
+  # iteration. Finally, the info for the accepted subsample will be saved at the
+  # end of the iteration based on whether we accept or reject.
+  #
+  # For each of these types of subsamples, we need to store:
+  #   1. distance-to-anchor
+  #   2. FOC membership
+  #   3. S, i.e., #subsamples with the same distance-to-anchor
+  #   4. one-step info
+  #     - C₁, i.e., #one-step neighbors that are closer to anchor
+  #     - S₁, i.e., #one-step neighbors that are same distance away from anchor
+  #     - F₁, i.e., #one-step neighbors that are farther away from anchor
+  #
+  # In addition to storing information about these subsamples, we'll also store
+  # the following at each iteration:
+  #   1. proposed direction
+  #   2. whether we accept or reject the proposal
+  #   3. acceptance-probability ratio components, i.e.,
+  #      log_Q_star
+  #      log_Q_incumbent
+  #      log_P_star
+  #      log_P_incumbent
+  #      log_acc_prob
+
+  out_incumbent <- vector("list", iterations)
+  out_proposal <- vector("list", iterations)
+  out_accepted <- vector("list", iterations)
+  out_info <- vector("list", iterations)
+
+  # MCMC Initialization --------------------------------------------------------
+
+  incumbent <- initial
+  log_P_incumbent <- -Inf # accept the proposal in the first iteration
+
+  # uniform draws
+  log_u_vec <- log(runif(n = iterations))
+
+  # Run MCMC -------------------------------------------------------------------
+  for (mcmc_idx in seq_len(iterations)) {
+    # Draw from uniform distribution.
+    log_u <- log_u_vec[[mcmc_idx]]
+
+    # Collect information about incumbent subsample.
+    # After the first iteration, the incumbent information will be updated based
+    # on whether we accept (i.e., proposal becomes incumbent) or reject (i.e.,
+    # incumbent remains the same).
+    if (mcmc_idx == 1) {
+      incumbent_indices <- characterize_indices(
+        subsample = incumbent,
+        anchor = anchor,
+        h = h
+      )
+      r_incumbent <- incumbent_indices$sharing
+      incumbent_info <- subsample_information(
+        subsample = incumbent,
+        anchor = anchor,
+        h = h,
+        r = r_incumbent,
+        tau = tau,
+        xi_mat = xi_mat
+      )
+    }
+    out_incumbent[[mcmc_idx]] <- incumbent_info
+
+    # Choose a direction uniformly at random.
+    d <- sample(
+      names(incumbent_info$onestep),
+      1,
+      prob = as.numeric(incumbent_info$onestep > 0)
+    )
+    out_info[[mcmc_idx]]$d <- d
+
+    # Construct proposal subsample.
+    one_to_zero <- alt_sample(setdiff(which(incumbent == 1L), h), 1)
+    zero_to_one <- alt_sample(which(incumbent == 0L), 1)
+    star <- incumbent
+    star[one_to_zero] <- 0L
+    star[zero_to_one] <- 1L
+    stopifnot(sum(star) == m)
+    r_star <- length(intersect(which(star == 1L), which(anchor == 1L)))
+
+    proposal_info <- subsample_information(
+      subsample = star,
+      anchor = anchor,
+      h = h,
+      r = r_star,
+      tau = tau,
+      xi_mat = xi_mat
+    )
+    out_proposal[[mcmc_idx]] <- proposal_info
+
+    # Compute proposal probability of D⋆ given Dᵢ, i.e., log(Q(D⋆|Dᵢ))
+    log_Q_star <- 0
+    # Compute proposal probability of D⋆ given Dᵢ, i.e., Q(Dᵢ|D⋆)
+    log_Q_incumbent <- 0
+
+    # Construct target probability of proposal.
+    # P(D⋆|Dᵦ) = 1/S(D⋆) * exp{-γ * ‖D⋆ - Dᵦ‖}
+    log_P_star <- max(
+      log_P(gamma, star, anchor, proposal_info$global_cardinality),
+      zero_prob_tol
+    )
+
+    # Construct acceptance probability ratio.
+    log_acc_prob <- log_P_star - log_P_incumbent + log_Q_incumbent - log_Q_star
+
+    out_info[[mcmc_idx]]$log_acc_prob <- log_acc_prob
+    out_info[[mcmc_idx]]$log_Q_star <- log_Q_star
+    out_info[[mcmc_idx]]$log_Q_incumbent <- log_Q_incumbent
+    out_info[[mcmc_idx]]$log_P_star <- log_P_star
+    out_info[[mcmc_idx]]$log_P_incumbent <- log_P_incumbent
+
+    # If we don't accept,
+    #   - let the `record` be 0
+    #   - let `accepted` info be given by `incumbent_info`
+    # Else, if we accept,
+    #   - let the `record` be 1
+    #   - let `accepted` info be given by `proposal_info`
+    #   - replace `incumbent` info with `proposal` info
+    out_info[[mcmc_idx]]$record <- 0
+    out_accepted[[mcmc_idx]] <- incumbent_info
+    if (log_u < log_acc_prob) {
+      out_info[[mcmc_idx]]$record <- 1
+      out_accepted[[mcmc_idx]] <- proposal_info
+
+      # for next iteration, update the `incumbent` with `proposal` details
+      incumbent <- star
+      log_P_incumbent <- log_P_star
+      incumbent_info <- proposal_info
+      incumbent_indices <- characterize_indices(
+        subsample = incumbent,
+        anchor = anchor,
+        h = h
+      )
+      r_incumbent <- r_star
+    }
+  }
+
+  # Return results -------------------------------------------------------------
+
+  list(
+    incumbent = out_incumbent,
+    proposal = out_proposal,
+    accepted = out_accepted,
+    info = out_info
+  )
+}
+
 # Helpers ----------------------------------------------------------------------
 
 # @param n Number of observations in original data set
