@@ -298,7 +298,7 @@ gridsearch_parallel <- function(grid,
   }
 
   # set up cluster
-  cl <- parallel::makeCluster(cores)
+  cl <- parallel::makeCluster(cores, setup_strategy = "sequential")
   doParallel::registerDoParallel(cl)
   on.exit(parallel::stopCluster(cl))
 
