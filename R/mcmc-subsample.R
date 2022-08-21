@@ -438,6 +438,85 @@ rwalk_subsample_uniform <- function(
   )
 }
 
+# TODO: refactor
+# TODO: associate FOC membership and subsample characteristics
+sample_distance_then_subsample <- function(
+  anchor,
+  h,
+  gamma,
+  num_samples,
+  Y, X, D, Phi,
+  tau
+) {
+  n <- length(anchor)
+  m <- sum(anchor)
+  p <- length(h)
+  min_d <- 0
+  max_d <- ifelse(m - p <= n - m, 2 * (m - p), 2 * (n - m))
+  distances <- seq(min_d, max_d, by = 2)
+  prob <- exp(-gamma * distances)
+  # sample 1 subsample `num_samples` times according to `prob`
+  sampled_distances_index <- rmultinom(num_samples, 1, prob = prob)
+  sampled_distances_vec <- apply(
+    sampled_distances_index,
+    2,
+    function(col) {
+      distances[which(col == 1)]
+    }
+  )
+  sampled_distances <- sort(unique(sampled_distances_vec))
+  sampled_distances_count <- table(sampled_distances_vec)
+  foc_membership <- vector("double", num_samples)
+  S_D <- vector("double", num_samples)
+  d_vec <- vector("double", num_samples)
+  prob_vec <- vector("double", num_samples)
+  sample_subsample <- function(d) {
+    r <- m - d / 2
+    anchor_ones <- setdiff(which(anchor == 1), h)
+    anchor_zeros <- which(anchor == 0)
+    one_to_zero <- sample(anchor_ones, r - p)
+    zero_to_one <- sample(anchor_zeros, m - r)
+    new <- anchor
+    new[one_to_zero] <- 0
+    new[zero_to_one] <- 1
+    new
+  }
+  num_subsamples <- function(d) {
+    r <- m - d / 2
+    choose(m - p, r - p) * choose(n - m, m - r)
+  }
+  # S_D <- num_subsamples(sampled_distances)
+  xi_mat <- compute_foc_conditions(
+    h,
+    Y = Y,
+    X = X,
+    D = D,
+    Phi = Phi,
+    tau = tau
+  )
+  counter <- 0
+  for (d_idx in seq_along(sampled_distances)) {
+    for (sub in seq_len(sampled_distances_count[d_idx])) {
+      counter <- counter + 1
+      d <- sampled_distances[[d_idx]]
+      new <- sample_subsample(d)
+      foc_info <- foc_violation(h, new, tau, xi_mat)
+      foc_membership[[counter]] <- isTRUE(all.equal(foc_info$violation_norm, 0))
+      S_D[[counter]] <- num_subsamples(d)
+      d_vec[[counter]] <- d
+      prob_vec[[counter]] <- exp(-gamma * d)
+    }
+  }
+  list(
+    foc_membership = foc_membership,
+    sampled_distances = rep(sampled_distances, sampled_distances_count),
+    sampled_distances_count = sampled_distances_count,
+    num_subsamples = S_D,
+    prob = prob_vec,
+    d_vec = d_vec
+  )
+}
+
 # Helpers ----------------------------------------------------------------------
 
 # @param n Number of observations in original data set
